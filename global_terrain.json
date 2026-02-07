@@ -1,0 +1,23 @@
+{
+    ".": {
+        "name": "Dirt",
+        "color": "&y",
+        "move_cost": 1,
+        "blocks_move": false
+    },
+    "#": {
+        "name": "Stone Wall",
+        "color": "&G",
+        "blocks_move": true
+    },
+    "x": {
+        "name": "Wall",
+        "color": "&g",
+        "blocks_move": true
+    },
+    "T": {
+        "name": "Tree",
+        "color": "&g",
+        "move_cost": 2
+    }
+}

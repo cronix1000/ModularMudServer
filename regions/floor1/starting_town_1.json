@@ -1,0 +1,77 @@
+{
+  "id": 1,
+  "name": "Town Square",
+  "description": "The bustling heart of the town. A large fountain sits in the center.",
+  "width": 7,
+  "height": 7,
+  "layout": [
+    "x x . . . x x",
+    "x . . . . . x",
+    ". . . . . . .",
+    ". . . . . . .",
+    "x x . . . . .",
+    "x x x . . . x",
+    "x x x x x x x"
+  ],
+  "spawn": {
+    "x": 3,
+    "y": 3
+  },
+  "exits": {
+    "north": {
+      "target_room": 2,
+      "dest_x": -1,
+      "dest_y": -1
+    },
+    "east": {
+      "target_room": 5,
+      "dest_x": 0,
+      "dest_y": 4
+    }
+  },
+  "spawns": [
+    ". . x . . . .",
+    ". . . . . . .",
+    ". C . n . . .",
+    ". . . . s . .",
+    ". . O . . . .",
+    ". . . . . . .",
+    ". . . x . . ."
+  ],
+  "spawn_legend": {
+    "g": {
+      "type": "mob",
+      "id": "goblin_grunt",
+      "overrides": { "health": { "hp": 5 } }
+    },
+    "s": {
+      "type": "item",
+      "id": "stick"
+    },
+    "O": {
+      "type": "interactable",
+      "id": "portal",
+        "overrides": {
+            "destination": {
+            "target_room": 10,
+            "dest_x": 2,
+            "dest_y": 2
+            }
+        }
+    },
+    "C": {
+      "type": "interactable",
+      "id": "treasure_chest",
+        "overrides": {
+            "components": {
+                "is_locked": true,
+                "key_id": 1001
+            }
+        }
+    },
+    "n": {
+      "type" :"npc",
+      "id": "starting_npc"
+    }
+  }
+}

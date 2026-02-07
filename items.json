@@ -1,0 +1,71 @@
+{
+  "stick": {
+    "id": 1,
+    "name": "stick",
+    "description": "A basic wooden stick.",
+    "char": "|}",
+    "color": "&y",
+    "value": 1,
+    "weight": 1,
+    "equippable": true,
+    "gettable": true,
+    "components": {
+      "weapon": {
+        "minDamage": 1,
+        "maxDamage": 3,
+        "strScaling": 0.5,
+        "defaultSkill": "skill_poke",
+        "damageType": "blunt"
+      }
+    }
+  },
+  "flaming_sword": {
+    "name": "sword of embers",
+    "char": "|",
+    "components": {
+      "weapon": {
+        "minDamage": 10,
+        "maxDamage": 15,
+        "defaultSkill": "skill_slash",
+        "damageType": "slashing"
+      },
+      "scripts": {
+        "on_hit_proc": "procs/flame_burst.lua"
+      }
+    }
+  },
+
+  "iron_chestplate": {
+    "name": "rusty iron chestplate",
+    "char": "[",
+    "color": "&w",
+    "weight": 15,
+    "equippable": true,
+    "components": {
+      "armour": {
+        "defense": 12,
+        "magic_defense": -2,
+        "slot": "torso",
+        "type": "plate"
+      },
+      "sockets": {
+        "max": 2
+      }
+    }
+  },
+
+  "wizard_hat": {
+    "name": "pointy wizard hat",
+    "char": "^",
+    "equippable": true,
+    "components": {
+      "armour": {
+        "defense": 1,
+        "magic_defense": 5,
+        "slot": "head",
+        "type": "cloth"
+      },
+      "passive_skills": [ "skill_mana_regen_minor" ]
+    }
+  }
+}

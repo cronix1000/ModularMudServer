@@ -1,0 +1,26 @@
+{
+   "effects":{},
+   "environment": {},
+   "overrides": {
+    "mobs": [
+        {
+             "id": "goblin_grunt",
+             "health": {
+                "hp": 5
+             }
+        }
+    ],
+    "items": [
+        
+    ],
+    "npcs": [
+        
+    ],
+    "interactables": [
+        
+    ],
+    "tiles": [
+        
+    ]
+   }
+}

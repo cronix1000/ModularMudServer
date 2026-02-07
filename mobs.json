@@ -1,0 +1,21 @@
+{
+    "goblin_grunt": {
+        "name": "Goblin Grunt",
+        "id": 1,
+        "description": "goblin grunt",
+        "char": "g",
+        "color": "&g",
+        "stat": {
+            "health": 2,
+            "strength": 1,
+            "armour": 1,
+            "attack": 1
+        },
+        "ai": "aggressive",
+        "loot_drop": "goblin_loot_table_weak",
+        "voice" : "goblin", 
+        "components": {
+            "faction": "goblin"
+        }
+    }
+}

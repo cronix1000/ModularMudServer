@@ -1,0 +1,71 @@
+{
+    "portal": {
+        "name": "Mystical Portal",
+        "char": "O",
+        "color": "&c",
+        "description": "A swirling portal of magical energy. You can 'enter' it to travel.",
+        "type": "portal",
+        "script": "scripts/interactables/portal.lua",
+        "components": {
+            "destination_room": -1,
+            "direction_command": "enter",
+            "is_open": true,
+            "is_locked": false,
+            "key_id": -1
+        }
+    },
+    "treasure_chest": {
+        "name": "Ornate Treasure Chest",
+        "char": "C",
+        "color": "&y",
+        "description": "A golden chest that gleams in the light. You can 'open' it to see what's inside.",
+        "type": "chest",
+        "script": "scripts/interactables/treasure_chest.lua",
+        "components": {
+            "is_locked": false,
+            "key_id": -1,
+            "loot_table": "basic_treasure",
+            "max_uses": 1
+        }
+    },
+    "magic_lever": {
+        "name": "Ancient Lever",
+        "char": "L",
+        "color": "&g",
+        "description": "An old stone lever covered in mysterious runes. You can 'pull' it.",
+        "type": "lever",
+        "script": "scripts/interactables/magic_lever.lua",
+        "components": {
+            "state": "up",
+            "event_trigger": "door_open",
+            "target_room": -1
+        }
+    },
+    "healing_shrine": {
+        "name": "Shrine of Healing",
+        "char": "S",
+        "color": "&w",
+        "description": "A divine shrine emanating healing energy. You can 'pray' at it.",
+        "type": "shrine",
+        "script": "scripts/interactables/healing_shrine.lua",
+        "components": {
+            "heal_amount": 25,
+            "cooldown": 300,
+            "max_uses_per_player": 3
+        }
+    },
+    "magic_door": {
+        "name": "Enchanted Door",
+        "char": "D",
+        "color": "&m",
+        "description": "A heavy door with magical wards. You can 'open' it if you have the right key.",
+        "type": "door",
+        "script": "scripts/interactables/magic_door.lua",
+        "components": {
+            "is_open": false,
+            "is_locked": true,
+            "key_id": "magic_key",
+            "destination_room": -1
+        }
+    }
+}

@@ -1,0 +1,44 @@
+{
+  "id": 3,
+  "name": "south_sewer",
+  "description": "",
+  "width": 5,
+  "height": 5,
+  "layout": [
+    "x . . . x",
+    "x . . . x",
+    "x . . . x",
+    "x . . . x",
+    "x x x x x"
+  ],
+  "spawn": {
+    "x": 3,
+    "y": 3
+  },
+  "exits": {
+    "north": {
+      "target_room": 2,
+      "dest_x": 2,
+      "dest_y": 2
+    }
+  },
+  "spawns": [
+    ". . . . .",
+    ". . . r .",
+    ". r . . .",
+    ". . O . .",
+    ". . . . ."
+  ],
+  "spawn_legend": {
+    "r": {
+      "type": "mob",
+      "id": "sewer_rat",
+      "overrides": {
+        "drop": {
+          "item": "key",
+          "chance": 0.3
+        }
+      }
+    }
+  }
+}

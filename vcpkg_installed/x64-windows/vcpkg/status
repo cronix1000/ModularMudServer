@@ -1,0 +1,59 @@
+Package: vcpkg-cmake-config
+Version: 2024-05-23
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 183a97d7f0da336c8e23f72f668ca2e0df80613151305495be4fe4f7a46c7e1d
+Status: install ok installed
+
+Package: vcpkg-cmake
+Version: 2024-04-23
+Architecture: x64-windows
+Multi-Arch: same
+Abi: accaffbf222c89141d21080180e8c021eb64e9480dcea569a694fe59a2df2fd6
+Status: install ok installed
+
+Package: sqlite3
+Version: 3.51.1
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 962c7a10b860471e3ca131d1e0e1b310eabbebcff12de5e7bef3c980b84f1c41
+Description: SQLite is a software library that implements a self-contained, serverless, zero-configuration, transactional SQL database engine.
+Default-Features: json1
+Status: install ok installed
+
+Package: sqlite3
+Feature: json1
+Architecture: x64-windows
+Multi-Arch: same
+Description: Enable JSON functionality for sqlite3
+Status: install ok installed
+
+Package: lua
+Version: 5.4.8
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: e2fc89226443f7ca3c52f438ec9dd4373dfeb08ae55a25088d35769579ff062b
+Description: A powerful, fast, lightweight, embeddable scripting language
+Status: install ok installed
+
+Package: nlohmann-json
+Version: 3.12.0
+Port-Version: 1
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 00df11c3a54d57a01a5f663c4fded533d59a658b7dfeea9c014ae482c52c96f6
+Description: JSON for Modern C++
+Status: install ok installed
+
+Package: sol2
+Version: 3.5.0
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: b12b44cd68414a91be228b7e9610b30af0297d8a3d21dfc23c26e761c18071b8
+Description: Sol3 (sol2 v3.0) - a C++ <-> Lua API wrapper with advanced features and top notch performance
+Status: install ok installed
+

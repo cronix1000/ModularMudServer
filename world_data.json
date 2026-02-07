@@ -1,0 +1,123 @@
+{
+    "rooms": [
+        {
+            "id": 1,
+            "name": "Town Square",
+            "description": "The bustling heart of the town. A large fountain sits in the center.",
+            "width": 7,
+            "height": 7,
+            "layout": [
+                "x x . . . x x",
+                "x . . . . . x",
+                ". . . . . . .",
+                ". . . . . . .",
+                "X X O . . . .",
+                "x X X . . . x",
+                "x x x X x x x"
+            ],
+            "exits": {
+                "north": {
+                    "target_room": 2,
+                    "dest_x": -1,
+                    "dest_y": -1
+                },
+                "east": {
+                    "target_room": 5,
+                    "dest_x": 0,
+                    "dest_y": 4
+                }
+            },
+            "spawns": [
+                ". . x . . . .",
+                ". . . . . . .",
+                ". . . g . . .",
+                ". . . . s . .",
+                ". . . . . . .",
+                ". . . . . . .",
+                ". . . x . . ."
+            ],
+            "spawn_legend": {
+                "g": {
+                    "type": "mob",
+                    "id": "goblin_grunt",
+                    "overrides": { "health": { "hp": 5 } }
+                },
+                "s": {
+                    "type": "item",
+                    "id":  "stick"
+                }
+            }
+        },
+        {
+            "id": 2,
+            "name": "Forest Path",
+            "description": "A narrow dirt path surrounded by dense trees.",
+            "width": 7,
+            "height": 7,
+            "scripts": {
+                "on_enter": "on_enter_one"
+            },
+            "exits": {
+                "south": 1,
+                "north": {
+                    "target_room": 3,
+                    "dest_x": 3,
+                    "dest_y": 3
+                }
+            },
+            "interactables": [],
+            "spawns": [
+                {
+                    "type": "Goblin",
+                    "x": 2,
+                    "y": 4,
+                    "chance": 0.5
+                },
+                {
+                    "type": "Wolf",
+                    "x": 5,
+                    "y": 2,
+                    "chance": 0.3
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "name": "Dark Clearing",
+            "description": "An ominous clearing. You see a sturdy chest against the far wall.",
+            "width": 5,
+            "height": 5,
+            "layout": [
+                "x x x x x",
+                "x . . . x",
+                "x . . . x",
+                "x . . . x",
+                "x x . x x"
+            ],
+            "exits": {
+                "south": 2
+            },
+            "interactables": [
+                {
+                    "type": "Chest",
+                    "x": 2,
+                    "y": 1,
+                    "components": {
+                        "description": "It looks locked.",
+                        "openable": true,
+                        "key_required": 101,
+                        "loot_table": "rare_loot"
+                    }
+                }
+            ],
+            "spawns": [
+                {
+                    "type": "BossOrc",
+                    "x": 2,
+                    "y": 2,
+                    "chance": 1.0
+                }
+            ]
+        }
+    ]
+}

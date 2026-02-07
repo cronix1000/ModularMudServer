@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MUD Room Architect</title>
+    <style>
+        body { font-family: sans-serif; background: #1a1a1a; color: #e0e0e0; display: flex; gap: 20px; padding: 20px; }
+        .panel { background: #2d2d2d; padding: 20px; border-radius: 8px; flex: 1; }
+        .grid-container { display: inline-block; background: #000; padding: 5px; border: 2px solid #444; }
+        .row { display: flex; }
+        .cell { width: 30px; height: 30px; border: 1px solid #333; display: flex; align-items: center; 
+                justify-content: center; cursor: pointer; font-family: monospace; font-weight: bold; }
+        .cell:hover { background: #444; }
+        .cell.wall { color: #ff5555; }
+        .cell.floor { color: #55ff55; }
+        .cell.water { color: #5555ff; }
+        textarea { width: 100%; height: 150px; background: #000; color: #00ff00; font-family: monospace; }
+        input, select { background: #3d3d3d; color: white; border: 1px solid #555; padding: 5px; margin-bottom: 10px; }
+        label { display: block; margin-top: 10px; font-size: 0.8em; color: #aaa; }
+        button { background: #4CAF50; color: white; border: none; padding: 10px; cursor: pointer; margin-top: 10px; }
+        .legend-item { display: flex; gap: 5px; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <h2>Room Metadata</h2>
+    <label>Room ID</label><input type="number" id="room_id" value="1">
+    <label>Name</label><input type="text" id="name" placeholder="Room Name">
+    <label>Description</label><textarea id="desc"></textarea>
+    
+    <label>Dimensions (WxH)</label>
+    <input type="number" id="width" value="5" style="width: 50px;"> x 
+    <input type="number" id="height" value="5" style="width: 50px;">
+    <button onclick="rebuildGrids()">Update Grid Size</button>
+
+    <h3>Exits</h3>
+    <div id="exits-list"></div>
+    <button onclick="addExit()">+ Add Exit</button>
+</div>
+
+<div class="panel">
+    <h2>Map & Spawns</h2>
+    <p>Click layout cell to toggle: <b>.</b> (floor), <b>x</b> (wall), <b>~</b> (water)</p>
+    <div id="layout-grid" class="grid-container"></div>
+    
+    <p>Type character for Spawns (r, g, s, n...):</p>
+    <div id="spawn-grid" class="grid-container"></div>
+
+    <h3>Spawn Legend</h3>
+    <div id="legend-list"></div>
+    <button onclick="addLegend()">+ Add Legend Item</button>
+</div>
+
+<div class="panel">
+    <h2>JSON Output</h2>
+    <button onclick="exportJSON()" style="background: #2196F3;">Generate JSON</button>
+    <textarea id="output" readonly></textarea>
+</div>
+
+<script>
+    let layout = [];
+    let spawns = [];
+    
+    function rebuildGrids() {
+        const w = document.getElementById('width').value;
+        const h = document.getElementById('height').value;
+        const lGrid = document.getElementById('layout-grid');
+        const sGrid = document.getElementById('spawn-grid');
+        lGrid.innerHTML = ''; sGrid.innerHTML = '';
+        layout = Array(parseInt(h)).fill().map(() => Array(parseInt(w)).fill('.'));
+        spawns = Array(parseInt(h)).fill().map(() => Array(parseInt(w)).fill('.'));
+
+        for(let y=0; y<h; y++) {
+            let lRow = document.createElement('div'); lRow.className='row';
+            let sRow = document.createElement('div'); sRow.className='row';
+            for(let x=0; x<w; x++) {
+                let lCell = document.createElement('div'); lCell.className='cell'; lCell.innerText = '.';
+                lCell.onclick = () => {
+                    const cycle = {'.': 'x', 'x': '~', '~': '.'};
+                    lCell.innerText = cycle[lCell.innerText];
+                    layout[y][x] = lCell.innerText;
+                };
+                lRow.appendChild(lCell);
+
+                let sCell = document.createElement('div'); sCell.className='cell'; sCell.innerText = '.';
+                sCell.onclick = () => {
+                    let char = prompt("Enter legend character (e.g. g, r, s):", ".");
+                    sCell.innerText = char || '.';
+                    spawns[y][x] = sCell.innerText;
+                };
+                sRow.appendChild(sCell);
+            }
+            lGrid.appendChild(lRow);
+            sGrid.appendChild(sRow);
+        }
+    }
+
+    function addExit() {
+        const container = document.getElementById('exits-list');
+        container.innerHTML += `<div class="legend-item">
+            <input type="text" placeholder="dir" style="width:60px">
+            <input type="number" placeholder="id" style="width:40px">
+            <input type="text" placeholder="x,y" style="width:40px" value="-1,-1">
+        </div>`;
+    }
+
+    function addLegend() {
+        const container = document.getElementById('legend-list');
+        container.innerHTML += `<div class="legend-item">
+            <input type="text" placeholder="char" style="width:30px">
+            <select><option>mob</option><option>item</option><option>npc</option><option>interactable</option></select>
+            <input type="text" placeholder="id">
+        </div>`;
+    }
+
+    function exportJSON() {
+        const exits = {};
+        document.querySelectorAll('#exits-list .legend-item').forEach(div => {
+            const inputs = div.querySelectorAll('input');
+            const coords = inputs[2].value.split(',');
+            exits[inputs[0].value] = { target_room: parseInt(inputs[1].value), dest_x: parseInt(coords[0]), dest_y: parseInt(coords[1]) };
+        });
+
+        const legend = {};
+        document.querySelectorAll('#legend-list .legend-item').forEach(div => {
+            const inputs = div.querySelectorAll('input');
+            const type = div.querySelector('select').value;
+            legend[inputs[0].value] = { type: type, id: inputs[1].value };
+        });
+
+        const data = {
+            id: parseInt(document.getElementById('room_id').value),
+            name: document.getElementById('name').value,
+            description: document.getElementById('desc').value,
+            width: parseInt(document.getElementById('width').value),
+            height: parseInt(document.getElementById('height').value),
+            layout: layout.map(row => row.join(' ')),
+            spawn: { x: 0, y: 0 },
+            exits: exits,
+            spawns: spawns.map(row => row.join(' ')),
+            spawn_legend: legend
+        };
+        document.getElementById('output').value = JSON.stringify(data, null, 2);
+    }
+
+    rebuildGrids();
+</script>
+</body>
+</html>

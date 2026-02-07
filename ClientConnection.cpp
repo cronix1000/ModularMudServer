@@ -1,0 +1,115 @@
+#include "ClientConnection.h"
+
+#include "GameEngine.h"  
+#include "GameState.h"   
+#include <cstring>       
+#include <cstdio>   
+
+int ClientConnection::RecieveData() {
+    char recvbuf[DEFAULT_BUFLEN];
+    // Clear buffer not strictly necessary if we use the return value correctly, 
+    // but good for safety.
+    memset(recvbuf, 0, DEFAULT_BUFLEN);
+
+    int bytesReceived = recv(this->tcpSocket, recvbuf, DEFAULT_BUFLEN - 1, 0);
+
+    if (bytesReceived > 0) {
+        // 1. Append raw bytes to our persistent buffer
+        inputBuffer.append(recvbuf, bytesReceived);
+
+        // 2. Process ALL complete messages in the buffer
+        size_t pos = 0;
+        // Find position of the next newline character
+        while ((pos = inputBuffer.find('\n')) != std::string::npos) {
+            // Extract the command line (up to the \n)
+            std::string line = inputBuffer.substr(0, pos);
+
+            // Remove the processed part from the buffer (including the \n)
+            inputBuffer.erase(0, pos + 1);
+
+            // Handle Telnet \r (Carriage Return) if present at the end
+            if (!line.empty() && line.back() == '\r') {
+                line.pop_back();
+            }
+
+            if (line.empty()) continue;
+
+            std::vector<std::string> parameters = std::vector<std::string>();
+            std::stringstream ss(line);
+            std::string token;
+            while (ss >> token) {
+                parameters.push_back(token);
+            }
+
+            if (!stateStack.empty()) {
+                stateStack.top()->HandleInput(this, parameters);
+            }
+
+            printf("Recv Command: %s\n", parameters[0].c_str());
+        }
+
+        return bytesReceived;
+    }
+    else {
+        return 0; // Disconnected or error
+    }
+}
+int ClientConnection::SendData() {
+
+    int iSendResult;
+    char recvbuf[DEFAULT_BUFLEN] = { 0 };
+    int recvbuflen = DEFAULT_BUFLEN;
+    int iResult = 0;
+    std::string hugePacket = "";
+
+    while (!OutboundMessages.empty()) {
+        hugePacket += OutboundMessages.front();
+        OutboundMessages.pop();
+    }
+
+    // 3. Send ONLY ONCE
+    if (!hugePacket.empty()) {
+        iSendResult = send(this->tcpSocket, hugePacket.c_str(), static_cast<int>(hugePacket.size()), 0);
+
+        if (iSendResult == SOCKET_ERROR) {
+            printf("send failed with error: %d\n", WSAGetLastError());
+            closesocket(this->tcpSocket);
+            WSACleanup();
+            return iResult;
+        }
+        printf("Bytes sent: %d\n", iSendResult);
+    }
+}
+
+void ClientConnection::QueueMessage(const std::string& msg) {
+    OutboundMessages.push(msg);
+}
+void ClientConnection::DisconnectGracefully() {
+    // 1. Send the TCP shutdown signal (SD_SEND)
+    shutdown(this->tcpSocket, SD_SEND);
+
+    this->needsCleanup = true;
+}
+
+void ClientConnection::PopState() {
+    if (stateStack.empty()) return;
+
+    // 1. Clean up the current state
+    GameState* oldState = stateStack.top();
+    delete oldState; // This triggers the destructor of the popped state
+
+    // 2. Remove it
+    stateStack.pop();
+
+    // 3. WAKE UP the state that is now on top
+    if (!stateStack.empty()) {
+        stateStack.top()->OnResume(this);
+    }
+
+}
+
+void ClientConnection::PushState(GameState* state) {
+    stateStack.push(state);
+
+    state->OnEnter(this);
+}

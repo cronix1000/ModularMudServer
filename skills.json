@@ -1,0 +1,54 @@
+{
+  "poke": {
+    "name": "Quick Poke",
+    "description": "A rapid, probing strike that sacrifices power for speed.",
+    "type": "combat",
+    "cooldown": 1.0,
+    "costs": { "stamina": 5 },
+
+    "scripts": {
+      "on_use": "skills/common/standard_melee.lua"
+    },
+
+    "custom_data": {
+      "damage_type": "piercing",
+      "multiplier": 0.8,
+      "animation": "anim_poke"
+    }
+  },
+
+  "sword_slash": {
+    "name": "Wide Slash",
+    "description": "A sweeping attack capable of hitting multiple foes.",
+    "type": "combat",
+    "cooldown": 2.5,
+    "costs": { "stamina": 15 },
+
+    "scripts": {
+      "on_use": "skills/common/standard_melee.lua"
+    },
+
+    "custom_data": {
+      "damage_type": "slashing",
+      "multiplier": 1.2,
+      "cleave_radius": 2
+    }
+  },
+  "alchemy_calcification": {
+    "name": "Rite of Calcification",
+    "description": "Applies alchemical heat to reduce organic ingredients into their base chemical salts.",
+    "type": "crafting",
+    "cooldown": 3.0,
+    "costs": { "mana": 5 },
+
+    "scripts": {
+      "on_use": "skills/alchemy/rite_generic.lua"
+    },
+
+    "custom_data": {
+      "rite_type": "calcify", // The Key: Tells the script what lookup to perform
+      "tool_required": "crucible",
+      "base_yield": 1.0 // Mastery can increase this to 1.5, 2.0, etc.
+    }
+  }
+}

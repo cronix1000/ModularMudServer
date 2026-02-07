@@ -1,0 +1,18 @@
+{
+    "short_sword": {
+        "name": "Swing",
+        "speed": 2.0,
+        "description": "A wide, arcing attack.",
+        "script": "swing_attack.lua"
+    },
+    "club": {
+        "name": "Bash",
+        "speed": 1.5,
+        "description": "A quick, powerful strike."
+    },
+    "axe": {
+        "name": "Chop",
+        "speed": 2.5,
+        "description": "A heavy, cleaving attack."
+    }
+}

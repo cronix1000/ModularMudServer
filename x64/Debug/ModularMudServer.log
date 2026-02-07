@@ -1,0 +1,41 @@
+﻿  InteractableFactory.cpp
+D:\C++Master\cpp-library\socketserver\ModularMudServer\ComponentPool.h(99,35): warning C4267: '=': conversion from 'size_t' to '_Ty', possible loss of data
+D:\C++Master\cpp-library\socketserver\ModularMudServer\ComponentPool.h(99,35): warning C4267:         with
+D:\C++Master\cpp-library\socketserver\ModularMudServer\ComponentPool.h(99,35): warning C4267:         [
+D:\C++Master\cpp-library\socketserver\ModularMudServer\ComponentPool.h(99,35): warning C4267:             _Ty=EntityID
+D:\C++Master\cpp-library\socketserver\ModularMudServer\ComponentPool.h(99,35): warning C4267:         ]
+  (compiling source file 'InteractableFactory.cpp')
+      D:\C++Master\cpp-library\socketserver\ModularMudServer\ComponentPool.h(99,35):
+      the template instantiation context (the oldest one first) is
+          D:\C++Master\cpp-library\socketserver\ModularMudServer\InteractableFactory.h(259,25):
+          see reference to function template instantiation 'T &Registry::AddComponent<InteractableComponent,InteractableComponent&>(EntityID,InteractableComponent &)' being compiled
+          with
+          [
+              T=InteractableComponent
+          ]
+          D:\C++Master\cpp-library\socketserver\ModularMudServer\Registry.h(43,26):
+          see reference to class template instantiation 'ComponentPool<InteractableComponent>' being compiled
+          D:\C++Master\cpp-library\socketserver\ModularMudServer\ComponentPool.h(79,10):
+          while compiling class template member function 'void ComponentPool<InteractableComponent>::Remove(EntityID)'
+              D:\C++Master\cpp-library\socketserver\ModularMudServer\ComponentPool.h(112,19):
+              see the first reference to 'ComponentPool<InteractableComponent>::Remove' in 'ComponentPool<InteractableComponent>::OnEntityDestroyed'
+  
+D:\C++Master\cpp-library\socketserver\ModularMudServer\ComponentPool.h(53,45): warning C4267: '=': conversion from 'size_t' to '_Ty', possible loss of data
+D:\C++Master\cpp-library\socketserver\ModularMudServer\ComponentPool.h(53,45): warning C4267:         with
+D:\C++Master\cpp-library\socketserver\ModularMudServer\ComponentPool.h(53,45): warning C4267:         [
+D:\C++Master\cpp-library\socketserver\ModularMudServer\ComponentPool.h(53,45): warning C4267:             _Ty=EntityID
+D:\C++Master\cpp-library\socketserver\ModularMudServer\ComponentPool.h(53,45): warning C4267:         ]
+  (compiling source file 'InteractableFactory.cpp')
+      D:\C++Master\cpp-library\socketserver\ModularMudServer\ComponentPool.h(53,45):
+      the template instantiation context (the oldest one first) is
+          D:\C++Master\cpp-library\socketserver\ModularMudServer\Registry.h(55,42):
+          see reference to function template instantiation 'T &ComponentPool<T>::Add<_Ty>(EntityID,_Ty &&)' being compiled
+          with
+          [
+              T=NameComponent,
+              _Ty=NameComponent
+          ]
+  
+  ModularMudServer.vcxproj -> D:\C++Master\cpp-library\socketserver\x64\Debug\ModularMudServer.exe
+  'pwsh.exe' is not recognized as an internal or external command,
+  operable program or batch file.

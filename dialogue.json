@@ -1,0 +1,37 @@
+{
+	"goblin": {
+		"idle": [ "*grunts*", "Need more grog...", "Smells like elf." ],
+		"combat": [ "I'll smash you!", "For the Horde!", "Die, pink-skin!" ],
+		"death": [ "Urgh... not... like... this...", "*gurgle*" ]
+	},
+
+	"starting_npc_greet": {
+		"text": "Greetings, traveler! Are you here for the trial?",
+		"options": [
+			{
+				"text": "Yes, I am ready.",
+				"targetNode": "quiz_question_1"
+			},
+			{
+				"text": "No, just passing through.",
+				"targetNode": "EXIT"
+			}
+		]
+	},
+
+	"quiz_question_1": {
+		"text": "A simple test: What is 2 + 2?",
+		"options": [
+			{
+				"text": "4",
+				"targetNode": "quiz_success",
+				"luaCallback": "OnCorrectAnswer"
+			},
+			{
+				"text": "5",
+				"targetNode": "quiz_fail",
+				"luaCallback": "OnWrongAnswer"
+			}
+		]
+	}
+}
