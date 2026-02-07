@@ -1,6 +1,8 @@
 #pragma once
-#include "World.h"
-#include "Component.h"
+class Room;
+class World;
+enum class Direction;
+class PositionComponents;
 
 class WorldManager
 {

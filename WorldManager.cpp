@@ -1,4 +1,6 @@
 #include "WorldManager.h"
+#include "World.h"
+#include "Component.h"
 
 enum MoveType {
     NoMove,

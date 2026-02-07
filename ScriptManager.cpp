@@ -64,6 +64,13 @@ void ScriptManager::init() {
 		});
 }
 
+template<typename... Args>
+void BroadcastEvent(const std::string& eventName, Args&&... args) {
+	if (lua["Events"][eventName].valid()) {
+		lua["Events"][eventName](std::forward<Args>(args)...);
+	}
+}
+
 void ScriptManager::dispatch_event(const std::string& event_name, sol::table data) {
 	if (event_listeners.count(event_name)) {
 		for (auto& func : event_listeners[event_name]) {

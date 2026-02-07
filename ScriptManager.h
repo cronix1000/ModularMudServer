@@ -4,12 +4,12 @@
 #include <map>
 #include <vector>
 #include <iostream> 
-#include "SkillContext.h"
-#include "InteractableContext.h"
 
 class Registry;
 class ClientConnection;
 struct StatComponent;
+class SkillResult;
+class InteractableContext;
 struct VitalsChangedComponent;
 struct ClientComponent;
 class ScriptManager;
