@@ -425,9 +425,6 @@
     <ClInclude Include="CharCreator.h">
       <Filter>Header Files\Systems</Filter>
     </ClInclude>
-    <ClInclude Include="SaveSystem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="RegionManager.h">
       <Filter>Header Files\Managers</Filter>
     </ClInclude>
@@ -478,6 +475,9 @@
     </ClInclude>
     <ClInclude Include="MessageComponent.h">
       <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="SaveSystem.h">
+      <Filter>Header Files\Systems</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

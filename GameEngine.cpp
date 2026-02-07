@@ -35,7 +35,8 @@ GameEngine::GameEngine(SQLiteDatabase* db) : db(db) {
     worldManager = new WorldManager(world);
     scriptManager = new ScriptManager(*registry);
     scriptManager->init();
-    
+    scriptManager->load_all_scripts("scripts");
+    scriptManager->lua.script("print('Hello from Lua')");
     scriptEventBridge = new ScriptEventBridge(eventBus, scriptManager);
 
     gameContext = new GameContext{ *registry, *eventBus, *worldManager, *scriptManager, *db };
@@ -67,8 +68,7 @@ GameEngine::GameEngine(SQLiteDatabase* db) : db(db) {
     messageSytem->SubscribeToEvents();
     networkSystem->SetupListeners();
     behaviorSystem->SetupListeners();
-    scriptManager->load_all_scripts("scripts");
-    scriptManager->lua.script("print('Hello from Lua')");
+
 }
 
 GameEngine::~GameEngine()

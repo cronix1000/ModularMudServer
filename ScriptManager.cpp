@@ -40,6 +40,10 @@ ScriptManager::ScriptManager(Registry& r) : registry(r) {
 }
 
 void ScriptManager::init() {
+	load_script("scripts/interactables/interactables_master.lua");
+	load_script("scripts/skills/skills_master.lua");
+
+
 	lua.set_function("send_to_char", [this](int player_id, const std::string& message) {
 		auto* player = GetPlayer(player_id);
 		if (player) {

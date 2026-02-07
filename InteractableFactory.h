@@ -47,6 +47,8 @@ public:
 
         // 2. Get the Global Table
         sol::table interactablesTable = ctx.scripts.lua["interactables"];
+		std::cout << "Loading interactable templates from Lua..." << std::endl;
+        
         if (!interactablesTable.valid()) {
             std::cerr << "[Error] Global 'interactables' table not found in Lua state!" << std::endl;
             return;
