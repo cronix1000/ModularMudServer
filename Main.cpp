@@ -16,7 +16,7 @@ int __cdecl main(void) {
 	ThreadSafeQueue<ClientInput> inputQueue;
     GameEngine engine(ctx, inputQueue);
     Server server(ctx, &engine, inputQueue);
-	server.Init();
+	server.Start(DEFAULT_PORT);
     std::thread networkThread([&server]() {
         server.Run();
         });
@@ -28,7 +28,7 @@ int __cdecl main(void) {
     const int SKIP_TICKS = 1000 / TICKS_PER_SECOND;
 
     while (engine.IsRunning()) {
-        auto next_game_tick = GetTickCount() + SKIP_TICKS;
+        auto next_game_tick = GetTickCount64() + SKIP_TICKS;
 
         engine.ProcessInputs();
 
@@ -36,7 +36,7 @@ int __cdecl main(void) {
         engine.Update(0.033f);
 
         // C. Sleep to maintain framerate
-        int sleep_time = next_game_tick - GetTickCount();
+        int sleep_time = next_game_tick - GetTickCount64();
         if (sleep_time > 0) {
             Sleep(sleep_time);
         }

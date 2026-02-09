@@ -14,7 +14,7 @@ using json = nlohmann::json;
 
 class ItemFactory;
 class MobFactory;
-class GameContext;
+struct GameContext;
 class World
 {
 public:

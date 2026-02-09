@@ -22,5 +22,5 @@ struct GameContext {
     std::unique_ptr<CommandInterpreter> interpreter;
 
     ~GameContext();
-
+    GameContext();
 };

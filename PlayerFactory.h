@@ -1,7 +1,7 @@
 #pragma once // Always include a header guard
 #include <string>
 
-class GameContext; 
+struct GameContext; 
 class ClientConnection;
 using EntityID = int;
 

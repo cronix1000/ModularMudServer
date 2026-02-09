@@ -62,7 +62,7 @@ GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : 
     saveSystem = new SaveSystem(gameContext);
 
     // Add and global entity as 1
-    registry->CreateEntity();
+    gameContext.registry->CreateEntity();
 
     gameContext.factories->LoadAllData();
 
@@ -117,7 +117,7 @@ void GameEngine::Update(float deltaTime) {
     invSystem->Run(deltaTime);
     combatSystem->run();
     updateSystem->Update(deltaTime);
-    eventBus->CallDefferedCalls();
+    gameContext.eventBus->CallDefferedCalls();
     saveSystem->Run(deltaTime);
 }
 

@@ -50,7 +50,7 @@ public:
         }
 
         // Add the component and entity to the end of the dense, packed arrays
-        sparse_map[entity] = components.size();
+        sparse_map[entity] = static_cast<EntityID>(components.size());
         components.emplace_back(std::forward<Args>(args)...);
         packed_entities.push_back(entity);
         return components.back();

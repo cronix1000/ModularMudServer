@@ -3,7 +3,7 @@
 #include <sqlite3.h>
 
 using EntityID = int;
-class GameContext;
+struct GameContext;
 class PlayerData;
 class SaveItemData;
 
