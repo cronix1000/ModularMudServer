@@ -5,6 +5,13 @@
 #include <sstream>
 #include <regex>
 #include "TextHelperFunctions.h"
+#include "ScriptManager.h"
+#include "GameContext.h"
+#include "WorldManager.h"
+#include "Room.h"
+#include "World.h"
+#include "ClientConnection.h"
+
 
 // Telnet Constants
 const char IAC = (char)255;
@@ -18,27 +25,27 @@ NetworkSyncSystem::NetworkSyncSystem(GameContext& c) : ctx(c) {}
 
 void NetworkSyncSystem::Run() {
     // Process entities whose position has changed.
-    for (EntityID id : ctx.registry.view<PositionChangedComponent>()) {
-        ClientComponent* client = ctx.registry.GetComponent<ClientComponent>(id);
+    for (EntityID id : ctx.registry->view<PositionChangedComponent>()) {
+        ClientComponent* client = ctx.registry->GetComponent<ClientComponent>(id);
         if (client) {
             SendLook(client->client);
         }
         // Remove the tag component now that it has been processed.
-        ctx.registry.RemoveComponent<PositionChangedComponent>(id);
+        ctx.registry->RemoveComponent<PositionChangedComponent>(id);
     }
 
     // Process entities that have just logged in.
-    for (EntityID id : ctx.registry.view<PlayerLoginComponent>()) {
+    for (EntityID id : ctx.registry->view<PlayerLoginComponent>()) {
         // The original loop body was empty.
         // The primary goal seems to be clearing the component, which we do now.
         // If there was intended logic here, it would go before the remove call.
-        ctx.registry.RemoveComponent<PlayerLoginComponent>(id);
+        ctx.registry->RemoveComponent<PlayerLoginComponent>(id);
     }
 }
 
 void NetworkSyncSystem::SendMapUpdate(ClientConnection* client)
 {
-    PositionComponent* pos = ctx.registry.GetComponent<PositionComponent>(client->playerEntityID);
+    PositionComponent* pos = ctx.registry->GetComponent<PositionComponent>(client->playerEntityID);
     
     if (!pos) return;
 
@@ -51,10 +58,10 @@ void NetworkSyncSystem::SendMapUpdate(ClientConnection* client)
 void NetworkSyncSystem::SendLook(ClientConnection* client)
 {
     // 1. Get Data
-    PositionComponent* playerPos = ctx.registry.GetComponent<PositionComponent>(client->playerEntityID);
+    PositionComponent* playerPos = ctx.registry->GetComponent<PositionComponent>(client->playerEntityID);
     if (!playerPos) return;
 
-    Room* room = ctx.worldManager.world->GetRoom(playerPos->roomId);
+    Room* room = ctx.worldManager->world->GetRoom(playerPos->roomId);
     if (!room) return;
 
     // Create an overlay grid to place entities on.
@@ -65,8 +72,8 @@ void NetworkSyncSystem::SendLook(ClientConnection* client)
 
     // This is the new pattern for iterating entities with multiple components.
     // We get the views for both components and iterate the smaller one for efficiency.
-    const auto& pos_entities = ctx.registry.view<PositionComponent>();
-    const auto& vis_entities = ctx.registry.view<VisualComponent>();
+    const auto& pos_entities = ctx.registry->view<PositionComponent>();
+    const auto& vis_entities = ctx.registry->view<VisualComponent>();
 
     // The result of a ternary operator can be a temporary, so we can't store it in a non-const l-value reference.
     // Using `const auto&` for `smaller_view` is safe and efficient.
@@ -79,12 +86,12 @@ void NetworkSyncSystem::SendLook(ClientConnection* client)
     for (EntityID id : smaller_view) {
         // Check if the entity has the other component.
         bool has_other_component = (larger_view_type == std::type_index(typeid(VisualComponent)))
-            ? ctx.registry.HasComponent<VisualComponent>(id)
-            : ctx.registry.HasComponent<PositionComponent>(id);
+            ? ctx.registry->HasComponent<VisualComponent>(id)
+            : ctx.registry->HasComponent<PositionComponent>(id);
 
         if (has_other_component) {
-            PositionComponent* entPos = ctx.registry.GetComponent<PositionComponent>(id);
-            VisualComponent* entVis = ctx.registry.GetComponent<VisualComponent>(id);
+            PositionComponent* entPos = ctx.registry->GetComponent<PositionComponent>(id);
+            VisualComponent* entVis = ctx.registry->GetComponent<VisualComponent>(id);
 
             // Only process if they are in the current room.
             if (entPos->roomId == room->GetId()) {

@@ -4,6 +4,7 @@
 #include "TerrainDef.h"
 #include "EventBus.h"
 #include "GameContext.h";
+class ClientConnection;
 
 class NetworkSyncSystem {
 	GameContext& ctx;

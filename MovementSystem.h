@@ -1,14 +1,5 @@
 #pragma once
-#include "WorldManager.h"
-#include "Registry.h"
-#include "MoveIntentComponent.h"  
-#include "PositionComponent.h"    
-#include <vector>                 
-#include "EventBus.h"
-
-#include "GameContext.h"
-#include "ScriptManager.h"
-#include "TextHelperFunctions.h"
+class GameContext;
 
 
 using EntityID = int;  // Add this if not already defined

@@ -119,9 +119,9 @@ void World::LoadWorld(const std::string& filepath, GameContext& ctx) {
 
         roomMap[id] = newRoom;
 
-        int roomEntity = ctx.registry.CreateEntity();
+        int roomEntity = ctx.registry->CreateEntity();
 
-        ctx.registry.AddComponent<RoomComponent>(roomEntity, RoomComponent{ id, newRoom });
+        ctx.registry->AddComponent<RoomComponent>(roomEntity, RoomComponent{ id, newRoom });
         
 
         if (rData.contains("scripts")) {
@@ -129,7 +129,7 @@ void World::LoadWorld(const std::string& filepath, GameContext& ctx) {
             scripts.scripts_path.emplace("on_enter", rData["scripts"].value("on_enter", ""));
             scripts.scripts_path.emplace("on_exit", rData["scripts"].value("on_exit", ""));
             scripts.scripts_path.emplace("pulse", rData["scripts"].value("pulse", ""));
-            ctx.registry.AddComponent<ScriptComponent>(roomEntity,
+            ctx.registry->AddComponent<ScriptComponent>(roomEntity,
                 scripts);
         }
 
@@ -307,8 +307,8 @@ void World::LoadRoomFile(const std::string& path, const json& floorSettings, Gam
 
     // Register Room
     roomMap[id] = newRoom;
-    int roomEnt = ctx.registry.CreateEntity();
-    ctx.registry.AddComponent<RoomComponent>(roomEnt, RoomComponent{ id, newRoom });
+    int roomEnt = ctx.registry->CreateEntity();
+    ctx.registry->AddComponent<RoomComponent>(roomEnt, RoomComponent{ id, newRoom });
 
     // Pass 1: Exits
     if (rData.contains("exits")) {
@@ -337,7 +337,7 @@ void World::LoadRoomFile(const std::string& path, const json& floorSettings, Gam
         scripts.scripts_path.emplace("on_enter", rData["scripts"].value("on_enter", ""));
         scripts.scripts_path.emplace("on_exit", rData["scripts"].value("on_exit", ""));
         scripts.scripts_path.emplace("pulse", rData["scripts"].value("pulse", ""));
-        ctx.registry.AddComponent<ScriptComponent>(roomEnt,
+        ctx.registry->AddComponent<ScriptComponent>(roomEnt,
             scripts);
     }
 

@@ -19,39 +19,50 @@ int ClientConnection::RecieveData() {
 
         // 2. Process ALL complete messages in the buffer
         size_t pos = 0;
-        // Find position of the next newline character
-        while ((pos = inputBuffer.find('\n')) != std::string::npos) {
-            // Extract the command line (up to the \n)
-            std::string line = inputBuffer.substr(0, pos);
-
-            // Remove the processed part from the buffer (including the \n)
-            inputBuffer.erase(0, pos + 1);
-
-            // Handle Telnet \r (Carriage Return) if present at the end
-            if (!line.empty() && line.back() == '\r') {
-                line.pop_back();
-            }
-
-            if (line.empty()) continue;
-
-            std::vector<std::string> parameters = std::vector<std::string>();
-            std::stringstream ss(line);
-            std::string token;
-            while (ss >> token) {
-                parameters.push_back(token);
-            }
-
-            if (!stateStack.empty()) {
-                stateStack.top()->HandleInput(this, parameters);
-            }
-
-            printf("Recv Command: %s\n", parameters[0].c_str());
-        }
 
         return bytesReceived;
     }
     else {
         return 0; // Disconnected or error
+    }
+}
+
+
+void ClientConnection::ProcessInput() {
+    size_t pos = 0;
+
+    // Find position of the next newline character
+    while ((pos = inputBuffer.find('\n')) != std::string::npos) {
+
+        // 1. Extract the command line (up to the \n)
+        std::string line = inputBuffer.substr(0, pos);
+
+        // 2. Remove the processed part from the buffer (including the \n at pos)
+        inputBuffer.erase(0, pos + 1);
+
+        // 3. Handle Telnet \r (Carriage Return) if present at the end
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+
+        // 4. Skip processing if the line is empty (user just hit enter)
+        if (line.empty()) continue;
+
+        // 5. Tokenize (Split string by spaces into vector)
+        std::vector<std::string> parameters;
+        std::stringstream ss(line);
+        std::string token;
+        while (ss >> token) {
+            parameters.push_back(token);
+        }
+
+        // 6. Safety Check: Ensure we actually have words before processing
+        if (parameters.empty()) continue;
+
+        // 8. Pass to the active Game State (Menu or Playing)
+        if (!stateStack.empty()) {
+            stateStack.top()->HandleInput(this, parameters);
+        }
     }
 }
 int ClientConnection::SendData() {

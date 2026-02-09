@@ -18,20 +18,20 @@ void ApplyStatBonus(StatComponent* stats, const std::string& key, int val) {
 
 void InventorySystem::Run(float dt) {
     // Use the new, efficient view to iterate over entities wanting to equip an item.
-    for (EntityID entity : ctx.registry.view<EquipItemIntentComponent>()) {
-        auto* intent = ctx.registry.GetComponent<EquipItemIntentComponent>(entity);
+    for (EntityID entity : ctx.registry->view<EquipItemIntentComponent>()) {
+        auto* intent = ctx.registry->GetComponent<EquipItemIntentComponent>(entity);
         if (!intent) continue;
 
-        InventoryComponent* inventory = ctx.registry.GetComponent<InventoryComponent>(entity);
-        EquipmentComponent* equipment = ctx.registry.GetComponent<EquipmentComponent>(entity);
+        InventoryComponent* inventory = ctx.registry->GetComponent<InventoryComponent>(entity);
+        EquipmentComponent* equipment = ctx.registry->GetComponent<EquipmentComponent>(entity);
 
         // Ensure the entity has the necessary components to perform this action.
         if (!inventory || !equipment) {
-            ctx.registry.RemoveComponent<EquipItemIntentComponent>(entity);
+            ctx.registry->RemoveComponent<EquipItemIntentComponent>(entity);
             continue;
         }
 
-        auto* weapon = ctx.registry.GetComponent<WeaponComponent>(intent->itemId);
+        auto* weapon = ctx.registry->GetComponent<WeaponComponent>(intent->itemId);
         if (weapon) {
             EquipmentSlot slot = intent->slot;
             if (slot == EquipmentSlot::Default) { // Use corrected enum name
@@ -46,14 +46,14 @@ void InventorySystem::Run(float dt) {
             equipment->slots[slot] = intent->itemId;
 
             // Update the default "attack" skill alias.
-            auto* skillHolder = ctx.registry.GetComponent<SkillHolderComponent>(entity);
+            auto* skillHolder = ctx.registry->GetComponent<SkillHolderComponent>(entity);
             if (skillHolder) {
                 int skillID = ctx.factories->skills.GetSkillID(weapon->defaultSkillTemplate);
                 skillHolder->skillAliases["attack"] = skillID;
             }
         }
 
-        auto* armour = ctx.registry.GetComponent<ArmourComponent>(intent->itemId);
+        auto* armour = ctx.registry->GetComponent<ArmourComponent>(intent->itemId);
         if (armour) {
             EquipmentSlot slot = armour->slot;
             if (equipment->slots.count(slot) && equipment->slots[slot] > 0) {
@@ -65,22 +65,22 @@ void InventorySystem::Run(float dt) {
         // Publish event and mark inventory as changed.
         EventContext data;
         data.data = ItemEquippedEventData{ entity, intent->itemId };
-        ctx.eventBus.Publish(EventType::ItemEquipped, data);
-        ctx.registry.AddComponent<InventoryChangedComponent>(entity);
+        ctx.eventBus->Publish(EventType::ItemEquipped, data);
+        ctx.registry->AddComponent<InventoryChangedComponent>(entity);
 
         RecalculateStats(entity);
         
         // Remove the intent component after it has been fully processed.
-        ctx.registry.RemoveComponent<EquipItemIntentComponent>(entity);
+        ctx.registry->RemoveComponent<EquipItemIntentComponent>(entity);
     }
 }
 
 void InventorySystem::RecalculateStats(int entityID)
 {
-    InventoryComponent* inventory = ctx.registry.GetComponent<InventoryComponent>(entityID);
-    EquipmentComponent* equipment = ctx.registry.GetComponent<EquipmentComponent>(entityID);
-    BaseStatComponent* baseStats = ctx.registry.GetComponent<BaseStatComponent>(entityID);
-    StatComponent* stats = ctx.registry.GetComponent<StatComponent>(entityID);
+    InventoryComponent* inventory = ctx.registry->GetComponent<InventoryComponent>(entityID);
+    EquipmentComponent* equipment = ctx.registry->GetComponent<EquipmentComponent>(entityID);
+    BaseStatComponent* baseStats = ctx.registry->GetComponent<BaseStatComponent>(entityID);
+    StatComponent* stats = ctx.registry->GetComponent<StatComponent>(entityID);
 
     if (!stats || !baseStats || !equipment) return;  // Add safety check
 
@@ -98,19 +98,19 @@ void InventorySystem::RecalculateStats(int entityID)
         if (itemID <= 0) continue;  // Skip empty slots
 
         // Check if the item has Armour
-        auto* armour = ctx.registry.GetComponent<ArmourComponent>(itemID);
+        auto* armour = ctx.registry->GetComponent<ArmourComponent>(itemID);
         if (armour) {
             stats->Armour += armour->defense;
             stats->MagicDefense += armour->magicDefense;
         }
 
-        auto* item = ctx.registry.GetComponent<ItemComponent>(itemID);
+        auto* item = ctx.registry->GetComponent<ItemComponent>(itemID);
 
         // loop through sockets when implemented
         // check if the item has synergy bonuses
         // #TODO
 
-        auto* mods = ctx.registry.GetComponent<StatModifierComponent>(itemID);
+        auto* mods = ctx.registry->GetComponent<StatModifierComponent>(itemID);
         if (mods) {
             for (auto const& [statName, value] : mods->modifiers) {
                 ApplyStatBonus(stats, statName, value);
@@ -118,7 +118,7 @@ void InventorySystem::RecalculateStats(int entityID)
         }
 
         if (slotName == EquipmentSlot::mainArm) {
-            auto* weapon = ctx.registry.GetComponent<WeaponComponent>(itemID);
+            auto* weapon = ctx.registry->GetComponent<WeaponComponent>(itemID);
             if (weapon) {
                 // 1. Calculate Attribute Scaling
                 int bonus = 0;

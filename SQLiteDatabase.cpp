@@ -80,11 +80,11 @@ void SQLiteDatabase::EndTransaction() {
 }
 
 bool SQLiteDatabase::SavePlayer(EntityID playerEnt, GameContext& ctx) {
-    auto* stats = ctx.registry.GetComponent<StatComponent>(playerEnt);
-    auto* pos = ctx.registry.GetComponent<PositionComponent>(playerEnt);
-    auto* playerComp = ctx.registry.GetComponent<PlayerComponent>(playerEnt);
-    auto* body = ctx.registry.GetComponent<BodyComponent>(playerEnt);
-    auto* region = ctx.registry.GetComponent<RegionComponent>(playerEnt);
+    auto* stats = ctx.registry->GetComponent<StatComponent>(playerEnt);
+    auto* pos = ctx.registry->GetComponent<PositionComponent>(playerEnt);
+    auto* playerComp = ctx.registry->GetComponent<PlayerComponent>(playerEnt);
+    auto* body = ctx.registry->GetComponent<BodyComponent>(playerEnt);
+    auto* region = ctx.registry->GetComponent<RegionComponent>(playerEnt);
 
     if (!stats || !pos || !playerComp) return false;
 
@@ -128,9 +128,9 @@ bool SQLiteDatabase::SavePlayer(EntityID playerEnt, GameContext& ctx) {
     return true;
 }
 bool SQLiteDatabase::SaveStats(EntityID playerEnt, GameContext& ctx) {
-    auto* stats = ctx.registry.GetComponent<StatComponent>(playerEnt);
-    auto* playerComp = ctx.registry.GetComponent<PlayerComponent>(playerEnt);
-    auto* pos = ctx.registry.GetComponent<PositionComponent>(playerEnt);
+    auto* stats = ctx.registry->GetComponent<StatComponent>(playerEnt);
+    auto* playerComp = ctx.registry->GetComponent<PlayerComponent>(playerEnt);
+    auto* pos = ctx.registry->GetComponent<PositionComponent>(playerEnt);
 
     if (!stats || !playerComp) return false;
 
@@ -163,8 +163,8 @@ bool SQLiteDatabase::SaveStats(EntityID playerEnt, GameContext& ctx) {
 
 bool SQLiteDatabase::SaveBodyMods(EntityID playerEnt, GameContext& ctx) {
     // Assuming you created a BodyModComponent or similar
-    auto* body = ctx.registry.GetComponent<BodyComponent>(playerEnt);
-    auto* playerComp = ctx.registry.GetComponent<PlayerComponent>(playerEnt);
+    auto* body = ctx.registry->GetComponent<BodyComponent>(playerEnt);
+    auto* playerComp = ctx.registry->GetComponent<PlayerComponent>(playerEnt);
 
     if (!body || !playerComp) return true; // Some players might not have mods
 
@@ -210,7 +210,7 @@ int SQLiteDatabase::CreatePlayerRow(const std::string& name) {
 }
 
 void SQLiteDatabase::SaveInventory(EntityID playerEnt, GameContext& ctx) {
-    auto playerComp = ctx.registry.GetComponent<PlayerComponent>(playerEnt);
+    auto playerComp = ctx.registry->GetComponent<PlayerComponent>(playerEnt);
     if (!playerComp) return;
 
     // Delete old items
@@ -223,12 +223,12 @@ void SQLiteDatabase::SaveInventory(EntityID playerEnt, GameContext& ctx) {
         sqlite3_finalize(delStmt);
     }
 
-    auto inv = ctx.registry.GetComponent<InventoryComponent>(playerEnt);
-    auto equip = ctx.registry.GetComponent<EquipmentComponent>(playerEnt);
+    auto inv = ctx.registry->GetComponent<InventoryComponent>(playerEnt);
+    auto equip = ctx.registry->GetComponent<EquipmentComponent>(playerEnt);
 
     // Lambda to save an item
     auto saveItemLambda = [this, &ctx, playerComp](EntityID itemEnt, bool isEquipped, int slotID) {
-        auto item = ctx.registry.GetComponent<ItemComponent>(itemEnt);
+        auto item = ctx.registry->GetComponent<ItemComponent>(itemEnt);
         if (!item) return;
 
         nlohmann::json state;

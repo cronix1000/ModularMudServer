@@ -15,12 +15,12 @@ void CleanUpSystem::run() {
     // Calling registry.DestroyEntity() can modify the component pools while we are
     // iterating over them, which can lead to crashes.
     std::vector<EntityID> entities_to_destroy;
-    for (EntityID entity : ctx.registry.view<DestroyTag>()) {
+    for (EntityID entity : ctx.registry->view<DestroyTag>()) {
         entities_to_destroy.push_back(entity);
     }
 
     for (EntityID entity : entities_to_destroy) {
         // This removes the entity and all of its components from the registry.
-        ctx.registry.DestroyEntity(entity);
+        ctx.registry->DestroyEntity(entity);
     }
 }

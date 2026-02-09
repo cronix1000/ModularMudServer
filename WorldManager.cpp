@@ -1,6 +1,9 @@
 #include "WorldManager.h"
 #include "World.h"
+#include "Room.h"        
+#include "Direction.h"   
 #include "Component.h"
+#include <cstdio>      
 
 enum MoveType {
     NoMove,
@@ -17,6 +20,7 @@ WorldManager::~WorldManager()
 }
 
 int WorldManager::AttemptMove(Direction& dir, PositionComponent* pos, int EntityId) {
+    
     Room* currentRoom = world->GetRoom(pos->roomId);
     if (currentRoom == nullptr) {
         printf("Error: Player is in a void (Room ID %d does not exist).\n", pos->roomId);

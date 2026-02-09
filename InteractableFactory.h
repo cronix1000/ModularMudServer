@@ -43,10 +43,10 @@ public:
     InteractableFactory(GameContext& g) : ctx(g) {}
 
     void LoadInteractableTemplatesFromLua() {
-         ctx.scripts.lua.script_file("scripts/interactables/interactables_master.lua");
+         ctx.scripts->lua.script_file("scripts/interactables/interactables_master.lua");
 
         // 2. Get the Global Table
-        sol::table interactablesTable = ctx.scripts.lua["interactables"];
+        sol::table interactablesTable = ctx.scripts->lua["interactables"];
 		std::cout << "Loading interactable templates from Lua..." << std::endl;
         
         if (!interactablesTable.valid()) {
@@ -78,19 +78,19 @@ public:
         }
 
         const auto& tpl = it->second;
-        int id = ctx.registry.CreateEntity();
+        int id = ctx.registry->CreateEntity();
 
         // Get template data from Lua, potentially modified by overrides
         auto templateData = GetTemplateDataWithOverrides(templateID, overrides);
 
         // 1. Basic Components (use potentially overridden data)
-        ctx.registry.AddComponent<NameComponent>(id, NameComponent(templateData.name));
-        ctx.registry.AddComponent<DescriptionComponent>(id, DescriptionComponent{ templateData.description });
-        ctx.registry.AddComponent<VisualComponent>(id, VisualComponent{ templateData.symbol, templateData.color });
+        ctx.registry->AddComponent<NameComponent>(id, NameComponent(templateData.name));
+        ctx.registry->AddComponent<DescriptionComponent>(id, DescriptionComponent{ templateData.description });
+        ctx.registry->AddComponent<VisualComponent>(id, VisualComponent{ templateData.symbol, templateData.color });
         
         // 2. Position Component
         if (roomId != -1) {
-            ctx.registry.AddComponent<PositionComponent>(id, PositionComponent{ x, y, roomId });
+            ctx.registry->AddComponent<PositionComponent>(id, PositionComponent{ x, y, roomId });
         }
 
         // 3. Script Component (if script exists)
@@ -98,7 +98,7 @@ public:
             ScriptComponent script;
             script.scripts_path["on_use"] = tpl.scriptPath;
             script.scripts_path["on_create"] = tpl.scriptPath;
-            ctx.registry.AddComponent<ScriptComponent>(id, script);
+            ctx.registry->AddComponent<ScriptComponent>(id, script);
         }
 
         // 4. Type-specific components (store overrides in components)
@@ -132,7 +132,7 @@ private:
                 portal.destination_room = dest.value("target_room", portal.destination_room);
             }
             
-            ctx.registry.AddComponent<PortalComponent>(id, portal);
+            ctx.registry->AddComponent<PortalComponent>(id, portal);
         }
         else if (tpl.interactableType == "chest") {
             ChestComponent chest;
@@ -152,7 +152,7 @@ private:
                 if (comp.contains("max_uses")) chest.max_uses = comp["max_uses"];
             }
             
-            ctx.registry.AddComponent<ChestComponent>(id, chest);
+            ctx.registry->AddComponent<ChestComponent>(id, chest);
         }
         else if (tpl.interactableType == "door") {
             DoorComponent door;
@@ -179,7 +179,7 @@ private:
                 if (comp.contains("is_open")) door.is_open = comp["is_open"];
             }
             
-            ctx.registry.AddComponent<DoorComponent>(id, door);
+            ctx.registry->AddComponent<DoorComponent>(id, door);
         }
         else if (tpl.interactableType == "lever" || tpl.interactableType == "switch") {
             LeverComponent lever;
@@ -199,7 +199,7 @@ private:
                 if (comp.contains("cooldown")) lever.cooldown_seconds = comp["cooldown"];
             }
             
-            ctx.registry.AddComponent<LeverComponent>(id, lever);
+            ctx.registry->AddComponent<LeverComponent>(id, lever);
         }
         else if (tpl.interactableType == "shrine" || tpl.interactableType == "altar") {
             ShrineComponent shrine;
@@ -220,7 +220,7 @@ private:
                 if (comp.contains("blessing_type")) shrine.blessing_type = comp["blessing_type"];
             }
             
-            ctx.registry.AddComponent<ShrineComponent>(id, shrine);
+            ctx.registry->AddComponent<ShrineComponent>(id, shrine);
         }
         else {
             // Generic interactable - store all extra data in InteractableComponent
@@ -258,7 +258,7 @@ private:
                 }
             }
             
-            ctx.registry.AddComponent<InteractableComponent>(id, interactable);
+            ctx.registry->AddComponent<InteractableComponent>(id, interactable);
         }
     }
 

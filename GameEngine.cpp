@@ -26,45 +26,48 @@
 #include "MessageSystem.h"
 #include "SaveSystem.h"
 #include "TimeData.h"
+#include "ClientInput.h"
+#include "GameState.h"
 
-GameEngine::GameEngine(SQLiteDatabase* db) : db(db) {
+GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : gameContext(ctx), isRunning(true), inputQueue(input) {
     // 1. Initialize core resources
-    registry =  new Registry();
-    eventBus = new EventBus();
     world = new World();
-    worldManager = new WorldManager(world);
-    scriptManager = new ScriptManager(*registry);
-    scriptManager->init();
-    scriptManager->load_all_scripts("scripts");
-    scriptManager->lua.script("print('Hello from Lua')");
-    scriptEventBridge = new ScriptEventBridge(eventBus, scriptManager);
+    gameContext.registry = std::make_unique<Registry>();
+    gameContext.eventBus = std::make_unique<EventBus>();
+    gameContext.scripts = std::make_unique<ScriptManager>(*gameContext.registry);
+    gameContext.worldManager = std::make_unique<WorldManager>(world);
+    gameContext.scripts->init();
+    gameContext.scripts->load_all_scripts("scripts");
+    gameContext.scripts->lua.script("print('Hello from Lua')");
+    scriptEventBridge = new ScriptEventBridge(gameContext.eventBus.get(), gameContext.scripts.get());
+    gameContext.db = std::make_unique<SQLiteDatabase>();
+	gameContext.db->Connect("game_database.db");
 
-    gameContext = new GameContext{ *registry, *eventBus, *worldManager, *scriptManager, *db };
 
     // 3. Link the manager back to the context
-    
-    gameContext->time = std::make_unique<TimeData>();
-    gameContext->factories = std::make_unique<FactoryManager>(*gameContext);
-    gameContext->interpreter = std::make_unique<CommandInterpreter>(*gameContext);
+
+    gameContext.time = std::make_unique<TimeData>();
+    gameContext.factories = std::make_unique<FactoryManager>(gameContext);
+    gameContext.interpreter = std::make_unique<CommandInterpreter>(gameContext);
     // 3. initialize systems 
-    movementSystem = new MovementSystem(*gameContext);
-    networkSystem = new NetworkSystem(*gameContext);
-    networkSyncSystem = new NetworkSyncSystem(*gameContext);
-    invSystem = new InventorySystem(*gameContext);
-    behaviorSystem = new BehaviorSystem(*gameContext);
-    updateSystem = new UpdateSystem(*gameContext);
-    combatSystem = new CombatSystem(*gameContext);
-    interactionSystem = new InteractionSystem(*gameContext);
-    messageSytem = new MessageSystem(*gameContext);
-    saveSystem = new SaveSystem(*gameContext);
+    movementSystem = new MovementSystem(gameContext);
+    networkSystem = new NetworkSystem(gameContext);
+    networkSyncSystem = new NetworkSyncSystem(gameContext);
+    invSystem = new InventorySystem(gameContext);
+    behaviorSystem = new BehaviorSystem(gameContext);
+    updateSystem = new UpdateSystem(gameContext);
+    combatSystem = new CombatSystem(gameContext);
+    interactionSystem = new InteractionSystem(gameContext);
+    messageSytem = new MessageSystem(gameContext);
+    saveSystem = new SaveSystem(gameContext);
 
     // Add and global entity as 1
     registry->CreateEntity();
 
-    gameContext->factories->LoadAllData();
+    gameContext.factories->LoadAllData();
 
     //4. Initilise scripts that need to be run right away (e.g event listeners)
-    //world->LoadWorld("world_data.json", *gameContext);
+    //world->LoadWorld("world_data.json", gameContext);
     messageSytem->SubscribeToEvents();
     networkSystem->SetupListeners();
     behaviorSystem->SetupListeners();
@@ -77,13 +80,13 @@ GameEngine::~GameEngine()
 
 
 int GameEngine::CreatePlayer(ClientConnection* clientID, std::string username, PlayerData playerData) {
-    int newID = db->CreatePlayerRow(username);
+    int newID = gameContext.db->CreatePlayerRow(username);
     return newID;
 }
 
 int GameEngine::LoadPlayer(ClientConnection* socket, std::string username) {
     // The Factory handles checking the DB and attaching all components
-    EntityID id = gameContext->factories->player.LoadPlayer(username, socket);
+    EntityID id = gameContext.factories->player.LoadPlayer(username, socket);
 
     if (id == -1) {
         printf("Failed to load or create player %s\n", username.c_str());
@@ -105,8 +108,8 @@ int GameEngine::LoadPlayer(ClientConnection* socket, std::string username) {
 void GameEngine::Update(float deltaTime) {
     time += deltaTime;
 
-    gameContext->time->deltaTime = deltaTime;
-    gameContext->time->globalTime += (double)deltaTime;
+    gameContext.time->deltaTime = deltaTime;
+    gameContext.time->globalTime += (double)deltaTime;
 
     movementSystem->MovementSystemRun();
     interactionSystem->run();
@@ -118,7 +121,46 @@ void GameEngine::Update(float deltaTime) {
     saveSystem->Run(deltaTime);
 }
 
+const bool GameEngine::IsRunning() { return isRunning; }
+
+ClientConnection* GameEngine::GetClientById(int clientId) {
+	auto view = registry->view<ClientComponent>();
+	for (EntityID entity : view) {
+		ClientComponent* client = registry->GetComponent<ClientComponent>(entity);
+		if (client && client->client && client->client->clientID == clientId) {
+            return client->client;
+		}
+	}
+}
+
+void GameEngine::ProcessInputs() {
+    ClientInput input;
+
+    // "TryPop" returns true if it got data, false if empty.
+    // We loop until the queue is empty so we handle ALL commands 
+    // that arrived since the last frame.
+    while (inputQueue.TryPop(&input)) {
+
+        // 1. Find which Entity belongs to this Client
+        // (You likely have a helper or map for this)
+        ClientConnection* client = GetClientById(input.clientID);
+
+        std::vector<std::string> inputStringVector;
+		std::stringstream ss = std::stringstream(input.rawText);
+        while (ss) {
+			inputStringVector.push_back("");
+			ss >> inputStringVector.back();
+        }
+
+
+		client->stateStack.top()->HandleInput(client, inputStringVector);
+    }
+}
+
+// Allow the game to close itself (e.g., from a "shutdown" command)
+void GameEngine::Quit() { isRunning = false; }
+
 GameContext& GameEngine::GetGameContext()
 {
-    return *gameContext;
+    return gameContext;
 }

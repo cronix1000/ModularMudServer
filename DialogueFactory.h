@@ -75,14 +75,14 @@ public:
     // Public Helpers to attach to entities
     void AttachDialogue(EntityID id, const std::string& startNodeID) {
         if (dialogueNodes.find(startNodeID) != dialogueNodes.end()) {
-            ctx.registry.AddComponent<DialogueComponent>(id, DialogueComponent{ startNodeID });
+            ctx.registry->AddComponent<DialogueComponent>(id, DialogueComponent{ startNodeID });
         }
     }
 
     void AttachVoice(EntityID id, const std::string& voiceSetID) {
         auto it = voiceLibrary.find(voiceSetID);
         if (it != voiceLibrary.end()) {
-            ctx.registry.AddComponent<VoiceComponent>(id, VoiceComponent{
+            ctx.registry->AddComponent<VoiceComponent>(id, VoiceComponent{
                 it->second.idleLines,
                 it->second.combatLines,
                 it->second.deathLines

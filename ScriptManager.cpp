@@ -3,10 +3,13 @@
 #include "Component.h"
 #include "ClientConnection.h"
 #include "InteractableContext.h"
+#include "SkillContext.h"      
 #include <iostream>
 #include <filesystem>
+#include "sol/sol.hpp"
 
 namespace fs = std::filesystem;
+
 
 ScriptManager::ScriptManager(Registry& r) : registry(r) {
 	// Initialize lua state in constructor
@@ -65,7 +68,7 @@ void ScriptManager::init() {
 }
 
 template<typename... Args>
-void BroadcastEvent(const std::string& eventName, Args&&... args) {
+void ScriptManager::BroadcastEvent(const std::string& eventName, Args&&... args) {
 	if (lua["Events"][eventName].valid()) {
 		lua["Events"][eventName](std::forward<Args>(args)...);
 	}

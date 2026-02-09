@@ -16,6 +16,7 @@
 #include "GameEngine.h"
 #include "MenuState.h"
 
+
 CommandInterpreter::CommandInterpreter(GameContext& g) : ctx(g)
 {
 	RegisterCommands();
@@ -35,20 +36,20 @@ int GetDistance(int x1, int y1, int x2, int y2) {
 // Helper: Find target by name in the same room
 // Returns -1 if not found
 EntityID FindTarget(GameContext& ctx, EntityID playerID, const std::string& targetName) {
-	auto* playerPos = ctx.registry.GetComponent<PositionComponent>(playerID);
+	auto* playerPos = ctx.registry->GetComponent<PositionComponent>(playerID);
 	if (!playerPos) return -1;
 
 	// This is the new pattern for iterating entities with multiple components.
-	auto& name_entities = ctx.registry.view<NameComponent>();
-	auto& pos_entities = ctx.registry.view<PositionComponent>();
+	auto& name_entities = ctx.registry->view<NameComponent>();
+	auto& pos_entities = ctx.registry->view<PositionComponent>();
 
 	// Iterate over the smaller of the two sets for efficiency.
 	if (name_entities.size() < pos_entities.size()) {
 		for (EntityID id : name_entities) {
 			if (id == playerID) continue;
-			if (ctx.registry.HasComponent<PositionComponent>(id)) {
-				auto* name = ctx.registry.GetComponent<NameComponent>(id);
-				auto* pos = ctx.registry.GetComponent<PositionComponent>(id);
+			if (ctx.registry->HasComponent<PositionComponent>(id)) {
+				auto* name = ctx.registry->GetComponent<NameComponent>(id);
+				auto* pos = ctx.registry->GetComponent<PositionComponent>(id);
 				if (pos->roomId == playerPos->roomId && name->Matches(targetName)) {
 					return id;
 				}
@@ -58,9 +59,9 @@ EntityID FindTarget(GameContext& ctx, EntityID playerID, const std::string& targ
 	else {
 		for (EntityID id : pos_entities) {
 			if (id == playerID) continue;
-			if (ctx.registry.HasComponent<NameComponent>(id)) {
-				auto* name = ctx.registry.GetComponent<NameComponent>(id);
-				auto* pos = ctx.registry.GetComponent<PositionComponent>(id);
+			if (ctx.registry->HasComponent<NameComponent>(id)) {
+				auto* name = ctx.registry->GetComponent<NameComponent>(id);
+				auto* pos = ctx.registry->GetComponent<PositionComponent>(id);
 				if (pos->roomId == playerPos->roomId && name->Matches(targetName)) {
 					return id;
 				}
@@ -178,7 +179,7 @@ void CommandInterpreter::HandleAttack(ClientConnection* client, std::vector<std:
 	EntityID playerID = client->playerEntityID;
 
 	// 2. Find Skill ID for "attack"
-	auto* skillHolder = ctx.registry.GetComponent<SkillHolderComponent>(playerID);
+	auto* skillHolder = ctx.registry->GetComponent<SkillHolderComponent>(playerID);
 	if (!skillHolder) {
 		client->QueueMessage("You don't know how to fight!\r\n");
 		return;
@@ -195,7 +196,7 @@ void CommandInterpreter::HandleAttack(ClientConnection* client, std::vector<std:
 	EntityID targetID = FindTarget(ctx, playerID, targetName);
 
 	if (targetID != -1) {
-		ctx.registry.AddComponent<SkillIntentComponent>(playerID, { skillID, targetID });
+		ctx.registry->AddComponent<SkillIntentComponent>(playerID, { skillID, targetID });
 	}
 	else {
 		client->QueueMessage("You don't see any '" + targetName + "' here.\r\n");
@@ -210,7 +211,7 @@ void CommandInterpreter::HandleCast(ClientConnection* client, std::vector<std::s
 	}
 
 	EntityID playerID = client->playerEntityID;
-	auto* skillHolder = ctx.registry.GetComponent<SkillHolderComponent>(playerID);
+	auto* skillHolder = ctx.registry->GetComponent<SkillHolderComponent>(playerID);
 	if (!skillHolder) {
 		client->QueueMessage("You don't know any skills.\r\n");
 		return;
@@ -249,7 +250,7 @@ void CommandInterpreter::HandleCast(ClientConnection* client, std::vector<std::s
 
 	if (targetID != -1) {
 		// 3. Create Intent
-		ctx.registry.AddComponent<SkillIntentComponent>(playerID, { skillID, targetID });
+		ctx.registry->AddComponent<SkillIntentComponent>(playerID, { skillID, targetID });
 	}
 	else {
 		client->QueueMessage("You don't see '" + targetName + "' here.\r\n");
@@ -275,7 +276,7 @@ void CommandInterpreter::HandleMove(ClientConnection* client, std::vector<std::s
 	}
 
 	if (direction != Direction::None) {
-		ctx.registry.AddComponent<MoveIntentComponent>(client->playerEntityID, { direction });
+		ctx.registry->AddComponent<MoveIntentComponent>(client->playerEntityID, { direction });
 	} else {
 		// Optional: Send a message if the direction is invalid.
 		client->QueueMessage("That's not a valid direction.\r\n");
@@ -295,14 +296,14 @@ void CommandInterpreter::HandlePickup(ClientConnection* client, std::vector<std:
 	}
 	
 	EntityID playerID = client->playerEntityID;
-	auto* playerPos = ctx.registry.GetComponent<PositionComponent>(playerID);
+	auto* playerPos = ctx.registry->GetComponent<PositionComponent>(playerID);
 	if (!playerPos) return;
 
 	// Use the dedicated FindTarget function.
 	EntityID targetID = FindTarget(ctx, playerID, targetName);
 
 	if (targetID != -1) {
-		ctx.registry.AddComponent<PickupItemIntentComponent>(playerID, {targetID});
+		ctx.registry->AddComponent<PickupItemIntentComponent>(playerID, {targetID});
 	} else {
 		client->QueueMessage("You don't see that here.\r\n");
 	}
@@ -315,7 +316,7 @@ void CommandInterpreter::HandleEquip(ClientConnection* client, std::vector<std::
 	int actualID = std::stoi(params[0]);
 
 	// Just fire the intent
-	ctx.registry.AddComponent<EquipItemIntentComponent>(
+	ctx.registry->AddComponent<EquipItemIntentComponent>(
 		client->playerEntityID,
 		EquipItemIntentComponent{ actualID }
 	);

@@ -6,15 +6,13 @@
 #include <vector>
 #include <string>
 
-// Forward declaration instead of including ClientConnection.h
-#include "ClientConnection.h"
-#include "GameEngine.h"
-
-//class ClientConnection;
+// Forward declarations only
+struct GameContext;
+class ClientConnection;
+class GameEngine;
 
 using CommandFunction = std::function<void(ClientConnection*, std::vector<std::string> input, const std::vector<int>& localIds)>;
-class GameEngine;
-class GameConext;
+
 class CommandInterpreter
 {
 public:

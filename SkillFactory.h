@@ -24,10 +24,10 @@ public:
     void LoadSkillsFromLua() {
         // 1. Ensure the Lua definition file is run
         // This populates the global 'Skills' table in the Lua state
-        ctx.scripts.lua.script_file("scripts/skills/skills_master.lua");
+        ctx.scripts->lua.script_file("scripts/skills/skills_master.lua");
 
         // 2. Get the Global Table
-        sol::table skillsTable = ctx.scripts.lua["skills"];
+        sol::table skillsTable = ctx.scripts->lua["skills"];
         if (!skillsTable.valid()) {
             std::cerr << "[Error] Global 'Skills' table not found in Lua state!" << std::endl;
             return;
@@ -59,7 +59,7 @@ public:
 private:
     void CreateSkillEntity(const std::string& key, const sol::table& skillData) {
         // 1. Create the Entity
-        int id = ctx.registry.CreateEntity();
+        int id = ctx.registry->CreateEntity();
 
         // 2. Add Identity (Name, Description, Type)
         std::string name = skillData.get_or<std::string>("name", "Unknown Skill");
@@ -67,16 +67,16 @@ private:
         // Check for description in top level, or inside 'data' if you prefer
         std::string desc = skillData.get_or<std::string>("description", "");
 
-        ctx.registry.AddComponent<NameComponent>(id, { name });
+        ctx.registry->AddComponent<NameComponent>(id, { name });
         // Assuming you have a component to store static skill info
-        // ctx.registry.AddComponent<SkillDefinitionComponent>(id, { name, type, desc });
+        // ctx.registry->AddComponent<SkillDefinitionComponent>(id, { name, type, desc });
 
         // 3. Add Script Link (CRITICAL)
         // We map "on_use" -> the key ("slash"). 
         // When SkillSystem runs, it looks up Skills["slash"] in Lua.
         ScriptComponent sc;
         sc.scripts_path["on_use"] = key;
-        ctx.registry.AddComponent<ScriptComponent>(id, sc);
+        ctx.registry->AddComponent<ScriptComponent>(id, sc);
 
         // 4. Add Costs
         // Checks for: costs = { stamina = 10, mana = 5 }
@@ -90,7 +90,7 @@ private:
             rc.health = costs.get_or("health", 0);
 
             if (rc.stamina > 0 || rc.mana > 0 || rc.health > 0) {
-                ctx.registry.AddComponent<ResourceCostComponent>(id, rc);
+                ctx.registry->AddComponent<ResourceCostComponent>(id, rc);
             }
         }
 
@@ -111,7 +111,7 @@ private:
             CooldownStatsComponent cc;
             cc.cooldownTime = cdTime;
             cc.windupTime = wuTime;
-            ctx.registry.AddComponent<CooldownStatsComponent>(id, cc);
+            ctx.registry->AddComponent<CooldownStatsComponent>(id, cc);
         }
 
         // 6. Register in Lookup Map

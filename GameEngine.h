@@ -2,6 +2,7 @@
 #include <iostream>
 #include <ctime>
 #include <string>
+#include "ThreadSafeQueue.h"
 
 // Minimal includes - only what's absolutely necessary
 struct PlayerData;
@@ -33,27 +34,36 @@ class CommandInterpreter;
 class MessageSystem;
 class SaveSystem;
 struct TimeData;
+struct ClientInput;
 class GameEngine
 {
 public:
-	GameEngine(SQLiteDatabase* db);
+	GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& inputQueue);
 	~GameEngine();
 
-	GameContext* gameContext;
+	ThreadSafeQueue<ClientInput>& inputQueue;	
+	// Pass the address (&db)
+
+	GameContext& gameContext;
 	Registry* registry;
 	World* world;
 	WorldManager* worldManager;
 	ScriptManager* scriptManager;
 	FactoryManager* factoryManager;
 	ScriptEventBridge* scriptEventBridge;
+
 	float time = 0;
 
-	GameContext& GetContext() { return *gameContext; }
+	GameContext& GetContext() { return gameContext; }
 	int CreatePlayer(ClientConnection* clientID, std::string username, PlayerData playerData);
 	int LoadPlayer(ClientConnection* socket, std::string username);
 	void Update(float deltaTime);
+	const bool IsRunning();
+	ClientConnection* GetClientById(int clientId);
+	int GetEntityByClient(int clientId);
+	void ProcessInputs();
+	void Quit();
 	GameContext& GetGameContext();
-	SQLiteDatabase* db;
 	CommandInterpreter* interpreter;
 
 	// Factories
@@ -74,4 +84,7 @@ public:
 	InteractionSystem* interactionSystem;
 	MessageSystem* messageSytem;
 	SaveSystem* saveSystem;
+
+private:
+	bool isRunning = true;
 };

@@ -12,6 +12,8 @@
 #include "ItemComponent.h"
 #include "TextHelperFunctions.h"
 #include <filesystem>
+#include "WeaponComponent.h"
+#include "ArmourComponent.h"
 struct MenuOption {
     int id;
     std::string command; 
@@ -51,13 +53,13 @@ public:
             menuText << "  # | Item Name                | Slot      | Type\n";
             menuText << "----+--------------------------+-----------+-------\n";
 
-            auto* inventory = ctx.registry.GetComponent<InventoryComponent>(client->playerEntityID);
+            auto* inventory = ctx.registry->GetComponent<InventoryComponent>(client->playerEntityID);
             int itemNumber = 1;
 
             for (auto const& itemID : inventory->items) {
-                auto* name = ctx.registry.GetComponent<NameComponent>(itemID);
-                auto* weapon = ctx.registry.GetComponent<WeaponComponent>(itemID);
-                auto* armour = ctx.registry.GetComponent<ArmourComponent>(itemID);
+                auto* name = ctx.registry->GetComponent<NameComponent>(itemID);
+                auto* weapon = ctx.registry->GetComponent<WeaponComponent>(itemID);
+                auto* armour = ctx.registry->GetComponent<ArmourComponent>(itemID);
 
                 // Determine display slot and color
                 std::string slotName = "---";
@@ -124,11 +126,11 @@ public:
 
     void BuildInventoryMenu(int playerID) {
         options.clear();
-        auto* inv = ctx.registry.GetComponent<InventoryComponent>(playerID);
+        auto* inv = ctx.registry->GetComponent<InventoryComponent>(playerID);
 
         int displayIdx = 1;
         for (int itemId : inv->items) {
-            auto* item = ctx.registry.GetComponent<ItemComponent>(itemId);
+            auto* item = ctx.registry->GetComponent<ItemComponent>(itemId);
 
             options.push_back({ itemId, "equip" });
             displayIdx++;

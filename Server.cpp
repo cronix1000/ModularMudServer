@@ -2,32 +2,37 @@
 #include "Registry.h"
 #include <chrono>
 #include "ClientComponent.h"
-
-Server::Server(GameEngine* engine) : gameEngine(engine) {
+#include "ClientInput.h"
+#include "MainMenuState.h"
+#include "GameContext.h"
+#include "ThreadSafeQueue.h"
+Server::Server(GameContext& context, GameEngine* engine, ThreadSafeQueue<ClientInput>& queue) : gameContext(context), engine(engine), inputQueue(queue) {
 }
 
 Server::~Server() {
 
 }
 
-const float TICK_RATE = 20.0f;
-const float MS_PER_TICK = 1.0f / TICK_RATE; // = 0.05 seconds
+void Server::HandleReceive(int clientID, std::string& buffer) {
+    size_t pos = 0;
+    while ((pos = buffer.find('\n')) != std::string::npos) {
+        // 1. Extract raw string
+        std::string line = buffer.substr(0, pos);
+        // ... trim \r ...
 
+        // 2. Push to Queue (No parsing, no logic)
+        ClientInput input;
+        input.clientID = clientID;
+        input.rawText = line; // Just the string!
+
+        this->inputQueue.Push(input); // Thread-safe push
+
+        buffer.erase(0, pos + 1);
+    }
+}
 void Server::Run() {
     printf("Running server....");
-    auto lastTime = std::chrono::high_resolution_clock::now();
-    float timeAccumulator = 0.0f;
     while (true) {
-
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<float> duration = currentTime - lastTime;
-        float deltaTime = duration.count();
-        lastTime = currentTime;
-
-        // Add the real elapsed time to our "bucket"
-        timeAccumulator += deltaTime;
-
-
         fd_set read_fd;
         fd_set write_fd; // Use a single write set
         FD_ZERO(&read_fd);
@@ -100,6 +105,11 @@ void Server::Run() {
                 if (bytes_processed <= 0) {
                     disconnected = true;
                 }
+                else {
+                    // Process the input that was received
+                    HandleReceive(client->clientID, client->recvBuffer);
+                    client->ProcessInput();  // Then process it
+                }
             }
 
             // 2. Process WRITE activity
@@ -115,7 +125,7 @@ void Server::Run() {
                 printf("Client Disconnected\n");
 
                 if (client->playerEntityID != -1) {
-                    gameEngine->registry->RemoveComponent<ClientComponent>(client->playerEntityID);
+                    gameContext.registry->RemoveComponent<ClientComponent>(client->playerEntityID);
                 }
 
                 delete client;
@@ -125,17 +135,6 @@ void Server::Run() {
                 ++it;
             }
 
-        }
-
-        // --- GAME LOGIC UPDATE START ---
-        // While we have enough time in the bucket for a full tick...
-        while (timeAccumulator >= MS_PER_TICK) {
-
-            // Run the game engine with a FIXED time step
-            gameEngine->Update(MS_PER_TICK);
-
-            // Remove that chunk of time from the bucket
-            timeAccumulator -= MS_PER_TICK;
         }
     }
 }
@@ -211,11 +210,15 @@ bool Server::AcceptClient() {
     SOCKET newSocket = accept(ListenSocket, NULL, NULL);
     if (newSocket != INVALID_SOCKET) {
         ClientConnection* newClient = new ClientConnection(newSocket);
-        newClient->SetEngine(gameEngine);
+
+        // Set a unique client ID (you can use the socket number or a counter)
+        newClient->clientID = static_cast<int>(newSocket); 
+
+        newClient->SetEngine(engine);
         newClient->PushState(new MainMenuState());
         activeClients.push_back(newClient);
-        //newClient->QueueMessage("test");
 
+        printf("New client connected with ID: %d\n", newClient->clientID);
         return true;
     }
     else {

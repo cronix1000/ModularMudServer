@@ -12,8 +12,8 @@ void SkillSystem::Run(float dt)
 {
     // Process all entities with a skill windup.
     // The view provides a list of entities, which is then used to get the component.
-    for (EntityID entity : ctx.registry.view<SkillWindupComponent>()) {
-        auto* windup = ctx.registry.GetComponent<SkillWindupComponent>(entity);
+    for (EntityID entity : ctx.registry->view<SkillWindupComponent>()) {
+        auto* windup = ctx.registry->GetComponent<SkillWindupComponent>(entity);
         if (!windup) continue;
 
         windup->timeLeft -= dt;
@@ -22,21 +22,21 @@ void SkillSystem::Run(float dt)
             // Windup finished, execute the skill.
             ExecuteScriptAndDispatch(entity, windup->skillID, windup->targetID);
             // Remove the component immediately after processing.
-            ctx.registry.RemoveComponent<SkillWindupComponent>(entity);
+            ctx.registry->RemoveComponent<SkillWindupComponent>(entity);
         }
     }
 
     // Process all entities with a skill intent.
-    for (EntityID entity : ctx.registry.view<SkillIntentComponent>()) {
-        auto* intent = ctx.registry.GetComponent<SkillIntentComponent>(entity);
+    for (EntityID entity : ctx.registry->view<SkillIntentComponent>()) {
+        auto* intent = ctx.registry->GetComponent<SkillIntentComponent>(entity);
         if (!intent) continue;
 
-        auto* skillHolder = ctx.registry.GetComponent<SkillHolderComponent>(entity);
+        auto* skillHolder = ctx.registry->GetComponent<SkillHolderComponent>(entity);
         // Using intent->skillId instead of intent.skillId because intent is a pointer
-        auto* cooldown = ctx.registry.GetComponent<CooldownStatsComponent>(intent->skillId);
+        auto* cooldown = ctx.registry->GetComponent<CooldownStatsComponent>(intent->skillId);
 
         if (!skillHolder || !cooldown) {
-            ctx.registry.RemoveComponent<SkillIntentComponent>(entity);
+            ctx.registry->RemoveComponent<SkillIntentComponent>(entity);
             continue;
         }
 
@@ -50,7 +50,7 @@ void SkillSystem::Run(float dt)
             if (windupTime > 0.0f) {
                 // Skill has a windup time, so add the windup component.
                 // The loop above will handle it in subsequent frames.
-                ctx.registry.AddComponent<SkillWindupComponent>(entity, {
+                ctx.registry->AddComponent<SkillWindupComponent>(entity, {
                     windupTime, intent->skillId, intent->targetId
                 });
             } else {
@@ -62,13 +62,13 @@ void SkillSystem::Run(float dt)
         }
         
         // Remove the intent component now that it has been handled.
-        ctx.registry.RemoveComponent<SkillIntentComponent>(entity);
+        ctx.registry->RemoveComponent<SkillIntentComponent>(entity);
     }
 }
 
 
 void SkillSystem::ExecuteScriptAndDispatch(int entityID, int skillID, int targetID) {
-        auto* scriptComp = ctx.registry.GetComponent<ScriptComponent>(skillID);
+        auto* scriptComp = ctx.registry->GetComponent<ScriptComponent>(skillID);
 
         if (!scriptComp) {
             std::cerr << "[Error] Skill ID " << skillID << " has no ScriptComponent!" << std::endl;
@@ -89,10 +89,10 @@ void SkillSystem::ExecuteScriptAndDispatch(int entityID, int skillID, int target
 
         // 3. CALCULATE BASE POWER (Weapon Damage or Tool Tier)
         int power = 0;
-        auto* equipment = ctx.registry.GetComponent<EquipmentComponent>(entityID);
+        auto* equipment = ctx.registry->GetComponent<EquipmentComponent>(entityID);
         if (equipment) {
             int weaponID = equipment->slots[EquipmentSlot::mainArm];
-            auto* weapon = ctx.registry.GetComponent<WeaponComponent>(weaponID);
+            auto* weapon = ctx.registry->GetComponent<WeaponComponent>(weaponID);
             if (weapon) {
                 power = weapon->maxDamage;
             }
@@ -105,11 +105,11 @@ void SkillSystem::ExecuteScriptAndDispatch(int entityID, int skillID, int target
         context.skillID = skillID;
         context.basePower = power;
 
-        auto* holder = ctx.registry.GetComponent<SkillHolderComponent>(entityID);
+        auto* holder = ctx.registry->GetComponent<SkillHolderComponent>(entityID);
         context.masteryLevel = holder ? holder->GetMastery(skillID) : 1;
 
         // 5. RUN LUA SCRIPT
-        SkillResult result = ctx.scripts.ExecuteSkillScript(path, context);
+        SkillResult result = ctx.scripts->ExecuteSkillScript(path, context);
 
         // 6. DISPATCH RESULT
         if (!result.success) return;
@@ -133,5 +133,5 @@ void SkillSystem::ProcessResult(int entity, SkillResult result, int targetId)
     combatIntent.addedTags = result.addedTags;
     
     // Add the combat intent to the source entity
-    ctx.registry.AddComponent<CombatIntentComponent>(entity, combatIntent);
+    ctx.registry->AddComponent<CombatIntentComponent>(entity, combatIntent);
 }

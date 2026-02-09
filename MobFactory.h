@@ -89,8 +89,8 @@ public:
         auto it = mobTemplates.find(templateID);
         if (it == mobTemplates.end()) return -1;
 
-        EntityID id = ctx.registry.CreateEntity();
-        ctx.registry.AddComponent<MobComponent>(id, MobComponent{ templateID,respawnTimer,persistant });
+        EntityID id = ctx.registry->CreateEntity();
+        ctx.registry->AddComponent<MobComponent>(id, MobComponent{ templateID,respawnTimer,persistant });
         AttachComponents(id, it->second, overrides, x, y, roomId);
         return id;
     }
@@ -98,9 +98,9 @@ public:
 private:
     void AttachComponents(EntityID id, const MobTemplate& t, json overrides, int x, int y, int roomId) {
         // 1. Core Mob Components
-        ctx.registry.AddComponent<NameComponent>(id, NameComponent( t.name ));
-        ctx.registry.AddComponent<VisualComponent>(id, VisualComponent{ t.symbol, t.color });
-        ctx.registry.AddComponent<PositionComponent>(id, PositionComponent{ x, y, roomId });
+        ctx.registry->AddComponent<NameComponent>(id, NameComponent( t.name ));
+        ctx.registry->AddComponent<VisualComponent>(id, VisualComponent{ t.symbol, t.color });
+        ctx.registry->AddComponent<PositionComponent>(id, PositionComponent{ x, y, roomId });
 
 
         // 2. Extra Logic and Overrides
@@ -110,7 +110,7 @@ private:
         // Behaviour
         std::string behaviorStr = t.behave;
         BehaviourType type = StringToBehaviour(behaviorStr);
-        ctx.registry.AddComponent<BehaviourComponent>(id, { type });
+        ctx.registry->AddComponent<BehaviourComponent>(id, { type });
 
 
         // Start with the template's base stats
@@ -124,10 +124,10 @@ private:
             finalStats.AttackDamage = s.value("attack", finalStats.AttackDamage);
         }
 
-        ctx.registry.AddComponent<StatComponent>(id, finalStats);
+        ctx.registry->AddComponent<StatComponent>(id, finalStats);
 
         if (finalData.contains("faction")) {
-            // ctx.registry.AddComponent<FactionComponent>(id, { finalData["faction"] });
+            // ctx.registry->AddComponent<FactionComponent>(id, { finalData["faction"] });
         }
 
 

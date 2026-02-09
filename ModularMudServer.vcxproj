@@ -142,6 +142,7 @@
   <ItemGroup>
     <ClCompile Include="AttackIntentComponent.h" />
     <ClCompile Include="BehaviorSystem.cpp" />
+    <ClCompile Include="GameContext.cpp" />
     <ClCompile Include="InteractableFactory.cpp" />
     <ClCompile Include="MessageSystem.cpp" />
     <ClCompile Include="CleanUpSystem.cpp" />
@@ -188,6 +189,7 @@
     <ClInclude Include="BodyComponent.h" />
     <ClInclude Include="BusyComponent.h" />
     <ClInclude Include="CharCreator.h" />
+    <ClInclude Include="ClientInput.h" />
     <ClInclude Include="CoolDownDefinitionComponent.h" />
     <ClInclude Include="CraftIntentComponent.h" />
     <ClInclude Include="DamageScalingComponent.h" />
@@ -274,6 +276,7 @@
     <ClInclude Include="StatModifier.h" />
     <ClInclude Include="StatModifierComponent.h" />
     <ClInclude Include="TerrainDef.h" />
+    <ClInclude Include="ThreadSafeQueue.h" />
     <ClInclude Include="TimeData.h" />
     <ClInclude Include="UpdateSystem.h" />
     <ClInclude Include="ValueComponent.h" />

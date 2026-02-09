@@ -15,12 +15,12 @@ void MessageSystem::SanitizeMessage(std::string& message)
 
 void MessageSystem::SubscribeToEvents()
 {
-	ctx.eventBus.Subscribe(EventType::ItemEquipped, [this](const EventContext& ectx) {
+	ctx.eventBus->Subscribe(EventType::ItemEquipped, [this](const EventContext& ectx) {
 		if (!std::holds_alternative<ItemEquippedEventData>(ectx.data)) return;
 		const auto& data = std::get<ItemEquippedEventData>(ectx.data);
 
 	
-		NameComponent* item = ctx.registry.GetComponent<NameComponent>(data.itemId);
+		NameComponent* item = ctx.registry->GetComponent<NameComponent>(data.itemId);
 		std::string display = "You Equipped " + item->displayName + "\n";
 		ToPlayer(data.player, display);
 	});
@@ -28,7 +28,7 @@ void MessageSystem::SubscribeToEvents()
 
 void MessageSystem::ToPlayer(int entityID, std::string msg)
 {
-	ClientComponent* client = ctx.registry.GetComponent<ClientComponent>(entityID);
+	ClientComponent* client = ctx.registry->GetComponent<ClientComponent>(entityID);
 
 	if (client) {
 		client->client->QueueMessage(TextHelperFunctions::Colorize(msg));

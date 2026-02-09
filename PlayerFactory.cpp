@@ -19,23 +19,23 @@ EntityID PlayerFactory::LoadPlayer(std::string username, ClientConnection* conne
     PlayerData data;
 
     // 1. Check if they exist in DB
-    if (!ctx.db.PlayerExists(username)) {
+    if (!ctx.db->PlayerExists(username)) {
         printf("[Factory] Creating new record for %s\n", username.c_str());
-        int newDbId = ctx.db.CreatePlayerRow(username);
+        int newDbId = ctx.db->CreatePlayerRow(username);
         if (newDbId == -1) return -1; // Database error
     }
 
     // 2. Load the data (whether just created or old)
-    if (!ctx.db.LoadPlayer(username, data)) {
+    if (!ctx.db->LoadPlayer(username, data)) {
         return -1;
     }
 
     // 3. Create ECS Entity
-    EntityID player = ctx.registry.CreateEntity();
+    EntityID player = ctx.registry->CreateEntity();
 
     // 4. Attach Components (Hydration)
-    ctx.registry.AddComponent(player, ClientComponent{ connection });
-    ctx.registry.AddComponent(player, PlayerComponent{ data.id, username });
+    ctx.registry->AddComponent(player, ClientComponent{ connection });
+    ctx.registry->AddComponent(player, PlayerComponent{ data.id, username });
 
     // Stats from DB
     auto& s = data.stats;
@@ -43,19 +43,19 @@ EntityID PlayerFactory::LoadPlayer(std::string username, ClientConnection* conne
     stats.Health = s.value("hp", 100);
     stats.MaxHealth = s.value("max_hp", 100);
     stats.Strength = s.value("str", 10);
-    ctx.registry.AddComponent(player, stats);
+    ctx.registry->AddComponent(player, stats);
 
     if(data.region != "")
-        ctx.worldManager.world->LoadRegion(data.region, ctx);
+        ctx.worldManager->world->LoadRegion(data.region, ctx);
     else
-        ctx.worldManager.world->LoadRegion("floor1", ctx);
+        ctx.worldManager->world->LoadRegion("floor1", ctx);
 
     PositionComponent pos;
-    ctx.worldManager.PutPlayerInRoom(data.room_id, pos);
-    ctx.registry.AddComponent(player, pos);
-    ctx.registry.AddComponent(player, VisualComponent{ "@", "&r" });
-    ctx.registry.AddComponent(player, InventoryComponent{});
-    ctx.registry.AddComponent(player, EquipmentComponent{});
+    ctx.worldManager->PutPlayerInRoom(data.room_id, pos);
+    ctx.registry->AddComponent(player, pos);
+    ctx.registry->AddComponent(player, VisualComponent{ "@", "&r" });
+    ctx.registry->AddComponent(player, InventoryComponent{});
+    ctx.registry->AddComponent(player, EquipmentComponent{});
     
     // Initialize skills system for the player
     SkillHolderComponent skillHolder;
@@ -66,11 +66,11 @@ EntityID PlayerFactory::LoadPlayer(std::string username, ClientConnection* conne
         skillHolder.skillAliases["punch"] = punchSkillID;
         skillHolder.mastery[punchSkillID] = 1; // Start with mastery level 1
     }
-    ctx.registry.AddComponent(player, skillHolder);
+    ctx.registry->AddComponent(player, skillHolder);
 
     // 5. Hydrate Inventory
-    auto* inv = ctx.registry.GetComponent<InventoryComponent>(player);
-    auto* equip = ctx.registry.GetComponent<EquipmentComponent>(player);
+    auto* inv = ctx.registry->GetComponent<InventoryComponent>(player);
+    auto* equip = ctx.registry->GetComponent<EquipmentComponent>(player);
     for (auto& itemData : data.items) {
         EntityID item = ctx.factories->items.CreateItem(itemData.templateId);
         // Apply saved state (equipped, durability, etc)

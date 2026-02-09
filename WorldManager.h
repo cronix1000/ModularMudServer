@@ -2,7 +2,7 @@
 class Room;
 class World;
 enum class Direction;
-class PositionComponents;
+struct PositionComponent;
 
 class WorldManager
 {

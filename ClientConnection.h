@@ -5,16 +5,21 @@
 #include <string>
 #include <queue>
 #include <stack>
+//#include "CommandInterpreter.h"
+
 
 #define DEFAULT_BUFLEN 1024
 
 class GameState;
 class GameEngine;
-class CommandInterpreter;
+class CommandInterpreter;  // Add forward declaration
+
 class ClientConnection
 {
 public:
 	SOCKET tcpSocket;
+	int clientID;
+	std::string recvBuffer;
 	ClientConnection(SOCKET newSocket) : tcpSocket(newSocket) {
 	
 	}
@@ -25,6 +30,7 @@ public:
 	}
 	int playerId;
 	int RecieveData();
+	void ProcessInput();
 	int SendData();
 	void SendPacket(std::string packet);
 	void QueueMessage(const std::string& msg);

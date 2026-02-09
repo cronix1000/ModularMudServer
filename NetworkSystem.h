@@ -14,12 +14,12 @@ public:
 	NetworkSystem(GameContext& gc) : ctx(gc){};
 	void SetupListeners() 
 	{
-		ctx.eventBus.Subscribe(EventType::RoomEntered, [this](const EventContext& ectx) {
+		ctx.eventBus->Subscribe(EventType::RoomEntered, [this](const EventContext& ectx) {
 			if (!std::holds_alternative<RoomEventData>(ectx.data)) return;
 			const auto& data = std::get<RoomEventData>(ectx.data);
 
-			Room* room = ctx.worldManager.world->GetRoom(data.RoomID);
-			ClientComponent* client = ctx.registry.GetComponent<ClientComponent>(data.EntityID);
+			Room* room = ctx.worldManager->world->GetRoom(data.RoomID);
+			ClientComponent* client = ctx.registry->GetComponent<ClientComponent>(data.EntityID);
 
           
             if (client && client->client && room) {

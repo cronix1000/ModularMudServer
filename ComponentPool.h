@@ -96,7 +96,7 @@ public:
         packed_entities[dense_index_to_remove] = last_entity;
 
         // 4. Update the sparse map to point the moved entity to its new location.
-        sparse_map[last_entity] = dense_index_to_remove;
+        sparse_map[last_entity] = static_cast<EntityID>(dense_index_to_remove);
 
         // 5. Invalidate the sparse entry for the removed entity.
         sparse_map[entity] = -1;

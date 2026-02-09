@@ -1,5 +1,8 @@
 #include "Server.h"
-
+#include <thread>
+#include "GameEngine.h"
+#include "GameContext.h"
+#include "ClientInput.h"
 // Need to link with Ws2_32.lib
 #pragma comment (lib, "Ws2_32.lib")
 // #pragma comment (lib, "Mswsock.lib")
@@ -8,22 +11,36 @@
 #define DEFAULT_PORT "27015"
 
 int __cdecl main(void) {
-    SQLiteDatabase db;
-    db.Connect("mud.db");
-        // Pass the address (&db)
-    GameEngine engine(&db);
+   
+    GameContext ctx;
+	ThreadSafeQueue<ClientInput> inputQueue;
+    GameEngine engine(ctx, inputQueue);
+    Server server(ctx, &engine, inputQueue);
+	server.Init();
+    std::thread networkThread([&server]() {
+        server.Run();
+        });
+    networkThread.detach();
 
-        Server mudServer(&engine);
-    
+    // 2. Run the Game Engine on the Main Thread
+    // This is your "New Loop"
+    const int TICKS_PER_SECOND = 30;
+    const int SKIP_TICKS = 1000 / TICKS_PER_SECOND;
 
-        if (mudServer.Start("27015") == 0) {
-            mudServer.Run();
+    while (engine.IsRunning()) {
+        auto next_game_tick = GetTickCount() + SKIP_TICKS;
+
+        engine.ProcessInputs();
+
+        // B. Update Game World
+        engine.Update(0.033f);
+
+        // C. Sleep to maintain framerate
+        int sleep_time = next_game_tick - GetTickCount();
+        if (sleep_time > 0) {
+            Sleep(sleep_time);
         }
-        else {
-            return 1;
-        }
+    }
 
-
-    mudServer.Stop();
     return 0;
 }

@@ -5,14 +5,17 @@
 #include <vector>
 #include <iostream> 
 
+
 class Registry;
 class ClientConnection;
 struct StatComponent;
-class SkillResult;
-class InteractableContext;
+struct SkillResult;        
+struct InteractableResult;
 struct VitalsChangedComponent;
 struct ClientComponent;
 class ScriptManager;
+struct InteractableContext;
+struct SkillContext;
 
 class ScriptManager {
 public:
@@ -62,4 +65,6 @@ public:
 	SkillResult ExecuteSkillScript(const std::string& scriptPath, const SkillContext& ctx);
 	InteractableResult ExecuteInteractableScript(const std::string& scriptPath, const std::string& functionName, const InteractableContext& context);
 	ClientConnection* GetPlayer(int player_id);
+	template<typename ...Args>
+	void BroadcastEvent(const std::string& eventName, Args && ...args);
 };

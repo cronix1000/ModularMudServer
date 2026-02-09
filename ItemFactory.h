@@ -64,15 +64,15 @@ public:
         if (it == itemTemplates.end()) return -1;
 
         const auto& tpl = it->second;
-        int id = ctx.registry.CreateEntity();
+        int id = ctx.registry->CreateEntity();
 
         // 1. Basic Components (Copying data from template)
-        ctx.registry.AddComponent<NameComponent>(id, NameComponent(tpl.name));
-        ctx.registry.AddComponent<DescriptionComponent>(id, DescriptionComponent{ tpl.description });
-        ctx.registry.AddComponent<VisualComponent>(id, VisualComponent{ tpl.symbol, tpl.color });
+        ctx.registry->AddComponent<NameComponent>(id, NameComponent(tpl.name));
+        ctx.registry->AddComponent<DescriptionComponent>(id, DescriptionComponent{ tpl.description });
+        ctx.registry->AddComponent<VisualComponent>(id, VisualComponent{ tpl.symbol, tpl.color });
 
         // Item Component stores the "Template Link" + instance data
-        ctx.registry.AddComponent<ItemComponent>(id, ItemComponent{
+        ctx.registry->AddComponent<ItemComponent>(id, ItemComponent{
             templateID,
             tpl.weight,
             tpl.value,
@@ -96,7 +96,7 @@ public:
             // NEW: The Skill Alias Link
             weapon.defaultSkillTemplate = w.value("defaultSkill", "skill_punch");
 
-            ctx.registry.AddComponent<WeaponComponent>(id, weapon);
+            ctx.registry->AddComponent<WeaponComponent>(id, weapon);
         }
 
         // 3. Armour Component
@@ -109,7 +109,7 @@ public:
             armour.magicDefense = a.value("magic_defense", 0); // Watch for snake_case in JSON
             armour.slot = TextHelperFunctions::StringToSlot(a.value("slot", "torso"));
 
-            ctx.registry.AddComponent<ArmourComponent>(id, armour);
+            ctx.registry->AddComponent<ArmourComponent>(id, armour);
         }
 
         // 4. Item Scripts (Procs/Triggers) (UPDATED)
@@ -119,13 +119,13 @@ public:
             for (auto& [trigger, file] : tpl.extra["scripts"].items()) {
                 scripts.scripts_path[trigger] = file;
             }
-            ctx.registry.AddComponent<ScriptComponent>(id, scripts);
+            ctx.registry->AddComponent<ScriptComponent>(id, scripts);
             
         }
 
 
         if (roomId != -1) {
-            ctx.registry.AddComponent<PositionComponent>(id, PositionComponent{ x, y, roomId });
+            ctx.registry->AddComponent<PositionComponent>(id, PositionComponent{ x, y, roomId });
         }
 
         return id;
