@@ -14,7 +14,7 @@ public:
 	bool HandleMacroMove(int entityId, Direction dir, PositionComponent* pos, Room* currentRoom);
 	bool CanMoveTo(Room* room, int x, int y);
 	bool AttemptTeleport(PositionComponent* pos, int roomId);
-	void PutPlayerInRoom(int roomId, PositionComponent& position);
+	bool PutPlayerInRoom(int roomId, PositionComponent& position);
 private:
 
 };

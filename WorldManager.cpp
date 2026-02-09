@@ -99,6 +99,7 @@ bool WorldManager::AttemptTeleport(PositionComponent* pos, int roomId)
     if (roomId == -1) return false;
     Room* newRoom = world->GetRoom(roomId);
     
+    if (!newRoom) return false;
     pos->roomId = roomId;
     pos->x = newRoom->spawn.first;
     pos->y = newRoom->spawn.second;
@@ -112,7 +113,7 @@ bool WorldManager::CanMoveTo(Room* room, int x, int y)
         return true;
 }
 
-void WorldManager::PutPlayerInRoom(int roomId, PositionComponent& position)
+bool WorldManager::PutPlayerInRoom(int roomId, PositionComponent& position)
 {
     Room* room = world->GetRoom(roomId);
 
@@ -120,5 +121,8 @@ void WorldManager::PutPlayerInRoom(int roomId, PositionComponent& position)
         position.x = room->spawn.first;
         position.y = room->spawn.second;
         position.roomId = roomId;
+        return true;
     }
+
+    return false;
 }

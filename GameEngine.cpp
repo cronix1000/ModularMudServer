@@ -93,12 +93,12 @@ int GameEngine::LoadPlayer(ClientConnection* socket, std::string username) {
         return -1;
     }
 
-    ClientComponent* client = registry->GetComponent<ClientComponent>(id);
+    ClientComponent* client = gameContext.registry->GetComponent<ClientComponent>(id);
     if (client) {
         EventContext ectx;
-        ectx.data = RoomEventData{ id, registry->GetComponent<PositionComponent>(id)->roomId };
-        eventBus->Publish(EventType::RoomEntered, ectx);
-        registry->AddComponent<PositionChangedComponent>(id);
+        ectx.data = RoomEventData{ id, gameContext.registry->GetComponent<PositionComponent>(id)->roomId };
+        gameContext.eventBus->Publish(EventType::RoomEntered, ectx);
+        gameContext.registry->AddComponent<PositionChangedComponent>(id);
     }
 
     printf("Player %s logged in as Entity %d\n", username.c_str(), id);
@@ -124,9 +124,9 @@ void GameEngine::Update(float deltaTime) {
 const bool GameEngine::IsRunning() { return isRunning; }
 
 ClientConnection* GameEngine::GetClientById(int clientId) {
-	auto view = registry->view<ClientComponent>();
+	auto view = gameContext.registry->view<ClientComponent>();
 	for (EntityID entity : view) {
-		ClientComponent* client = registry->GetComponent<ClientComponent>(entity);
+		ClientComponent* client = gameContext.registry->GetComponent<ClientComponent>(entity);
 		if (client && client->client && client->client->clientID == clientId) {
             return client->client;
 		}

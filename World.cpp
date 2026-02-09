@@ -1,4 +1,5 @@
 #include "World.h"
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include "itemFactory.h"
@@ -7,11 +8,35 @@
 #include "GameContext.h"
 #include "InteractableFactory.h"
 
-const std::string REGION_PATH = "regions/";
-
 #include <nlohmann/json.hpp> 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
+
+const fs::path REGION_DIR = "regions";
+
+namespace {
+    bool ResolveRegionDirectory(const std::string& region, fs::path& outDir) {
+        fs::path candidate = REGION_DIR / region;
+        if (fs::is_directory(candidate)) {
+            outDir = candidate;
+            return true;
+        }
+
+        fs::path current = fs::current_path();
+        while (true) {
+            candidate = current / REGION_DIR / region;
+            if (fs::is_directory(candidate)) {
+                outDir = candidate;
+                return true;
+            }
+
+            if (current == current.root_path()) break;
+            current = current.parent_path();
+        }
+
+        return false;
+    }
+}
 World::World()
 {
     // load global terrains
@@ -267,42 +292,91 @@ bool World::CheckIfRegionLoaded(const std::string& regionPath)
     return true;
 }
 
-void World::LoadRegion(const std::string& region, GameContext& ctx)
+bool World::LoadRegion(const std::string& region, GameContext& ctx)
 {
     if (CheckIfRegionLoaded(region))
-        return;
+        return true;
 
-    std::string settingsPath = REGION_PATH + region + "/floor_settings.json";
-    json floorSettings;
-    std::ifstream sFile(settingsPath);
-    if (sFile.is_open()) {
-        sFile >> floorSettings;
+    fs::path regionDir;
+    if (!ResolveRegionDirectory(region, regionDir)) {
+        std::cerr << "World::LoadRegion: cannot find region '" << region << "' near "
+            << fs::current_path() << std::endl;
+        return false;
     }
 
-    // 2. Iterate through all .json files in the folder (C++17 filesystem)
-    for (const auto& entry : fs::directory_iterator(REGION_PATH + region)) {
-        if (entry.path().extension() != ".json" ||
-            entry.path().filename() == "floor_settings.json") continue;
+    json floorSettings;
+    fs::path settingsPath = regionDir / "floor_settings.json";
+    if (fs::exists(settingsPath)) {
+        std::ifstream sFile(settingsPath);
+        try {
+            sFile >> floorSettings;
+        }
+        catch (const json::parse_error& e) {
+            std::cerr << "JSON Parse Error in " << settingsPath << ": " << e.what() << std::endl;
+        }
+    }
 
-        LoadRoomFile(entry.path().string(), floorSettings, ctx);
+    try {
+        for (const auto& entry : fs::directory_iterator(regionDir)) {
+            if (!entry.is_regular_file()) continue;
+
+            fs::path roomPath = entry.path();
+            if (roomPath.extension() != ".json" ||
+                roomPath.filename() == "floor_settings.json") continue;
+
+            LoadRoomFile(roomPath.string(), floorSettings, ctx);
+        }
+    }
+    catch (const fs::filesystem_error& e) {
+        std::cerr << "World::LoadRegion: failed to read directory '" << regionDir << "': "
+            << e.what() << std::endl;
+        return false;
     }
     
     loadedRegions.insert(region);
-    
+    return true;
 }
 
-void World::LoadRoomFile(const std::string& path, const json& floorSettings, GameContext& ctx)
+bool World::LoadRoomFile(const std::string& path, const json& floorSettings, GameContext& ctx)
 {
     std::ifstream file(path);
+    if (!file.is_open()) {
+        std::cerr << "World::LoadRoomFile: Failed to open " << path << std::endl;
+        return false;
+    }
+
     json rData;
-    file >> rData;
+    try {
+        file >> rData;
+    }
+    catch (const json::parse_error& e) {
+        std::cerr << "JSON Parse Error in " << path << ": " << e.what() << std::endl;
+        return false;
+    }
 
-    int id = rData["id"];
-    Room* newRoom = new Room(id, rData["name"], rData["description"]);
-    newRoom->InitializeGrid(rData["width"], rData["height"]);
+    if (rData.is_null()) {
+        std::cerr << "World::LoadRoomFile: " << path << " contained no data" << std::endl;
+        return false;
+    }
 
-    if (rData.contains("layout")) {
-        newRoom->LoadFromMap(rData["layout"]);
+    int id = rData.value("id", -1);
+    if (id < 0) {
+        std::cerr << "World::LoadRoomFile: missing valid id in " << path << std::endl;
+        return false;
+    }
+
+    Room* newRoom = new Room(id, rData.value("name", "Unnamed Room"), rData.value("description", ""));
+    int width = rData.value("width", 0);
+    int height = rData.value("height", 0);
+
+    if (width > 0 && height > 0) {
+        newRoom->InitializeGrid(width, height);
+        if (rData.contains("layout")) {
+            newRoom->LoadFromMap(rData["layout"]);
+        }
+    }
+    else {
+        std::cerr << "World::LoadRoomFile: invalid dimensions for room " << id << " in " << path << std::endl;
     }
 
     // Register Room
@@ -342,6 +416,7 @@ void World::LoadRoomFile(const std::string& path, const json& floorSettings, Gam
     }
 
 
+    return true;
 }
 
 void World::ParseSpawns(const json& rData, const json& floorSettings, GameContext& ctx)

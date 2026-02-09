@@ -45,11 +45,11 @@ public:
 	// Pass the address (&db)
 
 	GameContext& gameContext;
-	Registry* registry;
+	//Registry* registry;
 	World* world;
-	WorldManager* worldManager;
-	ScriptManager* scriptManager;
-	FactoryManager* factoryManager;
+	//WorldManager* worldManager;
+	//ScriptManager* scriptManager;
+	//FactoryManager* factoryManager;
 	ScriptEventBridge* scriptEventBridge;
 
 	float time = 0;

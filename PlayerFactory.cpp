@@ -1,4 +1,5 @@
 #include "PlayerFactory.h"
+#include <iostream>
 #include "PlayerData.h"
 #include "GameContext.h"
 #include "Registry.h"
@@ -45,13 +46,19 @@ EntityID PlayerFactory::LoadPlayer(std::string username, ClientConnection* conne
     stats.Strength = s.value("str", 10);
     ctx.registry->AddComponent(player, stats);
 
-    if(data.region != "")
-        ctx.worldManager->world->LoadRegion(data.region, ctx);
-    else
-        ctx.worldManager->world->LoadRegion("floor1", ctx);
+    std::string regionToLoad = data.region.empty() ? "floor1" : data.region;
+    if (!ctx.worldManager->world->LoadRegion(regionToLoad, ctx)) {
+        std::cerr << "[PlayerFactory] Failed to load region '" << regionToLoad << "' for " << username << "; the world folder might be missing." << std::endl;
+    }
 
-    PositionComponent pos;
-    ctx.worldManager->PutPlayerInRoom(data.room_id, pos);
+    PositionComponent pos{ 0, 0, 0 };
+    int roomToUse = data.room_id > 0 ? data.room_id : 1;
+    if (!ctx.worldManager->PutPlayerInRoom(roomToUse, pos)) {
+        std::cerr << "[PlayerFactory] Unable to place " << username << " in room " << roomToUse << "; defaulting to room 1." << std::endl;
+        if (!ctx.worldManager->PutPlayerInRoom(1, pos)) {
+            std::cerr << "[PlayerFactory] Still could not place " << username << "; dropping at origin." << std::endl;
+        }
+    }
     ctx.registry->AddComponent(player, pos);
     ctx.registry->AddComponent(player, VisualComponent{ "@", "&r" });
     ctx.registry->AddComponent(player, InventoryComponent{});
