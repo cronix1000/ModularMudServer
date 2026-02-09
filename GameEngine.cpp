@@ -41,7 +41,7 @@ GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : 
     gameContext.scripts->lua.script("print('Hello from Lua')");
     scriptEventBridge = new ScriptEventBridge(gameContext.eventBus.get(), gameContext.scripts.get());
     gameContext.db = std::make_unique<SQLiteDatabase>();
-	gameContext.db->Connect("game_database.db");
+	gameContext.db->Connect("mud.db");
 
 
     // 3. Link the manager back to the context
@@ -148,7 +148,6 @@ void GameEngine::ProcessInputs() {
         std::vector<std::string> inputStringVector;
 		std::stringstream ss = std::stringstream(input.rawText);
         while (ss) {
-			inputStringVector.push_back("");
 			ss >> inputStringVector.back();
         }
 

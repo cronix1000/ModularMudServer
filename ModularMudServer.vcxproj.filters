@@ -506,12 +506,12 @@
       <Filter>Data</Filter>
     </None>
     <None Include="ClassDiagram.cd" />
-    <None Include="mud.db" />
     <None Include="skills.json">
       <Filter>Data</Filter>
     </None>
     <None Include="interactables.json">
       <Filter>Data</Filter>
     </None>
+    <None Include="mud.db" />
   </ItemGroup>
 </Project>

@@ -67,7 +67,7 @@ void ClientConnection::ProcessInput() {
 }
 int ClientConnection::SendData() {
 
-    int iSendResult;
+    int iSendResult = 0;
     char recvbuf[DEFAULT_BUFLEN] = { 0 };
     int recvbuflen = DEFAULT_BUFLEN;
     int iResult = 0;
@@ -90,6 +90,8 @@ int ClientConnection::SendData() {
         }
         printf("Bytes sent: %d\n", iSendResult);
     }
+
+    return iSendResult;
 }
 
 void ClientConnection::QueueMessage(const std::string& msg) {
