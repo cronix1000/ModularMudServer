@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 
-struct LootDropperComponent {
+struct LootDropComponent {
     std::string tableID;
+    bool generated = false;
 };

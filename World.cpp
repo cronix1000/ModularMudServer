@@ -240,7 +240,7 @@ void World::LoadWorld(const std::string& filepath, GameContext& ctx) {
                                 // Call your Factory here
                                 // factory.Spawn(registry, mobID, x, y, roomID, overrides);
                                 if (type == "mob") {
-                                    ctx.factories->mobs.Spawn(ID, x, y, roomID, 3, true, overrides);
+                                    ctx.factories->mobs.CreateMob(ID, overrides, x, y, roomID);
                                 }
                                 else if (type == "item") {
                                     ctx.factories->items.CreateItem(ID, overrides,x, y, roomID);
@@ -458,7 +458,7 @@ void World::ParseSpawns(const json& rData, const json& floorSettings, GameContex
 
             // 3. Execution
             if (type == "mob") {
-                ctx.factories->mobs.Spawn(templateID, x, y, roomID, 3, true, finalOverrides);
+                ctx.factories->mobs.CreateMob(templateID, finalOverrides, x, y, roomID);
             }
             else if (type == "item") {
                 ctx.factories->items.CreateItem(templateID,finalOverrides,x,y,roomID);

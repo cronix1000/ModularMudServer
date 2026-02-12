@@ -52,6 +52,9 @@
     <Filter Include="Source Files\Managers">
       <UniqueIdentifier>{65252ac6-aab6-4455-8ac6-8f847c7b5bc3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Factories">
+      <UniqueIdentifier>{865b8077-9ddd-4a79-ab6f-8c27a729eb53}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Command.cpp">
@@ -147,9 +150,6 @@
     <ClCompile Include="PickupItemIntentComponent.h">
       <Filter>Header Files\Component</Filter>
     </ClCompile>
-    <ClCompile Include="PlayerFactory.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="SaveSystem.cpp">
       <Filter>Source Files\System</Filter>
     </ClCompile>
@@ -159,11 +159,20 @@
     <ClCompile Include="SkillSystem.cpp">
       <Filter>Source Files\System</Filter>
     </ClCompile>
-    <ClCompile Include="InteractableFactory.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="GameContext.cpp">
       <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="PlayerFactory.cpp">
+      <Filter>Source Files\Factories</Filter>
+    </ClCompile>
+    <ClCompile Include="InteractableFactory.cpp">
+      <Filter>Source Files\Factories</Filter>
+    </ClCompile>
+    <ClCompile Include="ItemFactory.cpp">
+      <Filter>Source Files\Factories</Filter>
+    </ClCompile>
+    <ClCompile Include="MobFactory.cpp">
+      <Filter>Source Files\Factories</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -487,6 +496,9 @@
     </ClInclude>
     <ClInclude Include="ClientInput.h">
       <Filter>Header Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="ContainerComponent.h">
+      <Filter>Header Files\Component</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -44,3 +44,8 @@
 #include "SkillHolderComponent.h"
 #include "ScheduledEventComponent.h"
 #include "SkillWindupComponents.h"
+#include "DescriptionComponent.h"
+#include "WeightComponent.h"
+#include "ValueComponent.h"
+#include "BaseStatsComponent.h"
+#include "LootDropComponent.h"

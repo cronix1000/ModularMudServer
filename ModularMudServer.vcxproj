@@ -144,6 +144,7 @@
     <ClCompile Include="BehaviorSystem.cpp" />
     <ClCompile Include="GameContext.cpp" />
     <ClCompile Include="InteractableFactory.cpp" />
+    <ClCompile Include="ItemFactory.cpp" />
     <ClCompile Include="MessageSystem.cpp" />
     <ClCompile Include="CleanUpSystem.cpp" />
     <ClCompile Include="ClientConnection.cpp" />
@@ -159,6 +160,7 @@
     <ClCompile Include="InventorySystem.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MenuManager.cpp" />
+    <ClCompile Include="MobFactory.cpp" />
     <ClCompile Include="MovementSystem.cpp" />
     <ClCompile Include="NetworkSyncSystem.cpp" />
     <ClCompile Include="PickupItemIntentComponent.h" />
@@ -190,6 +192,7 @@
     <ClInclude Include="BusyComponent.h" />
     <ClInclude Include="CharCreator.h" />
     <ClInclude Include="ClientInput.h" />
+    <ClInclude Include="ContainerComponent.h" />
     <ClInclude Include="CoolDownDefinitionComponent.h" />
     <ClInclude Include="CraftIntentComponent.h" />
     <ClInclude Include="DamageScalingComponent.h" />

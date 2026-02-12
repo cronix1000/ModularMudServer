@@ -30,10 +30,10 @@ public:
         std::cout << "Loading Game Database..." << std::endl;
 
         // Order matters if they cross-reference
-        items.LoadItemTemplates("items.json");
+        items.LoadItemTemplatesFromLua();
         loot.LoadLootTables("loot_drops.json");
         dialogue.LoadDialogueAndVoices("dialogue.json");
-        mobs.LoadMobTemplates("mobs.json");
+        mobs.LoadMobTemplatesFromLua();
         interactables.LoadInteractableTemplatesFromLua();
         skills.LoadSkillsFromLua();
 
