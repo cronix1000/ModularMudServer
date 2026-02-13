@@ -3,7 +3,7 @@
 #include "GameState.h"
 #include "ClientConnection.h"  
 #include <string>
-#include "CharCreator.h"
+#include "CharCreatorState.h"
 #include "LoginState.h"
 class MainMenuState : public GameState {
     void OnEnter(ClientConnection* client) override {

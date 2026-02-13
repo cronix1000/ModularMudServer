@@ -55,7 +55,7 @@ public:
 	float time = 0;
 
 	GameContext& GetContext() { return gameContext; }
-	int CreatePlayer(ClientConnection* clientID, std::string username, PlayerData playerData);
+	int CreatePlayer(ClientConnection* clientID, std::string username, std::string password,PlayerData playerData);
 	int LoadPlayer(ClientConnection* socket, std::string username);
 	void Update(float deltaTime);
 	const bool IsRunning();

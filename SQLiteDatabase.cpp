@@ -43,6 +43,8 @@ void SQLiteDatabase::InitializeSchema() {
         "region_id TEXT DEFAULT 'floor1',"
         "account_id INTEGER UNIQUE,"
         "name TEXT UNIQUE NOT NULL,"
+        "password_hash TEXT NOT NULL,"
+        "salt TEXT NOT NULL,"
         "room_id INTEGER DEFAULT 1,"
         "stats TEXT NOT NULL,"
         "body_mods TEXT"
@@ -187,8 +189,8 @@ bool SQLiteDatabase::SaveBodyMods(EntityID playerEnt, GameContext& ctx) {
     }
     return true;
 }
-int SQLiteDatabase::CreatePlayerRow(const std::string& name) {
-    const char* sql = "INSERT INTO players (name, room_id, stats) VALUES (?, ?, ?);";
+int SQLiteDatabase::CreatePlayerRow(const std::string& name, const std::string& password, const std::string& salt) {
+    const char* sql = "INSERT INTO players (region_id,name, password_hash, salt, room_id, stats) VALUES (?, ?, ?);";
     sqlite3_stmt* stmt;
     int newId = -1;
 
@@ -197,9 +199,12 @@ int SQLiteDatabase::CreatePlayerRow(const std::string& name) {
         nlohmann::json defaultStats = { {"hp", 100}, {"max_hp", 100}, {"str", 10} };
         std::string statsStr = defaultStats.dump();
 
-        sqlite3_bind_text(stmt, 1, name.c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_int(stmt, 2, 1); // Starting room
-        sqlite3_bind_text(stmt, 3, statsStr.c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_text(stmt, 1, "floor_1", -1, SQLITE_TRANSIENT);
+        sqlite3_bind_text(stmt, 2, name.c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_text(stmt, 3,password.c_str(), -1,SQLITE_TRANSIENT); // Starting room
+        sqlite3_bind_text(stmt, 4,salt.c_str(), -1,SQLITE_TRANSIENT); // Starting room
+        sqlite3_bind_int(stmt, 5, 1); // Starting room
+        sqlite3_bind_text(stmt, 6, statsStr.c_str(), -1, SQLITE_TRANSIENT);
 
         if (sqlite3_step(stmt) == SQLITE_DONE) {
             newId = (int)sqlite3_last_insert_rowid(db);

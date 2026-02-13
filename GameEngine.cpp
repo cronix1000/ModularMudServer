@@ -28,6 +28,7 @@
 #include "TimeData.h"
 #include "ClientInput.h"
 #include "GameState.h"
+#include "picosha2.h"
 
 GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : gameContext(ctx), isRunning(true), inputQueue(input) {
     // 1. Initialize core resources
@@ -78,11 +79,30 @@ GameEngine::~GameEngine()
 {
 }
 
+std::string GenerateSalt(int length = 16) {
+    const char charset[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*";
 
-int GameEngine::CreatePlayer(ClientConnection* clientID, std::string username, PlayerData playerData) {
-    int newID = gameContext.db->CreatePlayerRow(username);
+    // Setup random number generator securely
+    std::default_random_engine rng(std::random_device{}());
+    std::uniform_int_distribution<> dist(0, sizeof(charset) - 2);
+
+    std::string salt;
+    for (int i = 0; i < length; ++i) {
+        salt += charset[dist(rng)];
+    }
+    return salt;
+}
+
+int GameEngine::CreatePlayer(ClientConnection* clientID, std::string username, std::string password,PlayerData playerData) {
+    std::string salt = GenerateSalt();
+    std::string combined = password + salt;
+    std::string hash = picosha2::hash256_hex_string(combined);
+
+    int newID = gameContext.db->CreatePlayerRow(username, hash, salt);
     return newID;
 }
+
+
 
 int GameEngine::LoadPlayer(ClientConnection* socket, std::string username) {
     // The Factory handles checking the DB and attaching all components

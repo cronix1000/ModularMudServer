@@ -8,7 +8,7 @@ void ItemFactory::LoadItemTemplatesFromLua() {
     // 1. Run the script
     try {
         ctx.scripts->lua.script_file("scripts/items/items_master.lua");
-        sol::table itemsTable = ctx.scripts->lua["Items"];
+        sol::table itemsTable = ctx.scripts->lua["items"];
 
         if (!itemsTable.valid()) {
             std::cerr << "[Error] Global 'Items' table not found in Lua!" << std::endl;

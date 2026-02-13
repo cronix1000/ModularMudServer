@@ -190,7 +190,7 @@
     <ClInclude Include="BehaviourComponent.h" />
     <ClInclude Include="BodyComponent.h" />
     <ClInclude Include="BusyComponent.h" />
-    <ClInclude Include="CharCreator.h" />
+    <ClInclude Include="CharCreatorState.h" />
     <ClInclude Include="ClientInput.h" />
     <ClInclude Include="ContainerComponent.h" />
     <ClInclude Include="CoolDownDefinitionComponent.h" />
@@ -215,6 +215,8 @@
     <ClInclude Include="EquipmentSlot.h" />
     <ClInclude Include="MenuState.h" />
     <ClInclude Include="MenuType.h" />
+    <ClInclude Include="picosha2.h" />
+    <ClInclude Include="PlayerVariablesComponent.h" />
     <ClInclude Include="RegionComponent.h" />
     <ClInclude Include="RegionManager.h" />
     <ClInclude Include="RenownFactionComponent.h" />
@@ -257,6 +259,7 @@
     <ClInclude Include="PulseComponent.h" />
     <ClInclude Include="Registry.h" />
     <ClInclude Include="ResourceCostComponent.h" />
+    <ClInclude Include="SpawnComponent.h" />
     <ClInclude Include="Room.h" />
     <ClInclude Include="RoomComponent.h" />
     <ClInclude Include="SaveSystem.h" />

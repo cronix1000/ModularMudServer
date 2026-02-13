@@ -434,9 +434,6 @@
     <ClInclude Include="ASCIIGenerator.h">
       <Filter>Header Files\Core</Filter>
     </ClInclude>
-    <ClInclude Include="CharCreator.h">
-      <Filter>Header Files\Systems</Filter>
-    </ClInclude>
     <ClInclude Include="RegionManager.h">
       <Filter>Header Files\Managers</Filter>
     </ClInclude>
@@ -499,6 +496,18 @@
     </ClInclude>
     <ClInclude Include="ContainerComponent.h">
       <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="SpawnComponent.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="PlayerVariablesComponent.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="CharCreatorState.h">
+      <Filter>Header Files\GameStates</Filter>
+    </ClInclude>
+    <ClInclude Include="picosha2.h">
+      <Filter>Header Files\Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

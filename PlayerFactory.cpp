@@ -21,9 +21,8 @@ EntityID PlayerFactory::LoadPlayer(std::string username, ClientConnection* conne
 
     // 1. Check if they exist in DB
     if (!ctx.db->PlayerExists(username)) {
-        printf("[Factory] Creating new record for %s\n", username.c_str());
-        int newDbId = ctx.db->CreatePlayerRow(username);
-        if (newDbId == -1) return -1; // Database error
+        printf("[Factory] Error on name", username.c_str());
+        return -1;
     }
 
     // 2. Load the data (whether just created or old)

@@ -24,7 +24,7 @@ public:
     std::vector<SavedItemData> GetSavedItems(int dbId);
     bool PlayerExists(const std::string& name) override;
 
-    int CreatePlayerRow(const std::string& name);
+    int CreatePlayerRow(const std::string& name, const std::string& passwordHash, const std::string& salt);
     bool SavePlayer(EntityID playerEnt, GameContext& ctx) override;
     bool SaveStats(EntityID playerEnt, GameContext& ctx);
     bool SaveItems(EntityID playerEnt, GameContext& ctx);

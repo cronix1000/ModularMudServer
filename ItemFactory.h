@@ -5,6 +5,7 @@
 #include <nlohmann/json.hpp>
 #include "Registry.h"
 #include "Component.h" 
+#include "sol/sol.hpp"
 
 
 using json = nlohmann::json;
