@@ -7,25 +7,21 @@
 #include "World.h"
 #include "GameContext.h"
 #include "TextHelperFunctions.h"
+#include <nlohmann/json.hpp>
+#include <sstream>
+
+using json = nlohmann::json;
 
 class NetworkSystem {
 	GameContext& ctx;
 public:
 	NetworkSystem(GameContext& gc) : ctx(gc){};
-	void SetupListeners() 
-	{
-		ctx.eventBus->Subscribe(EventType::RoomEntered, [this](const EventContext& ectx) {
-			if (!std::holds_alternative<RoomEventData>(ectx.data)) return;
-			const auto& data = std::get<RoomEventData>(ectx.data);
-
-			Room* room = ctx.worldManager->world->GetRoom(data.RoomID);
-			ClientComponent* client = ctx.registry->GetComponent<ClientComponent>(data.EntityID);
-
-          
-            if (client && client->client && room) {
-                std::string output = "&w" + room->Name + "&w\r\n" + room->Description + "\r\n";
-                client->client->QueueMessage(TextHelperFunctions::Colorize(output));
-            }
-		});
-	}
+	void SetupListeners();
+	void FlushQueues();
+	
+private:
+	void SendToWebClient(ClientConnection* client, const GameMessage& msg);
+	void SendToTerminalClient(ClientConnection* client, const GameMessage& msg, bool hasSideBar);
+	std::string BuildJSONEnvelope(const GameMessage& msg);
+	std::string BuildGMCPSession(const std::string& module, const json& data);
 };

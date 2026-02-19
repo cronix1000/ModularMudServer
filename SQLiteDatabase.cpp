@@ -1,5 +1,6 @@
 #include "SQLiteDatabase.h"
 #include <stdio.h>
+#include "picosha2.h"
 #include "GameContext.h"
 #include "Registry.h"
 #include "StatComponent.h"
@@ -326,4 +327,42 @@ bool SQLiteDatabase::PlayerExists(const std::string& name)
 
     else false;
 
+}
+
+bool SQLiteDatabase::UpdatePassword(const std::string& name, const std::string& passwordHash, const std::string& salt) {
+    const char* sql = "UPDATE players SET password_hash = ?, salt = ? WHERE name = ?;";
+    sqlite3_stmt* stmt;
+
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) return false;
+    
+    sqlite3_bind_text(stmt, 1, passwordHash.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, salt.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 3, name.c_str(), -1, SQLITE_TRANSIENT);
+
+    bool success = sqlite3_step(stmt) == SQLITE_DONE;
+    sqlite3_finalize(stmt);
+    return success;
+}
+
+bool SQLiteDatabase::VerifyPassword(const std::string& name, const std::string& password) {
+    const char* sql = "SELECT password_hash, salt FROM players WHERE name = ?;";
+    sqlite3_stmt* stmt;
+
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) return false;
+    sqlite3_bind_text(stmt, 1, name.c_str(), -1, SQLITE_STATIC);
+
+    bool verified = false;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        std::string storedHash = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+        std::string salt = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+        
+        // Recreate the hash with the provided password and stored salt
+        std::string combined = password + salt;
+        std::string computedHash = picosha2::hash256_hex_string(combined);
+        
+        verified = (computedHash == storedHash);
+    }
+    
+    sqlite3_finalize(stmt);
+    return verified;
 }

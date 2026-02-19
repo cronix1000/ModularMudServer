@@ -32,4 +32,8 @@ private:
 	void HandleEquip(ClientConnection* client, std::vector<std::string> params);
 	void HandleMenu(ClientConnection* client, std::vector<std::string> input);
 	void HandleInteract(ClientConnection* client, std::vector<std::string> input);
+	void HandleHello(ClientConnection* client, std::vector<std::string> input);
+	
+	// JSON Handshake handler for hybrid client detection
+	bool TryHandleJSONHandshake(ClientConnection* client, const std::string& input);
 };

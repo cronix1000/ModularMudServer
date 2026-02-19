@@ -215,6 +215,7 @@
     <ClInclude Include="EquipmentSlot.h" />
     <ClInclude Include="MenuState.h" />
     <ClInclude Include="MenuType.h" />
+    <ClInclude Include="PasswordResetState.h" />
     <ClInclude Include="picosha2.h" />
     <ClInclude Include="PlayerVariablesComponent.h" />
     <ClInclude Include="RegionComponent.h" />

@@ -15,6 +15,10 @@
 #include "WorldManager.h"
 #include "GameEngine.h"
 #include "MenuState.h"
+#include "ClientComponent.h"
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
 
 
 CommandInterpreter::CommandInterpreter(GameContext& g) : ctx(g)
@@ -151,6 +155,10 @@ void CommandInterpreter::RegisterCommands() {
 	core_command_map_["pull"] = std::bind(&CommandInterpreter::HandleInteract, this,
 		std::placeholders::_1, std::placeholders::_2);
 	core_command_map_["pray"] = std::bind(&CommandInterpreter::HandleInteract, this,
+		std::placeholders::_1, std::placeholders::_2);
+
+	// Hello packet handler for client capability detection (WebSocket/JSON clients)
+	core_command_map_["hello"] = std::bind(&CommandInterpreter::HandleHello, this,
 		std::placeholders::_1, std::placeholders::_2);
 
 }
@@ -331,4 +339,114 @@ void CommandInterpreter::HandleMenu(ClientConnection* client, std::vector<std::s
 }
 
 void CommandInterpreter::HandleInteract(ClientConnection* client, std::vector<std::string> input) {
+}
+
+void CommandInterpreter::HandleHello(ClientConnection* client, std::vector<std::string> input) {
+    // Reconstruct JSON from input parameters
+    std::string jsonStr = "";
+    for (size_t i = 0; i < input.size(); ++i) {
+        jsonStr += input[i];
+        if (i < input.size() - 1) jsonStr += " ";
+    }
+    
+    // Parse the hello packet
+    try {
+        json helloPacket = json::parse(jsonStr);
+        
+        // Check if this is a valid hello packet
+        if (helloPacket.contains("type") && helloPacket["type"] == "hello") {
+            // Get the player's ClientComponent
+            ClientComponent* clientComp = ctx.registry->GetComponent<ClientComponent>(client->playerEntityID);
+            if (clientComp) {
+                // Parse features array
+                bool hasSideBar = false;
+                bool hasMiniMap = false;
+                
+                if (helloPacket.contains("features") && helloPacket["features"].is_array()) {
+                    for (const auto& feature : helloPacket["features"]) {
+                        std::string featureStr = feature.get<std::string>();
+                        if (featureStr == "sidebar") {
+                            hasSideBar = true;
+                        } else if (featureStr == "minimap") {
+                            hasMiniMap = true;
+                        }
+                    }
+                }
+                
+                // Update client capabilities - this is a web client
+                clientComp->SetCapabilities(true, hasSideBar, hasMiniMap);
+                
+                // Send acknowledgment
+                json response;
+                response["type"] = "hello_ack";
+                response["message"] = "Welcome! Your client capabilities have been registered.";
+                response["features_enabled"] = {
+                    {"sidebar", hasSideBar},
+                    {"minimap", hasMiniMap}
+                };
+                
+                client->QueueMessage(response.dump() + "\n");
+            }
+        }
+    } catch (const json::exception& e) {
+        // Invalid JSON, ignore or send error
+        client->QueueMessage("Invalid hello packet format.\r\n");
+    }
+}
+
+bool CommandInterpreter::TryHandleJSONHandshake(ClientConnection* client, const std::string& input) {
+    // Check if input looks like JSON (starts with '{' or '[')
+    size_t start = input.find_first_not_of(" \t\r\n");
+    if (start == std::string::npos) return false;
+    
+    char firstChar = input[start];
+    if (firstChar != '{' && firstChar != '[') return false;
+    
+    // Try to parse as JSON
+    try {
+        json packet = json::parse(input);
+        
+        // Check if this is a hello packet
+        if (packet.contains("type") && packet["type"] == "hello") {
+            // Get the player's ClientComponent
+            ClientComponent* clientComp = ctx.registry->GetComponent<ClientComponent>(client->playerEntityID);
+            if (clientComp) {
+                // Parse features array
+                bool hasSideBar = false;
+                bool hasMiniMap = false;
+                
+                if (packet.contains("features") && packet["features"].is_array()) {
+                    for (const auto& feature : packet["features"]) {
+                        std::string featureStr = feature.get<std::string>();
+                        if (featureStr == "sidebar") {
+                            hasSideBar = true;
+                        } else if (featureStr == "minimap") {
+                            hasMiniMap = true;
+                        }
+                    }
+                }
+                
+                // Update client capabilities - this is a web client
+                clientComp->SetCapabilities(true, hasSideBar, hasMiniMap);
+                
+                // Send acknowledgment
+                json response;
+                response["type"] = "hello_ack";
+                response["server"] = "ModularMudServer";
+                response["version"] = "1.0";
+                response["features_enabled"] = {
+                    {"sidebar", hasSideBar},
+                    {"minimap", hasMiniMap}
+                };
+                
+                client->QueueMessage(response.dump() + "\n");
+                return true; // Handled
+            }
+        }
+    } catch (const json::exception& e) {
+        // Not valid JSON or not a hello packet, continue with normal command processing
+        return false;
+    }
+    
+    return false;
 }

@@ -509,6 +509,9 @@
     <ClInclude Include="picosha2.h">
       <Filter>Header Files\Core</Filter>
     </ClInclude>
+    <ClInclude Include="PasswordResetState.h">
+      <Filter>Header Files\GameStates</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="global_terrain.json">

@@ -11,6 +11,9 @@
 #include <string>
 #include <algorithm>
 #include <random>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
 
 void CombatSystem::run()
 {
@@ -62,24 +65,59 @@ void CombatSystem::ProcessAttack(int sourceID, int targetID, float damage, const
     // Apply damage
     targetStats->Health = (std::max)(0, targetStats->Health - finalDamage);
 
-    // Send combat messages
+    // Send combat messages using new GameMessage pattern
     auto* sourceClient = ctx.registry->GetComponent<ClientComponent>(sourceID);
-    if (sourceClient && sourceClient->client) {
+    if (sourceClient) {
         auto* targetName = ctx.registry->GetComponent<NameComponent>(targetID);
         std::string targetNameStr = targetName ? targetName->displayName : "target";
-        sourceClient->client->QueueMessage("You attack " + targetNameStr + " for " + 
-                                          std::to_string(finalDamage) + " " + damageType + " damage!");
+        
+        json jsonData = {
+            {"action", "attack"},
+            {"damage", finalDamage},
+            {"damage_type", damageType},
+            {"target", targetNameStr},
+            {"target_current_hp", targetStats->Health},
+            {"target_max_hp", targetStats->MaxHealth}
+        };
+        
+        GameMessage msg;
+        msg.type = "combat_hit";
+        msg.consoleText = "You attack " + targetNameStr + " for &R" + std::to_string(finalDamage) + "&X " + damageType + " damage!";
+        msg.jsonData = jsonData.dump();
+        sourceClient->QueueGameMessage(msg);
     }
 
     auto* targetClient = ctx.registry->GetComponent<ClientComponent>(targetID);
-    if (targetClient && targetClient->client) {
+    if (targetClient) {
         auto* sourceName = ctx.registry->GetComponent<NameComponent>(sourceID);
         std::string sourceNameStr = sourceName ? sourceName->displayName : "someone";
-        targetClient->client->QueueMessage(sourceNameStr + " attacks you for " + 
-                                         std::to_string(finalDamage) + " " + damageType + " damage!");
+        
+        json jsonData = {
+            {"action", "attacked"},
+            {"damage", finalDamage},
+            {"damage_type", damageType},
+            {"source", sourceNameStr},
+            {"current_hp", targetStats->Health},
+            {"max_hp", targetStats->MaxHealth}
+        };
+        
+        GameMessage msg;
+        msg.type = "combat_hit";
+        msg.consoleText = sourceNameStr + " attacks you for &R" + std::to_string(finalDamage) + "&X " + damageType + " damage!";
+        msg.jsonData = jsonData.dump();
+        targetClient->QueueGameMessage(msg);
         
         if (targetStats->Health <= 0) {
-            targetClient->client->QueueMessage("You have been defeated!");
+            json defeatData = {
+                {"defeated_by", sourceNameStr},
+                {"final_damage", finalDamage}
+            };
+            
+            GameMessage defeatMsg;
+            defeatMsg.type = "player_defeat";
+            defeatMsg.consoleText = "&RYou have been defeated!&X";
+            defeatMsg.jsonData = defeatData.dump();
+            targetClient->QueueGameMessage(defeatMsg);
         }
     }
 
@@ -105,41 +143,94 @@ void CombatSystem::ProcessHeal(int sourceID, int targetID, float healAmount)
     int actualHeal = (std::min)((int)healAmount, targetStats->MaxHealth - targetStats->Health);
     targetStats->Health += actualHeal;
 
-    // Send heal messages
+    // Send heal messages using new GameMessage pattern
     auto* sourceClient = ctx.registry->GetComponent<ClientComponent>(sourceID);
-    if (sourceClient && sourceClient->client && sourceID != targetID) {
+    if (sourceClient && sourceID != targetID) {
         auto* targetName = ctx.registry->GetComponent<NameComponent>(targetID);
         std::string targetNameStr = targetName ? targetName->displayName : "target";
-        sourceClient->client->QueueMessage("You heal " + targetNameStr + " for " + 
-                                          std::to_string(actualHeal) + " health!");
+        
+        json jsonData = {
+            {"action", "heal"},
+            {"heal_amount", actualHeal},
+            {"target", targetNameStr},
+            {"target_current_hp", targetStats->Health},
+            {"target_max_hp", targetStats->MaxHealth}
+        };
+        
+        GameMessage msg;
+        msg.type = "combat_heal";
+        msg.consoleText = "You heal " + targetNameStr + " for &G" + std::to_string(actualHeal) + "&X health!";
+        msg.jsonData = jsonData.dump();
+        sourceClient->QueueGameMessage(msg);
     }
 
     auto* targetClient = ctx.registry->GetComponent<ClientComponent>(targetID);
-    if (targetClient && targetClient->client) {
+    if (targetClient) {
         if (sourceID == targetID) {
-            targetClient->client->QueueMessage("You heal yourself for " + 
-                                             std::to_string(actualHeal) + " health!");
+            json jsonData = {
+                {"action", "self_heal"},
+                {"heal_amount", actualHeal},
+                {"current_hp", targetStats->Health},
+                {"max_hp", targetStats->MaxHealth}
+            };
+            
+            GameMessage msg;
+            msg.type = "combat_heal";
+            msg.consoleText = "You heal yourself for &G" + std::to_string(actualHeal) + "&X health!";
+            msg.jsonData = jsonData.dump();
+            targetClient->QueueGameMessage(msg);
         } else {
             auto* sourceName = ctx.registry->GetComponent<NameComponent>(sourceID);
-            std::string sourceNameStr = sourceName ? sourceName->displayName
-                : "someone";
-            targetClient->client->QueueMessage(sourceNameStr + " heals you for " + 
-                                             std::to_string(actualHeal) + " health!");
+            std::string sourceNameStr = sourceName ? sourceName->displayName : "someone";
+            
+            json jsonData = {
+                {"action", "healed"},
+                {"heal_amount", actualHeal},
+                {"source", sourceNameStr},
+                {"current_hp", targetStats->Health},
+                {"max_hp", targetStats->MaxHealth}
+            };
+            
+            GameMessage msg;
+            msg.type = "combat_heal";
+            msg.consoleText = sourceNameStr + " heals you for &G" + std::to_string(actualHeal) + "&X health!";
+            msg.jsonData = jsonData.dump();
+            targetClient->QueueGameMessage(msg);
         }
     }
 }
 
 void CombatSystem::ProcessBuff(int sourceID, int targetID, const std::string& buffType, float magnitude)
 {
-    // For now, just send a message - buffs/debuffs would need a separate component system
+    // For now, just send a message using new GameMessage pattern - buffs/debuffs would need a separate component system
     auto* sourceClient = ctx.registry->GetComponent<ClientComponent>(sourceID);
-    if (sourceClient && sourceClient->client) {
-        sourceClient->client->QueueMessage("You cast " + buffType + " on your target!");
+    if (sourceClient) {
+        json jsonData = {
+            {"action", "cast_buff"},
+            {"buff_type", buffType},
+            {"magnitude", magnitude}
+        };
+        
+        GameMessage msg;
+        msg.type = "combat_buff";
+        msg.consoleText = "You cast &C" + buffType + "&X on your target!";
+        msg.jsonData = jsonData.dump();
+        sourceClient->QueueGameMessage(msg);
     }
 
     auto* targetClient = ctx.registry->GetComponent<ClientComponent>(targetID);
-    if (targetClient && targetClient->client) {
-        targetClient->client->QueueMessage("You are affected by " + buffType + "!");
+    if (targetClient) {
+        json jsonData = {
+            {"action", "buffed"},
+            {"buff_type", buffType},
+            {"magnitude", magnitude}
+        };
+        
+        GameMessage msg;
+        msg.type = "combat_buff";
+        msg.consoleText = "You are affected by &C" + buffType + "&X!";
+        msg.jsonData = jsonData.dump();
+        targetClient->QueueGameMessage(msg);
     }
     
     // TODO: Implement actual buff/debuff system with temporary stat modifiers

@@ -33,6 +33,10 @@ public:
 
     void EndTransaction();
 
+    // Password Management
+    bool UpdatePassword(const std::string& name, const std::string& passwordHash, const std::string& salt) override;
+    bool VerifyPassword(const std::string& name, const std::string& password) override;
+
 private:
     // Helper to run the CREATE TABLE sql
     void InitializeSchema();
