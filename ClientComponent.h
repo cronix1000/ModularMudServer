@@ -3,12 +3,6 @@
 #include <vector>
 #include <string>
 
-// Forward declare json to avoid including nlohmann/json.hpp in header
-// We store json data as string and parse it when needed
-namespace nlohmann {
-    class json;
-}
-
 // Rich message structure that supports both terminal and web clients
 struct GameMessage {
     std::string type;           // e.g., "combat_hit", "room_enter", "heal"

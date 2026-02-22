@@ -9,6 +9,7 @@
 #include "TextHelperFunctions.h"
 #include <nlohmann/json.hpp>
 #include <sstream>
+#include <string>
 
 using json = nlohmann::json;
 
@@ -23,5 +24,5 @@ private:
 	void SendToWebClient(ClientConnection* client, const GameMessage& msg);
 	void SendToTerminalClient(ClientConnection* client, const GameMessage& msg, bool hasSideBar);
 	std::string BuildJSONEnvelope(const GameMessage& msg);
-	std::string BuildGMCPSession(const std::string& module, const json& data);
+	std::string BuildGMCPSession(const std::string& moduleName, const std::string& jsonDataStr);
 };

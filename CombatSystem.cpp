@@ -1,17 +1,19 @@
 #include "CombatSystem.h"
-#include "GameContext.h"             
-#include "Registry.h"                 
+#include "GameContext.h"
+#include "Registry.h"
 #include "CombatIntentComponent.h"
 #include "StatComponent.h"
 #include "ClientComponent.h"
 #include "BusyComponent.h"
 #include "NameComponent.h"
 #include "EventBus.h"
+#include "MobComponent.h"
+#include "Tags.h"
+#include <nlohmann/json.hpp>
 #include <iostream>
 #include <string>
 #include <algorithm>
 #include <random>
-#include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
 
@@ -126,6 +128,15 @@ void CombatSystem::ProcessAttack(int sourceID, int targetID, float damage, const
     if (sourceStatsForRecovery) {
         float recovery = 20.0f / (float)sourceStatsForRecovery->attackSpeed;
         ctx.registry->AddComponent<BusyComponent>(sourceID, BusyComponent{ recovery });
+    }
+
+    // Handle mob death (separate from player death handling above)
+    if (targetStats->Health <= 0) {
+        auto* mobComp = ctx.registry->GetComponent<MobComponent>(targetID);
+        if (mobComp) {
+            // This is a mob that died - add DeadTag for RespawnSystem to handle
+            ctx.registry->AddComponent<DeadTag>(targetID, DeadTag{});
+        }
     }
 
     // Fire combat event for other systems

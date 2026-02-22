@@ -4,6 +4,10 @@
 #include "Registry.h"
 #include "DirtyFlagComponents.h"
 
+SaveSystem::~SaveSystem() {
+    // Destructor - nothing special to clean up
+}
+
 void SaveSystem::Run(float deltaTime) {
     saveTimer += deltaTime;
 

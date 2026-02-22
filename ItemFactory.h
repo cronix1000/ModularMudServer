@@ -4,9 +4,8 @@
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include "Registry.h"
-#include "Component.h" 
+#include "Component.h"
 #include "sol/sol.hpp"
-
 
 using json = nlohmann::json;
 
@@ -20,7 +19,7 @@ struct ItemTemplate {
     int weight;
     int value;
 
-    json extra;
+    json extra; // Raw data for specific components
 };
 
 class ItemFactory {

@@ -97,6 +97,16 @@ int ClientConnection::SendData() {
 void ClientConnection::QueueMessage(const std::string& msg) {
     OutboundMessages.push(msg);
 }
+
+void ClientConnection::SendPacket(std::string packet) {
+    // Send the packet immediately (for GMCP and other protocol packets)
+    int iSendResult = send(this->tcpSocket, packet.c_str(), static_cast<int>(packet.size()), 0);
+    
+    if (iSendResult == SOCKET_ERROR) {
+        printf("SendPacket failed with error: %d\n", WSAGetLastError());
+        // Don't close socket here - let the main loop handle disconnection
+    }
+}
 void ClientConnection::DisconnectGracefully() {
     // 1. Send the TCP shutdown signal (SD_SEND)
     shutdown(this->tcpSocket, SD_SEND);

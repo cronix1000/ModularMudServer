@@ -164,11 +164,3 @@ void InteractionSystem::HandleInteractableResult(int userEntityID, const Interac
 		break;
 	}
 }
-	
-	// Handle consume on use
-	//if (result.consumeOnUse) {
-		// Remove the interactable entity
-		//ctx.registry->DestroyEntity(userEntityID);  // This should be the interactable ID, not user ID
-		// TODO: This needs to be fixed to get the interactable ID from the intent
-	//}
-//}

@@ -5,9 +5,9 @@
 #include "Registry.h"
 #include <sol/sol.hpp>
 
-// Include necessary component headers
-
 using json = nlohmann::json;
+
+// Include necessary component headers
 
 struct MobTemplate {
     std::string name;

@@ -49,3 +49,5 @@
 #include "ValueComponent.h"
 #include "BaseStatsComponent.h"
 #include "LootDropComponent.h"
+#include "RespawnComponent.h"
+#include "Tags.h"

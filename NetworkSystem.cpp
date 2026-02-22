@@ -1,8 +1,6 @@
 #include "NetworkSystem.h"
 #include "ClientConnection.h"
-#include <nlohmann/json.hpp>
-
-using json = nlohmann::json;
+#include "WorldManager.h"
 
 // Telnet Constants for GMCP
 const char IAC = static_cast<char>(255);

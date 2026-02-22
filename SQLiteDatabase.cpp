@@ -120,7 +120,7 @@ bool SQLiteDatabase::SavePlayer(EntityID playerEnt, GameContext& ctx) {
         sqlite3_bind_int(stmt, 2, pos->roomId);
         sqlite3_bind_text(stmt, 3, region->region.c_str() ,- 1, SQLITE_TRANSIENT);
         sqlite3_bind_text(stmt, 4, bodyStr.c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_int(stmt, 6, playerComp->accountID);
+        sqlite3_bind_int(stmt, 5, playerComp->accountID);
         sqlite3_step(stmt);
         sqlite3_finalize(stmt);
     }
@@ -325,7 +325,7 @@ bool SQLiteDatabase::PlayerExists(const std::string& name)
         return true;
     }
 
-    else false;
+    else return false;
 
 }
 

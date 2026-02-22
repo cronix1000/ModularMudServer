@@ -14,19 +14,8 @@
 #include "TextHelperFunctions.h"
 #include "Registry.h"
 
-
 using json = nlohmann::json;
 
-// --- The Template (Static Blueprint) ---
-struct AttackStyleTemplate {
-    std::string name;
-    std::string symbol;
-    std::string color;
-    std::string description;
-    int weight;
-    int value;
-    bool equippable;
-    bool gettable;
     json extra; // Raw data for specific components
 };
 

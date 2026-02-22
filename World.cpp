@@ -7,9 +7,8 @@
 #include "FactoryManager.h"
 #include "GameContext.h"
 #include "InteractableFactory.h"
+#include "RespawnSystem.h"
 
-#include <nlohmann/json.hpp> 
-using json = nlohmann::json;
 namespace fs = std::filesystem;
 
 const fs::path REGION_DIR = "regions";
@@ -240,7 +239,17 @@ void World::LoadWorld(const std::string& filepath, GameContext& ctx) {
                                 // Call your Factory here
                                 // factory.Spawn(registry, mobID, x, y, roomID, overrides);
                                 if (type == "mob") {
-                                    ctx.factories->mobs.CreateMob(ID, overrides, x, y, roomID);
+                                    // Check if this mob should have a spawn point (respawn capability)
+                                    float respawnTime = spawnData.value("respawn_time", 30.0f);
+                                    bool shouldRespawn = spawnData.value("respawn", true);
+                                    
+                                    if (shouldRespawn && ctx.respawnSystem) {
+                                        // Create a spawn point that will manage this mob
+                                        ctx.respawnSystem->CreateSpawnPoint(ID, respawnTime, x, y, roomID);
+                                    } else {
+                                        // Just create the mob directly without respawn capability
+                                        ctx.factories->mobs.CreateMob(ID, overrides, x, y, roomID);
+                                    }
                                 }
                                 else if (type == "item") {
                                     ctx.factories->items.CreateItem(ID, overrides,x, y, roomID);
@@ -458,7 +467,17 @@ void World::ParseSpawns(const json& rData, const json& floorSettings, GameContex
 
             // 3. Execution
             if (type == "mob") {
-                ctx.factories->mobs.CreateMob(templateID, finalOverrides, x, y, roomID);
+                // Check if this mob should have a spawn point (respawn capability)
+                float respawnTime = spawnInfo.value("respawn_time", 30.0f); // Default 30 seconds
+                bool shouldRespawn = spawnInfo.value("respawn", true); // Default true
+                
+                if (shouldRespawn && ctx.respawnSystem) {
+                    // Create a spawn point that will manage this mob
+                    ctx.respawnSystem->CreateSpawnPoint(templateID, respawnTime, x, y, roomID);
+                } else {
+                    // Just create the mob directly without respawn capability
+                    ctx.factories->mobs.CreateMob(templateID, finalOverrides, x, y, roomID);
+                }
             }
             else if (type == "item") {
                 ctx.factories->items.CreateItem(templateID,finalOverrides,x,y,roomID);

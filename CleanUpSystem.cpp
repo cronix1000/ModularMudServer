@@ -1,11 +1,8 @@
 #include "CleanUpSystem.h"
 #include "GameContext.h"
 #include "Registry.h"
-#include "Component.h" // Assuming DestroyTag is in a file included by this
+#include "Tags.h"
 #include <vector>
-
-// Forward declare or include the component if it's not in "Component.h"
-struct DestroyTag {};
 
 void CleanUpSystem::run() {
     // This system finds all entities marked with a `DestroyTag` and removes them

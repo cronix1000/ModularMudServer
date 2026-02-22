@@ -33,6 +33,7 @@ class InteractionSystem;
 class CommandInterpreter;
 class MessageSystem;
 class SaveSystem;
+class RespawnSystem;
 struct TimeData;
 struct ClientInput;
 class GameEngine
@@ -84,6 +85,7 @@ public:
 	InteractionSystem* interactionSystem;
 	MessageSystem* messageSytem;
 	SaveSystem* saveSystem;
+	RespawnSystem* respawnSystem;
 
 private:
 	bool isRunning = true;

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Source Files">
@@ -102,6 +102,9 @@
     <ClCompile Include="NetworkSyncSystem.cpp">
       <Filter>Source Files\System</Filter>
     </ClCompile>
+    <ClCompile Include="NetworkSystem.cpp">
+      <Filter>Source Files\System</Filter>
+    </ClCompile>
     <ClCompile Include="MovementSystem.cpp">
       <Filter>Source Files\System</Filter>
     </ClCompile>
@@ -173,6 +176,9 @@
     </ClCompile>
     <ClCompile Include="MobFactory.cpp">
       <Filter>Source Files\Factories</Filter>
+    </ClCompile>
+    <ClCompile Include="RespawnSystem.cpp">
+      <Filter>Source Files\System</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -512,6 +518,16 @@
     <ClInclude Include="PasswordResetState.h">
       <Filter>Header Files\GameStates</Filter>
     </ClInclude>
+    <ClInclude Include="RespawnSystem.h">
+      <Filter>Header Files\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="RespawnComponent.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="DeadTag.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+
   </ItemGroup>
   <ItemGroup>
     <None Include="global_terrain.json">

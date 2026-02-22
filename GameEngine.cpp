@@ -25,6 +25,7 @@
 #include "CommandInterpreter.h"
 #include "MessageSystem.h"
 #include "SaveSystem.h"
+#include "RespawnSystem.h"
 #include "TimeData.h"
 #include "ClientInput.h"
 #include "GameState.h"
@@ -58,9 +59,12 @@ GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : 
     behaviorSystem = new BehaviorSystem(gameContext);
     updateSystem = new UpdateSystem(gameContext);
     combatSystem = new CombatSystem(gameContext);
+    respawnSystem = new RespawnSystem(gameContext);
+    gameContext.respawnSystem = respawnSystem;  // Make accessible via GameContext
     interactionSystem = new InteractionSystem(gameContext);
     messageSytem = new MessageSystem(gameContext);
     saveSystem = new SaveSystem(gameContext);
+    cleanSystem = new CleanUpSystem(gameContext);
 
     // Add and global entity as 1
     gameContext.registry->CreateEntity();
@@ -77,6 +81,24 @@ GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : 
 
 GameEngine::~GameEngine()
 {
+    // Clean up all systems allocated with new
+    delete movementSystem;
+    delete networkSystem;
+    delete networkSyncSystem;
+    delete invSystem;
+    delete behaviorSystem;
+    delete updateSystem;
+    delete combatSystem;
+    delete respawnSystem;
+    delete interactionSystem;
+    delete messageSytem;
+    delete saveSystem;
+    delete cleanSystem;
+    delete scriptEventBridge;
+    delete world;
+    
+    // Factories are managed by FactoryManager which is in GameContext
+    // GameContext's unique_ptrs will be automatically cleaned up
 }
 
 std::string GenerateSalt(int length = 16) {
@@ -137,7 +159,9 @@ void GameEngine::Update(float deltaTime) {
     invSystem->Run(deltaTime);
     combatSystem->run();
     updateSystem->Update(deltaTime);
+    respawnSystem->Update(deltaTime);
     gameContext.eventBus->CallDefferedCalls();
+    cleanSystem->run();
     saveSystem->Run(deltaTime);
 }
 
@@ -166,13 +190,15 @@ void GameEngine::ProcessInputs() {
         ClientConnection* client = GetClientById(input.clientID);
 
         std::vector<std::string> inputStringVector;
-		std::stringstream ss = std::stringstream(input.rawText);
-        while (ss) {
-			ss >> inputStringVector.back();
+        std::stringstream ss(input.rawText);
+        std::string token;
+        while (ss >> token) {
+            inputStringVector.push_back(token);
         }
 
-
-		client->stateStack.top()->HandleInput(client, inputStringVector);
+        if (!inputStringVector.empty() && client && !client->stateStack.empty()) {
+            client->stateStack.top()->HandleInput(client, inputStringVector);
+        }
     }
 }
 

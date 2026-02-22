@@ -1,12 +1,13 @@
 #pragma once
 #include <string>
-#include <nlohmann/json.hpp> 
+#include <nlohmann/json.hpp>
 #include <vector>
+
 using json = nlohmann::json;
 
 struct SavedItemData {
-    std::string templateId; 
-    nlohmann::json state; 
+    std::string templateId;
+    json state;
 };
 
 struct PlayerData {
@@ -16,7 +17,7 @@ struct PlayerData {
     int room_id = 0;
     int x, y;
     std::vector<SavedItemData> items;
-    nlohmann::json stats;
+    json stats;
 
 
 

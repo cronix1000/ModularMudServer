@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -163,9 +163,11 @@
     <ClCompile Include="MobFactory.cpp" />
     <ClCompile Include="MovementSystem.cpp" />
     <ClCompile Include="NetworkSyncSystem.cpp" />
+    <ClCompile Include="NetworkSystem.cpp" />
     <ClCompile Include="PickupItemIntentComponent.h" />
     <ClCompile Include="PlayerFactory.cpp" />
     <ClCompile Include="Registry.cpp" />
+    <ClCompile Include="RespawnSystem.cpp" />
     <ClCompile Include="Room.cpp" />
     <ClCompile Include="SaveSystem.cpp" />
     <ClCompile Include="ScriptManager.cpp" />
@@ -196,7 +198,9 @@
     <ClInclude Include="CoolDownDefinitionComponent.h" />
     <ClInclude Include="CraftIntentComponent.h" />
     <ClInclude Include="DamageScalingComponent.h" />
+    <ClInclude Include="DeadTag.h" />
     <ClInclude Include="InteractableFactory.h" />
+
     <ClInclude Include="MessageComponent.h" />
     <ClInclude Include="MessageSystem.h" />
     <ClInclude Include="ClassComponent.h" />
@@ -260,6 +264,8 @@
     <ClInclude Include="PulseComponent.h" />
     <ClInclude Include="Registry.h" />
     <ClInclude Include="ResourceCostComponent.h" />
+    <ClInclude Include="RespawnComponent.h" />
+    <ClInclude Include="RespawnSystem.h" />
     <ClInclude Include="SpawnComponent.h" />
     <ClInclude Include="Room.h" />
     <ClInclude Include="RoomComponent.h" />

@@ -4,11 +4,10 @@
 #include <sstream>
 #include "TerrainDef.h"
 #include "Registry.h"
-#include "RoomComponent.h"  
+#include "RoomComponent.h"
 #include "ScriptComponent.h"
 #include <nlohmann/json.hpp>
 #include <set>
-
 
 using json = nlohmann::json;
 

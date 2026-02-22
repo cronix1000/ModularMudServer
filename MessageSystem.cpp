@@ -7,6 +7,9 @@
 #include "NameComponent.h"
 #include "TextHelperFunctions.h"
 
+MessageSystem::~MessageSystem() {
+    // Destructor - nothing special to clean up
+}
 
 void MessageSystem::SanitizeMessage(std::string& message)
 {
