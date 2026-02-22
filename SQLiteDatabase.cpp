@@ -72,6 +72,7 @@ void SQLiteDatabase::InitializeSchema() {
 
 void SQLiteDatabase::LogError(const char* message)
 {
+    fprintf(stderr, "[Database Error] %s\n", message ? message : "Unknown error");
 }
 
 void SQLiteDatabase::BeginTransaction() {
@@ -191,7 +192,7 @@ bool SQLiteDatabase::SaveBodyMods(EntityID playerEnt, GameContext& ctx) {
     return true;
 }
 int SQLiteDatabase::CreatePlayerRow(const std::string& name, const std::string& password, const std::string& salt) {
-    const char* sql = "INSERT INTO players (region_id,name, password_hash, salt, room_id, stats) VALUES (?, ?, ?);";
+    const char* sql = "INSERT INTO players (region_id, name, password_hash, salt, room_id, stats) VALUES (?, ?, ?, ?, ?, ?);";
     sqlite3_stmt* stmt;
     int newId = -1;
 
