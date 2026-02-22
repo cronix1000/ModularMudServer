@@ -167,8 +167,9 @@ void GameEngine::ProcessInputs() {
 
         std::vector<std::string> inputStringVector;
 		std::stringstream ss = std::stringstream(input.rawText);
-        while (ss) {
-			ss >> inputStringVector.back();
+        std::string token;
+        while (ss >> token) {
+			inputStringVector.push_back(token);
         }
 
 

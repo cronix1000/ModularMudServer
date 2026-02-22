@@ -37,7 +37,7 @@ public:
 	std::queue<std::string> OutboundMessages;
 	void DisconnectGracefully();
 	bool needsCleanup;
-	CommandInterpreter* commandInterpretter;
+	CommandInterpreter* commandInterpreter;
 	std::stack<GameState*> stateStack;
 	void PopState();
 	void PushState(GameState* state);

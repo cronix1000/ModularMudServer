@@ -11,6 +11,8 @@
 #include "SkillIntentComponent.h"
 #include "PickupItemIntentComponent.h"
 #include "EquipItemIntentComponent.h"
+#include "InteractableIntentComponent.h"
+#include "ScriptComponent.h"
 #include "GameContext.h"
 #include "WorldManager.h"
 #include "GameEngine.h"
@@ -311,17 +313,24 @@ void CommandInterpreter::HandlePickup(ClientConnection* client, std::vector<std:
 
 
 void CommandInterpreter::HandleEquip(ClientConnection* client, std::vector<std::string> params) {
-	if (params.empty()) return;
+	if (params.empty()) {
+		client->QueueMessage("Equip what? Please provide an item ID.\r\n");
+		return;
+	}
 
-	int actualID = std::stoi(params[0]);
+	try {
+		int actualID = std::stoi(params[0]);
+		
+		// Just fire the intent
+		ctx.registry->AddComponent<EquipItemIntentComponent>(
+			client->playerEntityID,
+			EquipItemIntentComponent{ actualID }
+		);
 
-	// Just fire the intent
-	ctx.registry->AddComponent<EquipItemIntentComponent>(
-		client->playerEntityID,
-		EquipItemIntentComponent{ actualID }
-	);
-
-	client->QueueMessage("You prepare to equip the item.\n");
+		client->QueueMessage("You prepare to equip the item.\r\n");
+	} catch (const std::exception& e) {
+		client->QueueMessage("Invalid item ID. Please provide a valid number.\r\n");
+	}
 }
 void CommandInterpreter::HandleMenu(ClientConnection* client, std::vector<std::string> input) {
 	if (input[0] == "inventory")
@@ -331,4 +340,46 @@ void CommandInterpreter::HandleMenu(ClientConnection* client, std::vector<std::s
 }
 
 void CommandInterpreter::HandleInteract(ClientConnection* client, std::vector<std::string> input) {
+    if (input.empty()) {
+        client->QueueMessage("Interact with what?\r\n");
+        return;
+    }
+
+    // 1. Reconstruct Target Name
+    std::string targetName = "";
+    for (size_t i = 0; i < input.size(); ++i) {
+        targetName += input[i];
+        if (i < input.size() - 1) targetName += " ";
+    }
+
+    EntityID playerID = client->playerEntityID;
+    auto* playerPos = ctx.registry->GetComponent<PositionComponent>(playerID);
+    if (!playerPos) return;
+
+    // 2. Find the interactable entity in the same room
+    EntityID targetID = -1;
+    auto& name_entities = ctx.registry->view<NameComponent>();
+    
+    for (EntityID id : name_entities) {
+        if (id == playerID) continue;
+        
+        // Check if it has both PositionComponent and ScriptComponent (for interactables)
+        auto* pos = ctx.registry->GetComponent<PositionComponent>(id);
+        auto* name = ctx.registry->GetComponent<NameComponent>(id);
+        auto* script = ctx.registry->GetComponent<ScriptComponent>(id);
+        
+        if (pos && name && script) {
+            if (pos->roomId == playerPos->roomId && name->Matches(targetName)) {
+                targetID = id;
+                break;
+            }
+        }
+    }
+
+    if (targetID != -1) {
+        // 3. Create Intent with default "use" action
+        ctx.registry->AddComponent<InteractableIntentComponent>(playerID, { targetID, "use", "" });
+    } else {
+        client->QueueMessage("You don't see any '" + targetName + "' here to interact with.\r\n");
+    }
 }
