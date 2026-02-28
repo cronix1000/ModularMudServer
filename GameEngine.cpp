@@ -4,8 +4,8 @@
 #include "WorldManager.h"
 #include "MovementSystem.h"
 #include "SQLiteDatabase.h"
-#include "PlayerData.h"        
-#include "ClientConnection.h"   
+#include "PlayerData.h"
+#include "ClientConnection.h"
 #include "NetworkSyncSystem.h"
 #include "EventBus.h"
 #include "NetworkSystem.h"
@@ -26,10 +26,14 @@
 #include "MessageSystem.h"
 #include "SaveSystem.h"
 #include "RespawnSystem.h"
+#include "WorldClimateSystem.h"
+#include "AmbientAISystem.h"
+#include "RegionComponent.h"
 #include "TimeData.h"
 #include "ClientInput.h"
 #include "GameState.h"
 #include "picosha2.h"
+#include <set>
 
 GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : gameContext(ctx), isRunning(true), inputQueue(input) {
     // 1. Initialize core resources
@@ -37,7 +41,7 @@ GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : 
     gameContext.registry = std::make_unique<Registry>();
     gameContext.eventBus = std::make_unique<EventBus>();
     gameContext.scripts = std::make_unique<ScriptManager>(*gameContext.registry);
-    gameContext.worldManager = std::make_unique<WorldManager>(world);
+    gameContext.worldManager = std::make_unique<WorldManager>(world, gameContext.registry.get());
     gameContext.scripts->init();
     gameContext.scripts->load_all_scripts("scripts");
     gameContext.scripts->lua.script("print('Hello from Lua')");
@@ -61,10 +65,16 @@ GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : 
     combatSystem = new CombatSystem(gameContext);
     respawnSystem = new RespawnSystem(gameContext);
     gameContext.respawnSystem = respawnSystem;  // Make accessible via GameContext
+    climateSystem = new WorldClimateSystem(gameContext);
+    ambientAISystem = new AmbientAISystem(gameContext);
     interactionSystem = new InteractionSystem(gameContext);
     messageSytem = new MessageSystem(gameContext);
     saveSystem = new SaveSystem(gameContext);
     cleanSystem = new CleanUpSystem(gameContext);
+
+    // Initialize climate zones for each loaded region
+    // This will be called after regions are loaded
+    InitializeClimateZones();
 
     // Add and global entity as 1
     gameContext.registry->CreateEntity();
@@ -72,7 +82,6 @@ GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : 
     gameContext.factories->LoadAllData();
 
     //4. Initilise scripts that need to be run right away (e.g event listeners)
-    //world->LoadWorld("world_data.json", gameContext);
     messageSytem->SubscribeToEvents();
     networkSystem->SetupListeners();
     behaviorSystem->SetupListeners();
@@ -90,13 +99,15 @@ GameEngine::~GameEngine()
     delete updateSystem;
     delete combatSystem;
     delete respawnSystem;
+    delete climateSystem;
+    delete ambientAISystem;
     delete interactionSystem;
     delete messageSytem;
     delete saveSystem;
     delete cleanSystem;
     delete scriptEventBridge;
     delete world;
-    
+
     // Factories are managed by FactoryManager which is in GameContext
     // GameContext's unique_ptrs will be automatically cleaned up
 }
@@ -160,6 +171,8 @@ void GameEngine::Update(float deltaTime) {
     combatSystem->run();
     updateSystem->Update(deltaTime);
     respawnSystem->Update(deltaTime);
+    climateSystem->Update(deltaTime);
+    ambientAISystem->Update(deltaTime);
     gameContext.eventBus->CallDefferedCalls();
     cleanSystem->run();
     saveSystem->Run(deltaTime);
@@ -208,4 +221,69 @@ void GameEngine::Quit() { isRunning = false; }
 GameContext& GameEngine::GetGameContext()
 {
     return gameContext;
+}
+
+void GameEngine::InitializeClimateZones() {
+    // Get all unique regions from loaded rooms
+    std::set<std::string> uniqueRegions;
+
+    for (EntityID entity : gameContext.registry->view<RegionComponent>()) {
+        auto* region = gameContext.registry->GetComponent<RegionComponent>(entity);
+        if (region) {
+            uniqueRegions.insert(region->region);
+        }
+    }
+
+    // Create a climate zone for each unique region
+    for (const auto& regionId : uniqueRegions) {
+        // Skip if already exists
+        if (climateSystem->GetZoneClimate(regionId)) {
+            continue;
+        }
+
+        // Create climate zone with default settings
+        // You can customize based on region ID (e.g., floor1, floor2, dungeon, etc.)
+        ZoneClimateComponent::ClimateType climateType = ZoneClimateComponent::ClimateType::TEMPERATE;
+        bool isOutdoor = true;
+
+        // Customize based on region name patterns
+        if (regionId.find("dungeon") != std::string::npos ||
+            regionId.find("cave") != std::string::npos ||
+            regionId.find("underground") != std::string::npos) {
+            climateType = ZoneClimateComponent::ClimateType::UNDERGROUND;
+            isOutdoor = false;
+        }
+        else if (regionId.find("desert") != std::string::npos ||
+                 regionId.find("arid") != std::string::npos) {
+            climateType = ZoneClimateComponent::ClimateType::ARID;
+        }
+        else if (regionId.find("snow") != std::string::npos ||
+                 regionId.find("ice") != std::string::npos ||
+                 regionId.find("arctic") != std::string::npos) {
+            climateType = ZoneClimateComponent::ClimateType::ARCTIC;
+        }
+        else if (regionId.find("tropical") != std::string::npos ||
+                 regionId.find("jungle") != std::string::npos) {
+            climateType = ZoneClimateComponent::ClimateType::TROPICAL;
+        }
+        else if (regionId.find("magic") != std::string::npos ||
+                 regionId.find("ethereal") != std::string::npos) {
+            climateType = ZoneClimateComponent::ClimateType::MAGICAL;
+        }
+
+        climateSystem->CreateClimateZone(regionId, regionId, climateType, isOutdoor);
+    }
+}
+
+void GameEngine::OnPlayerChangedZone(int playerEntityId, const std::string& oldZone, const std::string& newZone) {
+    // Notify climate system of zone changes
+    if (!oldZone.empty()) {
+        climateSystem->OnPlayerExitedZone(oldZone);
+        ambientAISystem->OnPlayerExitedZone(oldZone);
+    }
+
+    if (!newZone.empty()) {
+        climateSystem->OnPlayerEnteredZone(newZone);
+        ambientAISystem->OnPlayerEnteredZone(newZone);
+    }
 }

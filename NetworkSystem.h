@@ -3,7 +3,6 @@
 #include "EventBus.h"
 #include "ClientComponent.h"
 #include "PositionComponent.h"
-#include "Room.h"
 #include "World.h"
 #include "GameContext.h"
 #include "TextHelperFunctions.h"

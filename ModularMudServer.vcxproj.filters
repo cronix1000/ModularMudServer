@@ -63,9 +63,6 @@
     <ClCompile Include="GameState.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Room.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="World.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -180,6 +177,12 @@
     <ClCompile Include="RespawnSystem.cpp">
       <Filter>Source Files\System</Filter>
     </ClCompile>
+    <ClCompile Include="AmbientAISystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WorldClimateSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MainMenuState.h">
@@ -253,9 +256,6 @@
     </ClInclude>
     <ClInclude Include="WorldManager.h">
       <Filter>Header Files\Managers</Filter>
-    </ClInclude>
-    <ClInclude Include="Room.h">
-      <Filter>Header Files\Data</Filter>
     </ClInclude>
     <ClInclude Include="TerrainDef.h">
       <Filter>Header Files\Data</Filter>
@@ -527,7 +527,39 @@
     <ClInclude Include="DeadTag.h">
       <Filter>Header Files\Component</Filter>
     </ClInclude>
-
+    <ClInclude Include="AmbientAIComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AmbientAISystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SpatialGridComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="WorldClimateSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ZoneClimateComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RoomIdentityComponent.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="RoomLayoutComponent.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="RoomExitsComponent.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="RoomSpawnComponent.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="RoomFactory.h">
+      <Filter>Header Files\Factory</Filter>
+    </ClInclude>
+    <ClInclude Include="RoomComponents.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="global_terrain.json">

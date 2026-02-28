@@ -23,8 +23,8 @@
       "dest_x": -1,
       "dest_y": -1
     },
-    "east": {
-      "target_room": 5,
+    "west": {
+      "target_room": 2,
       "dest_x": 0,
       "dest_y": 4
     }

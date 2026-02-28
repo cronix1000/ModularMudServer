@@ -140,6 +140,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AmbientAISystem.cpp" />
     <ClCompile Include="AttackIntentComponent.h" />
     <ClCompile Include="BehaviorSystem.cpp" />
     <ClCompile Include="GameContext.cpp" />
@@ -168,7 +169,7 @@
     <ClCompile Include="PlayerFactory.cpp" />
     <ClCompile Include="Registry.cpp" />
     <ClCompile Include="RespawnSystem.cpp" />
-    <ClCompile Include="Room.cpp" />
+    <ClCompile Include="RoomFactory.cpp" />
     <ClCompile Include="SaveSystem.cpp" />
     <ClCompile Include="ScriptManager.cpp" />
     <ClCompile Include="Server.cpp" />
@@ -180,10 +181,13 @@
     <ClCompile Include="UpdateSystem.cpp" />
     <ClCompile Include="WeaponComponent.h" />
     <ClCompile Include="World.cpp" />
+    <ClCompile Include="WorldClimateSystem.cpp" />
     <ClCompile Include="WorldManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AfflictionComponent.h" />
+    <ClInclude Include="AmbientAIComponent.h" />
+    <ClInclude Include="AmbientAISystem.h" />
     <ClInclude Include="ASCIIGenerator.h" />
     <ClInclude Include="BehaviourType.h" />
     <ClInclude Include="ArmourComponent.h" />
@@ -200,7 +204,6 @@
     <ClInclude Include="DamageScalingComponent.h" />
     <ClInclude Include="DeadTag.h" />
     <ClInclude Include="InteractableFactory.h" />
-
     <ClInclude Include="MessageComponent.h" />
     <ClInclude Include="MessageSystem.h" />
     <ClInclude Include="ClassComponent.h" />
@@ -266,9 +269,10 @@
     <ClInclude Include="ResourceCostComponent.h" />
     <ClInclude Include="RespawnComponent.h" />
     <ClInclude Include="RespawnSystem.h" />
+    <ClInclude Include="RoomComponents.h" />
+    <ClInclude Include="RoomFactory.h" />
+    <ClInclude Include="SpatialGridComponent.h" />
     <ClInclude Include="SpawnComponent.h" />
-    <ClInclude Include="Room.h" />
-    <ClInclude Include="RoomComponent.h" />
     <ClInclude Include="SaveSystem.h" />
     <ClInclude Include="ScheduledEventComponent.h" />
     <ClInclude Include="ScriptComponent.h" />
@@ -298,7 +302,9 @@
     <ClInclude Include="VoiceComponent.h" />
     <ClInclude Include="VoiceLineComponent.h" />
     <ClInclude Include="World.h" />
+    <ClInclude Include="WorldClimateSystem.h" />
     <ClInclude Include="WorldManager.h" />
+    <ClInclude Include="ZoneClimateComponent.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ClassDiagram.cd" />
@@ -309,7 +315,6 @@
     <None Include="mobs.json" />
     <None Include="mud.db" />
     <None Include="skills.json" />
-    <None Include="world_data.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

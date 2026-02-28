@@ -201,7 +201,7 @@ int SQLiteDatabase::CreatePlayerRow(const std::string& name, const std::string& 
         nlohmann::json defaultStats = { {"hp", 100}, {"max_hp", 100}, {"str", 10} };
         std::string statsStr = defaultStats.dump();
 
-        sqlite3_bind_text(stmt, 1, "floor_1", -1, SQLITE_TRANSIENT);
+        sqlite3_bind_text(stmt, 1, "floor1", -1, SQLITE_TRANSIENT);
         sqlite3_bind_text(stmt, 2, name.c_str(), -1, SQLITE_TRANSIENT);
         sqlite3_bind_text(stmt, 3,password.c_str(), -1,SQLITE_TRANSIENT); // Starting room
         sqlite3_bind_text(stmt, 4,salt.c_str(), -1,SQLITE_TRANSIENT); // Starting room

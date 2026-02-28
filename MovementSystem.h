@@ -1,12 +1,12 @@
 #pragma once
+
 class GameContext;
 
+using EntityID = int;
 
-using EntityID = int;  // Add this if not already defined
-
-class MovementSystem
-{
+class MovementSystem {
 	GameContext& ctx;
+
 public:
 	MovementSystem(GameContext& c);
 	~MovementSystem();
@@ -14,5 +14,4 @@ public:
 	void MovementSystemRun();
 
 private:
-
 };

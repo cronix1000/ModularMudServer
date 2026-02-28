@@ -8,8 +8,8 @@
 #include "ScriptManager.h"
 #include "GameContext.h"
 #include "WorldManager.h"
-#include "Room.h"
-#include "World.h"
+#include "RoomComponents.h"
+#include "TerrainDef.h"
 #include "ClientConnection.h"
 
 
@@ -61,13 +61,17 @@ void NetworkSyncSystem::SendLook(ClientConnection* client)
     PositionComponent* playerPos = ctx.registry->GetComponent<PositionComponent>(client->playerEntityID);
     if (!playerPos) return;
 
-    Room* room = ctx.worldManager->world->GetRoom(playerPos->roomId);
-    if (!room) return;
+    // Get room layout component
+    const RoomLayoutComponent* roomLayout = ctx.worldManager->GetRoomLayout(playerPos->roomId);
+    if (!roomLayout) return;
+
+    int roomWidth = roomLayout->width;
+    int roomHeight = roomLayout->height;
 
     // Create an overlay grid to place entities on.
     std::vector<std::vector<VisualComponent*>> entityOverlay(
-        room->GetHeight() + 1,
-        std::vector<VisualComponent*>(room->GetWidth() + 1, nullptr)
+        roomHeight + 1,
+        std::vector<VisualComponent*>(roomWidth + 1, nullptr)
     );
 
     // This is the new pattern for iterating entities with multiple components.
@@ -94,8 +98,8 @@ void NetworkSyncSystem::SendLook(ClientConnection* client)
             VisualComponent* entVis = ctx.registry->GetComponent<VisualComponent>(id);
 
             // Only process if they are in the current room.
-            if (entPos->roomId == room->GetId()) {
-                if (entPos->x >= 0 && entPos->x <= room->GetWidth() && entPos->y >= 0 && entPos->y <= room->GetHeight()) {
+            if (entPos->roomId == playerPos->roomId) {
+                if (entPos->x >= 0 && entPos->x <= roomWidth && entPos->y >= 0 && entPos->y <= roomHeight) {
                     entityOverlay[entPos->y][entPos->x] = entVis;
                 }
             }
@@ -107,9 +111,9 @@ void NetworkSyncSystem::SendLook(ClientConnection* client)
     std::string lastColor = "";
 
     // 3. Loop through the room tiles and draw them.
-    for (int y = 0; y <= room->GetHeight(); y++) {
+    for (int y = 0; y <= roomHeight; y++) {
         std::string row = "";
-        for (int x = 0; x <= room->GetWidth(); x++) {
+        for (int x = 0; x <= roomWidth; x++) {
             std::string currentColor;
             std::string symbol;
 
@@ -120,9 +124,20 @@ void NetworkSyncSystem::SendLook(ClientConnection* client)
                 symbol = entityOverlay[y][x]->symbol;
             }
             else {
-                const TerrainDef* type = room->GetTile(x, y);
+                // Get terrain from layout component
+                int terrainId = roomLayout->GetTerrain(x, y);
+                const TerrainDef* type = &VOID_TERRAIN;
+                
+                // Look up terrain in global terrain map by char symbol
+                char terrainChar = static_cast<char>(terrainId);
+                if (globalTerrain.count(terrainChar)) {
+                    type = &globalTerrain[terrainChar];
+                } else if (globalTerrain.count('.')) {
+                    type = &globalTerrain['.'];
+                }
+                
                 currentColor = type->color;
-                symbol = type->symbol;
+                symbol = std::string(1, type->symbol);
             }
 
             // 2. Handle Color Transitions to optimize output.

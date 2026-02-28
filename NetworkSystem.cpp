@@ -1,6 +1,8 @@
 #include "NetworkSystem.h"
 #include "ClientConnection.h"
 #include "WorldManager.h"
+#include "RoomComponents.h"
+#include "Registry.h"
 
 // Telnet Constants for GMCP
 const char IAC = static_cast<char>(255);
@@ -14,20 +16,29 @@ void NetworkSystem::SetupListeners()
         if (!std::holds_alternative<RoomEventData>(ectx.data)) return;
         const auto& data = std::get<RoomEventData>(ectx.data);
 
-        Room* room = ctx.worldManager->world->GetRoom(data.RoomID);
+        // Get room identity component for room name/description
+        const RoomIdentityComponent* roomIdentity = nullptr;
+        for (EntityID roomEnt : ctx.registry->view<RoomIdentityComponent>()) {
+            auto* identity = ctx.registry->GetComponent<RoomIdentityComponent>(roomEnt);
+            if (identity && identity->roomId == data.RoomID) {
+                roomIdentity = identity;
+                break;
+            }
+        }
+        
         ClientComponent* client = ctx.registry->GetComponent<ClientComponent>(data.EntityID);
 
-        if (client && client->client && room) {
+        if (client && client->client && roomIdentity) {
             // Build JSON data as string
             json jsonData = {
                 {"room_id", data.RoomID},
-                {"room_name", room->Name},
-                {"description", room->Description}
+                {"room_name", roomIdentity->name},
+                {"description", roomIdentity->description}
             };
             
             GameMessage msg;
             msg.type = "room_enter";
-            msg.consoleText = "&w" + room->Name + "&w\r\n" + room->Description + "\r\n";
+            msg.consoleText = "&w" + roomIdentity->name + "&w\r\n" + roomIdentity->description + "\r\n";
             msg.jsonData = jsonData.dump();
             client->QueueGameMessage(msg);
         }

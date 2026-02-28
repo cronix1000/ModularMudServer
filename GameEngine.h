@@ -34,6 +34,8 @@ class CommandInterpreter;
 class MessageSystem;
 class SaveSystem;
 class RespawnSystem;
+class WorldClimateSystem;
+class AmbientAISystem;
 struct TimeData;
 struct ClientInput;
 class GameEngine
@@ -67,6 +69,10 @@ public:
 	GameContext& GetGameContext();
 	CommandInterpreter* interpreter;
 
+	// Climate/Zone initialization
+	void InitializeClimateZones();
+	void OnPlayerChangedZone(int playerEntityId, const std::string& oldZone, const std::string& newZone);
+
 	// Factories
 	ItemFactory* itemFactory;
 	MobFactory* mobFactory;
@@ -86,6 +92,8 @@ public:
 	MessageSystem* messageSytem;
 	SaveSystem* saveSystem;
 	RespawnSystem* respawnSystem;
+	WorldClimateSystem* climateSystem;
+	AmbientAISystem* ambientAISystem;
 
 private:
 	bool isRunning = true;

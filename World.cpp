@@ -8,6 +8,8 @@
 #include "GameContext.h"
 #include "InteractableFactory.h"
 #include "RespawnSystem.h"
+#include "RoomFactory.h"
+#include "Registry.h"
 
 namespace fs = std::filesystem;
 
@@ -93,9 +95,17 @@ Direction StringToDirection(const std::string& str) {
     if (str == "south") return Direction::South;
     if (str == "east")  return Direction::East;
     if (str == "west")  return Direction::West;
+    if (str == "up") return Direction::Up;
+    if (str == "down") return Direction::Down;
     return Direction::North; // Default/Error case
 }
+
 void World::LoadWorld(const std::string& filepath, GameContext& ctx) {
+    // Create room factory if not exists
+    if (!roomFactory) {
+        roomFactory = new RoomFactory(ctx);
+    }
+
     std::ifstream file(filepath);
     if (!file.is_open()) {
         std::cerr << "Failed to open world file: " << filepath << std::endl;
@@ -118,179 +128,11 @@ void World::LoadWorld(const std::string& filepath, GameContext& ctx) {
 
     // --- PASS 1: CREATE ROOMS AND LAYOUTS ---
     for (const auto& rData : worldData["rooms"]) {
-        int id = rData["id"];
-        std::string name = rData["name"];
-        std::string desc = rData["description"];
-        int width = rData.value("width", 0);
-        int height = rData.value("height", 0);
-
-        // 1. Create the C++ Room Object
-        Room* newRoom = new Room(id, name, desc);
-
-        if (width > 0 && height > 0) {
-
-            newRoom->InitializeGrid(width, height);
-
-            if (rData.contains("layout")) {
-
-                std::vector<std::string> layoutLines = rData["layout"];
-
-                newRoom->LoadFromMap(layoutLines);
-
-            }
-
-        }
-
-        roomMap[id] = newRoom;
-
-        int roomEntity = ctx.registry->CreateEntity();
-
-        ctx.registry->AddComponent<RoomComponent>(roomEntity, RoomComponent{ id, newRoom });
-        
-
-        if (rData.contains("scripts")) {
-        ScriptComponent scripts = ScriptComponent();
-            scripts.scripts_path.emplace("on_enter", rData["scripts"].value("on_enter", ""));
-            scripts.scripts_path.emplace("on_exit", rData["scripts"].value("on_exit", ""));
-            scripts.scripts_path.emplace("pulse", rData["scripts"].value("pulse", ""));
-            ctx.registry->AddComponent<ScriptComponent>(roomEntity,
-                scripts);
-        }
-
-        newRoom->SetEntityID(roomEntity);
-
-        roomMap[id] = newRoom;
+        // Use RoomFactory to create room entity with all components
+        roomFactory->CreateRoom(rData);
     }
 
-    // --- PASS 2: LOAD EXITS ---
-    for (const auto& rData : worldData["rooms"]) {
-        int id = rData["id"];
-        Room* currentRoom = roomMap[id];
-
-        if (rData.contains("exits")) {
-            for (auto& [dirString, exitValue] : rData["exits"].items()) {
-                Direction dir = StringToDirection(dirString);
-
-                // Handle Object format: "north": { "target_room": 2, ... }
-                if (exitValue.is_object()) {
-                    int targetID = exitValue["target_room"];
-                    int destX = exitValue.value("dest_x", -1);
-                    int destY = exitValue.value("dest_y", -1);
-                    currentRoom->AddExit(dir, targetID, destX, destY);
-                }
-                // Handle simple format: "north": 2
-                else if (exitValue.is_number_integer()) {
-                    currentRoom->AddExit(dir, (int)exitValue);
-                }
-            }
-        }
-    }
-
-    // --- PASS 3: LOAD LOCAL TILE LEGEND (Visual Overrides) ---
-    for (const auto& rData : worldData["rooms"]) {
-        int id = rData["id"];
-        Room* currentRoom = roomMap[id];
-
-        if (rData.contains("floor_legend")) {
-            for (auto& [key, val] : rData["floor_legend"].items()) {
-                if (key.empty()) continue;
-                char symbol = key[0];
-
-                TerrainDef terrain = TerrainDef{
-                    symbol,
-                    val.value("name", "Unknown Terrain"),
-                        val.value("color", "white"),
-                        val.value("blocks_move", false),
-                        val.value("blocks_sight", false),
-                        val.value("move_cost", 1)
-                };
-                currentRoom->AddLocalTerrain(symbol, terrain);
-            }
-        }
-    }
-
-    // --- PASS 4: SPAWNS (MOBS) - Handles both Grid and List styles ---
-    for (const auto& rData : worldData["rooms"]) {
-        int roomID = rData["id"];
-
-        if (rData.contains("spawns")) {
-            const auto& spawns = rData["spawns"];
-            if (spawns.empty()) continue;
-
-            // STYLE A: Grid Based (List of Strings like Room 1)
-            if (spawns[0].is_string()) {
-                // We need a legend to decode the grid
-                if (rData.contains("spawn_legend")) {
-                    json legend = rData["spawn_legend"];
-                    int y = 0;
-                    for (const std::string& line : spawns) {
-                        int x = 0;
-                        for (char symbol : line) {
-                            if (symbol == ' ')
-                                continue;
-                            std::string symStr(1, symbol);
-                            if (legend.contains(symStr)) {
-                                // Found a mob symbol!
-                                json spawnData = legend[symStr];
-                                std::string ID = spawnData["id"];
-                                std::string type = spawnData["type"];
-                                json overrides = spawnData.value("overrides", json::object());
-
-                                // Call your Factory here
-                                // factory.Spawn(registry, mobID, x, y, roomID, overrides);
-                                if (type == "mob") {
-                                    // Check if this mob should have a spawn point (respawn capability)
-                                    float respawnTime = spawnData.value("respawn_time", 30.0f);
-                                    bool shouldRespawn = spawnData.value("respawn", true);
-                                    
-                                    if (shouldRespawn && ctx.respawnSystem) {
-                                        // Create a spawn point that will manage this mob
-                                        ctx.respawnSystem->CreateSpawnPoint(ID, respawnTime, x, y, roomID);
-                                    } else {
-                                        // Just create the mob directly without respawn capability
-                                        ctx.factories->mobs.CreateMob(ID, overrides, x, y, roomID);
-                                    }
-                                }
-                                else if (type == "item") {
-                                    ctx.factories->items.CreateItem(ID, overrides,x, y, roomID);
-                                }
-                            }
-                            x++;
-                        }
-                        y++;
-                    }
-                }
-            }
-        }
-
-        // --- PASS 5: INTERACTABLES (Chests, Levers) ---
-        if (rData.contains("interactables")) {
-            for (const auto& item : rData["interactables"]) {
-                std::string type = item.value("type", "Unknown");
-                int x = item.value("x", 0);
-                int y = item.value("y", 0);
-                json components = item.value("components", json::object());
-
-                // factory.SpawnObject(registry, type, x, y, roomID, components);
-            }
-        }
-
-        // --- PASS 5: SCRIPTS (on_enter, on_exit, pulse) ---
-        if (rData.contains("scripts")) {
-            int roomID = rData["id"];
-            Room* currentRoom = roomMap[roomID]; // Assuming this is valid
-
-            auto& sData = rData["scripts"];
-            if (sData.contains("on_enter")) {
-                currentRoom->script.on_enter = sData["on_enter"];
-            }
-            if (sData.contains("on_exit")) {
-                currentRoom->script.on_exit = sData["on_exit"];
-            }
-        }
-    }
-
-    std::cout << "World Loaded Successfully (" << roomMap.size() << " rooms)." << std::endl;
+    std::cout << "World Loaded Successfully." << std::endl;
 }
 
 bool World::CheckIfRegionLoaded(const std::string& regionPath)
@@ -305,6 +147,11 @@ bool World::LoadRegion(const std::string& region, GameContext& ctx)
 {
     if (CheckIfRegionLoaded(region))
         return true;
+
+    // Create room factory if not exists
+    if (!roomFactory) {
+        roomFactory = new RoomFactory(ctx);
+    }
 
     fs::path regionDir;
     if (!ResolveRegionDirectory(region, regionDir)) {
@@ -348,6 +195,11 @@ bool World::LoadRegion(const std::string& region, GameContext& ctx)
 
 bool World::LoadRoomFile(const std::string& path, const json& floorSettings, GameContext& ctx)
 {
+    // Create room factory if not exists
+    if (!roomFactory) {
+        roomFactory = new RoomFactory(ctx);
+    }
+
     std::ifstream file(path);
     if (!file.is_open()) {
         std::cerr << "World::LoadRoomFile: Failed to open " << path << std::endl;
@@ -374,56 +226,17 @@ bool World::LoadRoomFile(const std::string& path, const json& floorSettings, Gam
         return false;
     }
 
-    Room* newRoom = new Room(id, rData.value("name", "Unnamed Room"), rData.value("description", ""));
-    int width = rData.value("width", 0);
-    int height = rData.value("height", 0);
-
-    if (width > 0 && height > 0) {
-        newRoom->InitializeGrid(width, height);
-        if (rData.contains("layout")) {
-            newRoom->LoadFromMap(rData["layout"]);
-        }
-    }
-    else {
-        std::cerr << "World::LoadRoomFile: invalid dimensions for room " << id << " in " << path << std::endl;
+    // Use RoomFactory to create room
+    EntityID roomEntity = roomFactory->CreateRoom(rData);
+    if (roomEntity == 0) {
+        std::cerr << "World::LoadRoomFile: Failed to create room from " << path << std::endl;
+        return false;
     }
 
-    // Register Room
-    roomMap[id] = newRoom;
-    int roomEnt = ctx.registry->CreateEntity();
-    ctx.registry->AddComponent<RoomComponent>(roomEnt, RoomComponent{ id, newRoom });
-
-    // Pass 1: Exits
-    if (rData.contains("exits")) {
-        for (auto& [dirStr, exitVal] : rData["exits"].items()) {
-            newRoom->AddExit(StringToDirection(dirStr),
-                exitVal["target_room"],
-                exitVal.value("dest_x", -1),
-                exitVal.value("dest_y", -1));
-        }
-    }
-
-    if (rData.contains("spawn")) {
-        newRoom->spawn.first = rData["spawn"].value("x", 3);
-        newRoom->spawn.second = rData["spawn"].value("y", 3);
-    
-    }
-
-    // Pass 2: Spawns (Merging Floor Overrides + Room Overrides)
+    // Handle spawns
     if (rData.contains("spawns") && rData.contains("spawn_legend")) {
         ParseSpawns(rData, floorSettings, ctx);
     }
-
-    // Scripts
-    if (rData.contains("scripts")) {
-        ScriptComponent scripts = ScriptComponent();
-        scripts.scripts_path.emplace("on_enter", rData["scripts"].value("on_enter", ""));
-        scripts.scripts_path.emplace("on_exit", rData["scripts"].value("on_exit", ""));
-        scripts.scripts_path.emplace("pulse", rData["scripts"].value("pulse", ""));
-        ctx.registry->AddComponent<ScriptComponent>(roomEnt,
-            scripts);
-    }
-
 
     return true;
 }
@@ -491,14 +304,7 @@ void World::ParseSpawns(const json& rData, const json& floorSettings, GameContex
     }
 }
 
-Room* World::GetRoom(int id) {
-    // 1. Try to find the iterator
-    auto it = roomMap.find(id);
-
-    if (it != roomMap.end()) {
-
-        return it->second;
-    }
-
-    return nullptr;
+EntityID World::GetRoomEntity(int roomId) {
+    if (!roomFactory) return 0;
+    return roomFactory->GetRoomById(roomId);
 }
