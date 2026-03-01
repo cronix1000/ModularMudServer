@@ -1,7 +1,7 @@
 #pragma once
 
 
-class GameContext;
+struct GameContext;
 class Registry;
 
 class SaveSystem

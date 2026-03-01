@@ -4,7 +4,7 @@
 
 using EntityID = int;
 struct GameContext;
-class PlayerData;
+struct PlayerData;
 class SaveItemData;
 
 class SQLiteDatabase : public IDatabase {

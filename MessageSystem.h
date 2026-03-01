@@ -2,7 +2,7 @@
 #include <string>
 #include "GameContext.h"
 
-class GameContext;
+struct GameContext;
 class Registry;
 
 class MessageSystem

@@ -1,7 +1,7 @@
 #pragma once
 #include "InteractableContext.h"
 
-class GameContext;
+struct GameContext;
 class Registry;
 
 class InteractionSystem

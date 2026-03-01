@@ -1,6 +1,6 @@
 #pragma once
 
-class GameContext;
+struct GameContext;
 
 using EntityID = int;
 
