@@ -78,10 +78,36 @@ EntityID FindTarget(GameContext& ctx, EntityID playerID, const std::string& targ
 	return -1; // Not found
 }
 void CommandInterpreter::Interpret(ClientConnection* client, Command* command) {
-	if (core_command_map_[command->CommandString])
-	{
-		core_command_map_[command->CommandString](client, command->Parameters, {});
+	// Try multi-word command matching
+	// Build the full input: command + parameters
+	std::vector<std::string> fullInput;
+	fullInput.push_back(command->CommandString);
+	fullInput.insert(fullInput.end(), command->Parameters.begin(), command->Parameters.end());
+	
+	// Try to find the longest matching command
+	for (size_t wordCount = fullInput.size(); wordCount > 0; --wordCount) {
+		// Build potential command from first 'wordCount' words
+		std::string potentialCmd = "";
+		for (size_t i = 0; i < wordCount; ++i) {
+			if (i > 0) potentialCmd += " ";
+			potentialCmd += fullInput[i];
+		}
+		
+		// Check if this is a registered command
+		auto it = core_command_map_.find(potentialCmd);
+		if (it != core_command_map_.end()) {
+			// Found a match! Everything after wordCount becomes parameters
+			std::vector<std::string> remainingParams;
+			for (size_t i = wordCount; i < fullInput.size(); ++i) {
+				remainingParams.push_back(fullInput[i]);
+			}
+			it->second(client, remainingParams, {});
+			return;
+		}
 	}
+	
+	// No command found - optionally send an error message
+	client->QueueMessage("I don't understand that command.\r\n");
 }
 void CommandInterpreter::RegisterCommands() {
 	core_command_map_["quit"] = std::bind(&CommandInterpreter::HandleQuit, this,

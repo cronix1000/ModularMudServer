@@ -44,6 +44,7 @@ public:
 	GameEngine* GetEngine() { return engine; }
 	int playerEntityID;
 	void SetEngine(GameEngine* _engine) { engine = _engine; }
+	
 private:
 	GameEngine* engine;
 	std::string inputBuffer;

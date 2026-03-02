@@ -33,6 +33,8 @@
 #include "ClientInput.h"
 #include "GameState.h"
 #include "picosha2.h"
+#include "CommandRegistry.h"
+#include "CommandInitializer.h"
 #include <set>
 
 GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : gameContext(ctx), isRunning(true), inputQueue(input) {
@@ -55,7 +57,12 @@ GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : 
     gameContext.time = std::make_unique<TimeData>();
     gameContext.factories = std::make_unique<FactoryManager>(gameContext);
     gameContext.interpreter = std::make_unique<CommandInterpreter>(gameContext);
-    // 3. initialize systems 
+    
+    // Initialize new command system
+    gameContext.commandRegistry = std::make_unique<CommandRegistry>(gameContext, gameContext.scripts->lua);
+    CommandInitializer::RegisterAllCommands(*gameContext.commandRegistry);
+    
+    // 3. initialize systems
     movementSystem = new MovementSystem(gameContext);
     networkSystem = new NetworkSystem(gameContext);
     networkSyncSystem = new NetworkSyncSystem(gameContext);

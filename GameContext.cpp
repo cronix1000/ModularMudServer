@@ -1,5 +1,6 @@
 #include "GameContext.h"
-#include "CommandInterpreter.h"  
+#include "CommandInterpreter.h"
+#include "CommandRegistry.h"
 #include "Registry.h"
 #include "EventBus.h"
 #include "WorldManager.h"

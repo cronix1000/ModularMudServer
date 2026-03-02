@@ -37,6 +37,7 @@ class RespawnSystem;
 class WorldClimateSystem;
 class AmbientAISystem;
 struct TimeData;
+class CommandRegistry;
 struct ClientInput;
 class GameEngine
 {

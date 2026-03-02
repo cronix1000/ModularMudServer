@@ -4,36 +4,39 @@
 #include "ClientConnection.h"
 #include "MoveIntentComponent.h"
 #include "CommandInterpreter.h"
+#include "CommandRegistry.h"
 #include "DirtyFlagComponents.h"
 #include "Registry.h"
 #include "GameContext.h"
+#include "CommandChain.h"
 class PlayingState : public GameState
 {
 public:
     GameContext& ctx; // Reference to the "World"
-    std::unique_ptr<Command> currentCmd;
 
 public:
     PlayingState(GameContext& context)
-        : ctx(context),
-        currentCmd(std::make_unique<Command>())
+        : ctx(context)
     {
-        // Everything is initialized and memory is managed!
     }
 
-    ~PlayingState() {
-
-    }
+    ~PlayingState() = default;
 
     void OnEnter(ClientConnection* client) override {
+        // Commands are sent during login (in LoginState)
     }
 
     void HandleInput(ClientConnection* client, std::vector<std::string> p) override {
-
-        currentCmd->ParseInput(p);
-
-        currentCmd->ToLower();
-        ctx.interpreter->Interpret(client, currentCmd.get());
-
+        // Reconstruct input from vector
+        std::string input;
+        for (size_t i = 0; i < p.size(); ++i) {
+            if (i > 0) input += " ";
+            input += p[i];
+        }
+        
+        // Use new command registry with chain support
+        if (ctx.commandRegistry) {
+            ctx.commandRegistry->Execute(client, input);
+        }
     }
 };

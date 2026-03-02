@@ -15,6 +15,7 @@
 #include "FactoryManager.h"
 #include "WorldManager.h"
 #include "World.h"
+#include "PermissionComponent.h"
 
 EntityID PlayerFactory::LoadPlayer(std::string username, ClientConnection* connection) {
     PlayerData data;
@@ -44,6 +45,9 @@ EntityID PlayerFactory::LoadPlayer(std::string username, ClientConnection* conne
     stats.MaxHealth = s.value("max_hp", 100);
     stats.Strength = s.value("str", 10);
     ctx.registry->AddComponent(player, stats);
+
+    // Add Player Permissions
+    ctx.registry->AddComponent(player, PermissionComponent{ 50 });
 
     std::string regionToLoad = data.region.empty() ? "floor1" : data.region;
     if (!ctx.worldManager->world->LoadRegion(regionToLoad, ctx)) {

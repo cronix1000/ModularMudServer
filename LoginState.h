@@ -4,6 +4,7 @@
 #include "ClientConnection.h"
 #include "PlayingState.h"
 #include "PlayerFactory.h"
+#include "NetworkSystem.h"
 
 class LoginState : public GameState
 {
@@ -56,6 +57,8 @@ public:
                     client->playerEntityID = playerEntity;
                     client->QueueMessage("Login Successful! Entering world...\r\n");
                     client->GetEngine()->gameContext.registry->AddComponent<PlayerLoginComponent>(client->playerEntityID);
+                  
+                    
                     client->PushState(new PlayingState(engine->GetContext()));
                 }
                 else {

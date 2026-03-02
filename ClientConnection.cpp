@@ -1,9 +1,9 @@
 #include "ClientConnection.h"
 
-#include "GameEngine.h"  
-#include "GameState.h"   
-#include <cstring>       
-#include <cstdio>   
+#include "GameEngine.h"
+#include "GameState.h"
+#include <cstring>
+#include <cstdio>
 
 int ClientConnection::RecieveData() {
     char recvbuf[DEFAULT_BUFLEN];
@@ -132,7 +132,7 @@ void ClientConnection::PopState() {
 }
 
 void ClientConnection::PushState(GameState* state) {
-    stateStack.push(state);
+	stateStack.push(state);
 
-    state->OnEnter(this);
+	state->OnEnter(this);
 }

@@ -46,7 +46,8 @@ void Command::Deserialize(char* buffer) {
 
 void Command::ToLower()
 {
-    for (std::string param : Parameters) 
+    // FIX: Use reference (&) instead of copy to actually modify the parameters
+    for (std::string& param : Parameters) 
     {
         std::transform(param.begin(), param.end(), param.begin(), ::tolower);
     }
@@ -100,6 +101,9 @@ void Command::ParseInput(const std::string& rawInput) {
     bool isVerb = true;
 
     while (ss >> token) {
+        // Convert to lowercase immediately for consistency
+        std::transform(token.begin(), token.end(), token.begin(), ::tolower);
+        
         if (isVerb) {
             this->CommandString = token;
             isVerb = false;

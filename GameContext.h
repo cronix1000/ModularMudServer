@@ -10,6 +10,7 @@ class Registry;
 class FactoryManager;
 class CommandInterpreter;
 class RespawnSystem;
+class CommandRegistry;
 struct TimeData;
 
 struct GameContext {
@@ -21,6 +22,7 @@ struct GameContext {
     std::unique_ptr<TimeData> time;
     std::unique_ptr<FactoryManager> factories;
     std::unique_ptr<CommandInterpreter> interpreter;
+    std::unique_ptr<CommandRegistry> commandRegistry;  
     RespawnSystem* respawnSystem;  // Not owned by GameContext, just a pointer
 
     ~GameContext();

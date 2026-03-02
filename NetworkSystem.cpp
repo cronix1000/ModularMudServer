@@ -3,6 +3,7 @@
 #include "WorldManager.h"
 #include "RoomComponents.h"
 #include "Registry.h"
+#include "CommandRegistry.h"
 
 // Telnet Constants for GMCP
 const char IAC = static_cast<char>(255);
@@ -43,6 +44,20 @@ void NetworkSystem::SetupListeners()
             client->QueueGameMessage(msg);
         }
     });
+
+    ctx.eventBus->Subscribe(EventType::PlayerJoined, [this](const EventContext& ectx) {
+        if (!std::holds_alternative<PlayerLoggedInData>(ectx.data)) return;
+        const auto& data = std::get<PlayerLoggedInData>(ectx.data);
+
+        // check player capabilities if web send command list
+        ClientComponent* client = ctx.registry->GetComponent<ClientComponent>(data.EntityID);
+
+        GameMessage msg;
+        msg.type = "command_list";
+        msg.jsonData = ctx.commandRegistry->GetCommandListJson(data.permissionLevel);
+        client->QueueGameMessage(msg);
+
+    });
 }
 
 void NetworkSystem::FlushQueues()
@@ -63,6 +78,42 @@ void NetworkSystem::FlushQueues()
         
         clientComp->ClearMessageQueue();
     }
+}
+
+void NetworkSystem::SendCommandList(EntityID playerId)
+{
+    ClientComponent* clientComp = ctx.registry->GetComponent<ClientComponent>(playerId);
+    if (!clientComp || !clientComp->client) return;
+    
+    // Get player permission level
+    PermissionLevel playerPerm = PermissionLevel::Guest;
+    if (ctx.commandRegistry) {
+        playerPerm = ctx.commandRegistry->GetPlayerPermission(playerId);
+    }
+    
+    // Build command list JSON
+    json cmdList = BuildCommandListJson(playerPerm);
+    
+    // Create message
+    GameMessage msg;
+    msg.type = "command_list";
+    msg.consoleText = "[Available commands loaded]\r\n";
+    msg.jsonData = cmdList.dump();
+    
+    // Queue the message
+    clientComp->QueueGameMessage(msg);
+}
+
+json NetworkSystem::BuildCommandListJson(PermissionLevel playerPerm)
+{
+    json result = json::array();
+    
+    if (!ctx.commandRegistry) return result;
+    
+    // Use CommandRegistry to get the command list
+    result = ctx.commandRegistry->GetCommandListJson(playerPerm);
+    
+    return result;
 }
 
 void NetworkSystem::SendToWebClient(ClientConnection* client, const GameMessage& msg)

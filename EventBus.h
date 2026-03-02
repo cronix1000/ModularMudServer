@@ -42,6 +42,12 @@ struct ItemEquippedEventData {
     int itemId;
 };
 
+struct PlayerLoggedInData {
+    int playerID;
+    std::string playerName;
+    int permissionLevel;
+};
+
 struct EventContext {
     std::variant<std::monostate, RoomEventData, CombatEventData, ChatEventData, PlayerEventData, ItemEquippedEventData> data;
 };
