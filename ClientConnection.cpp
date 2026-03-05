@@ -82,10 +82,10 @@ int ClientConnection::SendData() {
     if (!hugePacket.empty()) {
         iSendResult = send(this->tcpSocket, hugePacket.c_str(), static_cast<int>(hugePacket.size()), 0);
 
-        if (iSendResult == SOCKET_ERROR) {
-            printf("send failed with error: %d\n", WSAGetLastError());
-            closesocket(this->tcpSocket);
-            WSACleanup();
+        if (iSendResult == SOCKET_ERROR_VAL) {
+            printf("send failed with error: %d\n", GetSocketError());
+            CloseSocket(this->tcpSocket);
+            SocketCleanup();
             return iResult;
         }
         printf("Bytes sent: %d\n", iSendResult);
