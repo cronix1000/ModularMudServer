@@ -26,9 +26,6 @@ public:
 
     int CreatePlayerRow(const std::string& name, const std::string& passwordHash, const std::string& salt);
     bool SavePlayer(EntityID playerEnt, GameContext& ctx) override;
-    bool SaveStats(EntityID playerEnt, GameContext& ctx);
-    bool SaveItems(EntityID playerEnt, GameContext& ctx);
-    bool SaveBodyMods(EntityID playerEnt, GameContext& ctx);
     void BeginTransaction();
 
     void EndTransaction();

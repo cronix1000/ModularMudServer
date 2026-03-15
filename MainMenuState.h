@@ -11,7 +11,10 @@ class MainMenuState : public GameState {
     }
 
     void HandleInput(ClientConnection* client, std::vector<std::string> p) override {
-        if(p[0] == "Login")
+        std::transform(p[0].begin(), p[0].end(), p[0].begin(), ::tolower);
+
+
+        if(p[0] == "login")
         {
             client->PushState(new LoginState());
         }

@@ -4,6 +4,7 @@
 #include "GameState.h"
 #include <cstring>
 #include <cstdio>
+#include <sstream>
 
 int ClientConnection::RecieveData() {
     char recvbuf[DEFAULT_BUFLEN];
@@ -65,6 +66,7 @@ void ClientConnection::ProcessInput() {
         }
     }
 }
+
 int ClientConnection::SendData() {
 
     int iSendResult = 0;
@@ -102,11 +104,12 @@ void ClientConnection::SendPacket(std::string packet) {
     // Send the packet immediately (for GMCP and other protocol packets)
     int iSendResult = send(this->tcpSocket, packet.c_str(), static_cast<int>(packet.size()), 0);
     
-    if (iSendResult == SOCKET_ERROR) {
-        printf("SendPacket failed with error: %d\n", WSAGetLastError());
+    if (iSendResult == SOCKET_ERROR_VAL) {
+        printf("SendPacket failed with error: %d\n", GetSocketError());
         // Don't close socket here - let the main loop handle disconnection
     }
 }
+
 void ClientConnection::DisconnectGracefully() {
     // 1. Send the TCP shutdown signal (SD_SEND)
     shutdown(this->tcpSocket, SD_SEND);

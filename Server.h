@@ -1,14 +1,8 @@
 #pragma once
-#undef UNICODE
 
-#define WIN32_LEAN_AND_MEAN
-
-
+#include "Platform.h"
 #include <vector>
 #include "ClientConnection.h"
-#include <windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
 #include "ThreadSafeQueue.h"  // Include the full template
 
 struct GameContext;

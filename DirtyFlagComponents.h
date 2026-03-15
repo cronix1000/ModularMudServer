@@ -6,3 +6,4 @@ struct InventoryChangedComponent {}; // Tag: Items are "Dirty"
 struct VitalsChangedComponent {};    // Tag: HP/Mana is "Dirty"
 struct StatsChangedComponent {};
 struct MutationsChangedComponent{};
+struct PlayerDirtyComponent{};

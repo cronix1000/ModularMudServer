@@ -11,6 +11,7 @@
 #include "ItemComponent.h"
 #include "BodyComponent.h"
 #include "RegionComponent.h"
+#include "PlayerVariablesComponent.h"
 
 SQLiteDatabase::~SQLiteDatabase() {
     Disconnect();
@@ -43,12 +44,12 @@ void SQLiteDatabase::InitializeSchema() {
         "id INTEGER PRIMARY KEY AUTOINCREMENT,"
         "region_id TEXT DEFAULT 'floor1',"
         "account_id INTEGER UNIQUE,"
+        "permission INTEGER NOT NULL,"
         "name TEXT UNIQUE NOT NULL,"
         "password_hash TEXT NOT NULL,"
         "salt TEXT NOT NULL,"
         "room_id INTEGER DEFAULT 1,"
-        "stats TEXT NOT NULL,"
-        "body_mods TEXT"
+        "data TEXT NOT NULL"
         ");"
 
         "CREATE TABLE IF NOT EXISTS player_items ("
@@ -92,36 +93,48 @@ bool SQLiteDatabase::SavePlayer(EntityID playerEnt, GameContext& ctx) {
 
     if (!stats || !pos || !playerComp) return false;
 
-    // 1. Pack Stats into JSON
-    nlohmann::json s;
-    s["hp"] = stats->Health;
-    s["max_hp"] = stats->MaxHealth;
-    s["str"] = stats->Strength;
-    s["dex"] = stats->Dexterity;
-    s["int"] = stats->Intelligence;
-    s["wis"] = stats->Wisdom;
-    s["atk"] = stats->AttackDamage;
-    s["atkspd"] = stats->attackSpeed;
-    s["mana"] = stats->Mana;
-
-    nlohmann::json b = nlohmann::json::array();
+    // 1. Pack all player data into JSON
+    nlohmann::json playerData;
+    
+    // Stats object
+    playerData["stats"] = {
+        {"hp", stats->Health},
+        {"max_hp", stats->MaxHealth},
+        {"str", stats->Strength},
+        {"dex", stats->Dexterity},
+        {"int", stats->Intelligence},
+        {"wis", stats->Wisdom},
+        {"atk", stats->AttackDamage},
+        {"atkspd", stats->attackSpeed},
+        {"mana", stats->Mana}
+    };
+    
+    // Body mods if present
     if (body) {
+        playerData["body_mods"] = nlohmann::json::array();
         for (auto const& [slot, mod] : body->activeMutations) {
-            b.push_back({ {"slot", (int)slot}, {"id", mod.name} });
+            playerData["body_mods"].push_back({ {"slot", (int)slot}, {"id", mod.name} });
         }
     }
 
+    // Player variables (addon data) if present
+    auto* vars = ctx.registry->GetComponent<PlayerVariablesComponent>(playerEnt);
+    if (vars) {
+        playerData["variables"] = {
+            {"intVars", vars->intVars},
+            {"stringVars", vars->stringVars}
+        };
+    }
+
     // 2. Update Database
-    const char* sql = "UPDATE players SET stats = ?, room_id = ?,region_id = ?, body_mods = ? WHERE id = ?;";
+    const char* sql = "UPDATE players SET data = ?, room_id = ?, region_id = ? WHERE id = ?;";
     sqlite3_stmt* stmt;
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) == SQLITE_OK) {
-        std::string statsStr = s.dump();
-        std::string bodyStr = b.dump();
-        sqlite3_bind_text(stmt, 1, statsStr.c_str(), -1, SQLITE_TRANSIENT);
+        std::string dataStr = playerData.dump();
+        sqlite3_bind_text(stmt, 1, dataStr.c_str(), -1, SQLITE_TRANSIENT);
         sqlite3_bind_int(stmt, 2, pos->roomId);
-        sqlite3_bind_text(stmt, 3, region->region.c_str() ,- 1, SQLITE_TRANSIENT);
-        sqlite3_bind_text(stmt, 4, bodyStr.c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_int(stmt, 5, playerComp->accountID);
+        sqlite3_bind_text(stmt, 3, region->region.c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_int(stmt, 4, playerComp->accountID);
         sqlite3_step(stmt);
         sqlite3_finalize(stmt);
     }
@@ -131,82 +144,35 @@ bool SQLiteDatabase::SavePlayer(EntityID playerEnt, GameContext& ctx) {
 
     return true;
 }
-bool SQLiteDatabase::SaveStats(EntityID playerEnt, GameContext& ctx) {
-    auto* stats = ctx.registry->GetComponent<StatComponent>(playerEnt);
-    auto* playerComp = ctx.registry->GetComponent<PlayerComponent>(playerEnt);
-    auto* pos = ctx.registry->GetComponent<PositionComponent>(playerEnt);
 
-    if (!stats || !playerComp) return false;
-
-    nlohmann::json s;
-    s["hp"] = stats->Health;
-    s["max_hp"] = stats->MaxHealth;
-    s["str"] = stats->Strength;
-    s["dex"] = stats->Dexterity;
-    s["int"] = stats->Intelligence;
-    s["wis"] = stats->Wisdom;
-    s["atk"] = stats->AttackDamage;
-    s["atkspd"] = stats->attackSpeed;
-    s["mana"] = stats->Mana;
-    s["perc"] = stats->Perception;
-    const char* sql = "UPDATE players SET stats = ?, room_id = ? WHERE id = ?;";
-    sqlite3_stmt* stmt;
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) == SQLITE_OK) {
-        std::string statsStr = s.dump();
-        sqlite3_bind_text(stmt, 1, statsStr.c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_int(stmt, 2, pos ? pos->roomId : 0);
-        sqlite3_bind_int(stmt, 3, playerComp->accountID);
-        sqlite3_step(stmt);
-        sqlite3_finalize(stmt);
-        return true;
-    }
-
-    SaveInventory(playerEnt, ctx);
-    return false;
-}
-
-bool SQLiteDatabase::SaveBodyMods(EntityID playerEnt, GameContext& ctx) {
-    // Assuming you created a BodyModComponent or similar
-    auto* body = ctx.registry->GetComponent<BodyComponent>(playerEnt);
-    auto* playerComp = ctx.registry->GetComponent<PlayerComponent>(playerEnt);
-
-    if (!body || !playerComp) return true; // Some players might not have mods
-
-    nlohmann::json b;
-    for (auto& mod : body->activeMutations) {
-        b["mutations"].push_back({
-            {"name", mod.second.name},
-            {"slot", mod.first}
-            });
-    }
-
-    const char* sql = "UPDATE players SET body_mods = ? WHERE id = ?;";
-    sqlite3_stmt* stmt;
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) == SQLITE_OK) {
-        std::string bodyStr = b.dump();
-        sqlite3_bind_text(stmt, 1, bodyStr.c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_int(stmt, 2, playerComp->accountID);
-        sqlite3_step(stmt);
-        sqlite3_finalize(stmt);
-    }
-    return true;
-}
 int SQLiteDatabase::CreatePlayerRow(const std::string& name, const std::string& password, const std::string& salt) {
-    const char* sql = "INSERT INTO players (region_id, name, password_hash, salt, room_id, stats) VALUES (?, ?, ?, ?, ?, ?);";
+    const char* sql = "INSERT INTO players (permission, region_id, name, password_hash, salt, room_id, data) VALUES (?, ?, ?, ?, ?, ?, ?);";
     sqlite3_stmt* stmt;
     int newId = -1;
 
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) == SQLITE_OK) {
-        // Initial default stats
-        nlohmann::json defaultStats = { {"hp", 100}, {"max_hp", 100}, {"str", 10} };
-        std::string statsStr = defaultStats.dump();
+        // Initial default data structure with stats object
+        nlohmann::json defaultData;
+        defaultData["stats"] = {
+            {"hp", 100},
+            {"max_hp", 100},
+            {"str", 10},
+            {"dex", 10},
+            {"int", 10},
+            {"wis", 10},
+            {"atk", 5},
+            {"atkspd", 1.0},
+            {"mana", 50}
+        };
+        std::string dataStr = defaultData.dump();
 
-        sqlite3_bind_text(stmt, 1, "floor1", -1, SQLITE_TRANSIENT);
-        sqlite3_bind_text(stmt, 2, name.c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_text(stmt, 3,password.c_str(), -1,SQLITE_TRANSIENT); // Starting room
-        sqlite3_bind_text(stmt, 4,salt.c_str(), -1,SQLITE_TRANSIENT); // Starting room
-        sqlite3_bind_int(stmt, 5, 1); // Starting room
-        sqlite3_bind_text(stmt, 6, statsStr.c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_int(stmt, 1, 50); // Normal Player Permission
+        sqlite3_bind_text(stmt, 2, "floor1", -1, SQLITE_TRANSIENT);
+        sqlite3_bind_text(stmt, 3, name.c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_text(stmt, 4, password.c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_text(stmt, 5, salt.c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_int(stmt, 6, 1); // Starting room
+        sqlite3_bind_text(stmt, 7, dataStr.c_str(), -1, SQLITE_TRANSIENT);
 
         if (sqlite3_step(stmt) == SQLITE_DONE) {
             newId = (int)sqlite3_last_insert_rowid(db);
@@ -269,7 +235,7 @@ void SQLiteDatabase::SaveInventory(EntityID playerEnt, GameContext& ctx) {
 }
 
 bool SQLiteDatabase::LoadPlayer(const std::string& name, PlayerData& outData) {
-    const char* sql = "SELECT id, region_id,room_id, stats FROM players WHERE name = ?;";
+    const char* sql = "SELECT id, region_id, room_id, permission, data FROM players WHERE name = ?;";
     sqlite3_stmt* stmt;
 
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK) return false;
@@ -279,11 +245,12 @@ bool SQLiteDatabase::LoadPlayer(const std::string& name, PlayerData& outData) {
         outData.id = sqlite3_column_int(stmt, 0);
         outData.region = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
         outData.room_id = sqlite3_column_int(stmt, 2);
+        outData.permission = sqlite3_column_int(stmt, 3);
         outData.name = name;
 
-        // Parse the JSON stats blob
-        std::string statsRaw = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
-        outData.stats = nlohmann::json::parse(statsRaw);
+        // Parse the JSON data blob
+        std::string dataRaw = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4));
+        outData.data = nlohmann::json::parse(dataRaw);
 
         // Fetch items associated with this player
         outData.items = GetSavedItems(outData.id);

@@ -6,6 +6,7 @@
 #include "MainMenuState.h"
 #include "GameContext.h"
 #include "ThreadSafeQueue.h"
+
 Server::Server(GameContext& context, GameEngine* engine, ThreadSafeQueue<ClientInput>& queue) : gameContext(context), engine(engine), inputQueue(queue) {
 }
 
@@ -30,6 +31,7 @@ void Server::HandleReceive(int clientID, std::string& buffer) {
         buffer.erase(0, pos + 1);
     }
 }
+
 void Server::Run() {
     printf("Running server....");
     while (true) {
@@ -39,11 +41,11 @@ void Server::Run() {
         FD_ZERO(&write_fd);
 
         FD_SET(ListenSocket, &read_fd);
-        SOCKET max_fd = ListenSocket;
+        SocketType max_fd = ListenSocket;
 
         // Populate the read_fd and write_fd sets
         for (ClientConnection* client : activeClients) {
-            SOCKET client_socket = client->tcpSocket;
+            SocketType client_socket = client->tcpSocket;
 
             // ALWAYS check for reading
             FD_SET(client_socket, &read_fd);
@@ -64,7 +66,7 @@ void Server::Run() {
 
         // **CALL SELECT ONLY ONCE**
         int sockets_ready = select(
-            max_fd + 1,
+            static_cast<int>(max_fd) + 1,
             &read_fd,   // Check for reading
             &write_fd,  // Check for writing
             NULL,       // Check for errors
@@ -72,8 +74,8 @@ void Server::Run() {
         );
 
         // SOCKET ERROR 
-        if (sockets_ready == SOCKET_ERROR) {
-            printf("select failed with error: %d\n", WSAGetLastError());
+        if (sockets_ready == SOCKET_ERROR_VAL) {
+            printf("select failed with error: %d\n", GetSocketError());
             break; // Exit the loop
         }
 
@@ -93,7 +95,7 @@ void Server::Run() {
         for (auto it = activeClients.begin(); it != activeClients.end() && sockets_ready > 0;) {
             ClientConnection* client = *it;
             bool disconnected = false;
-            SOCKET socket = client->tcpSocket;
+            SocketType socket = client->tcpSocket;
 
             if (client->needsCleanup) {
                 disconnected = true;
@@ -140,20 +142,22 @@ void Server::Run() {
 }
 
 bool Server::Start(const char* DEFAULT_PORT) {
-    WSADATA wsaData;
     int iResult;
 
-    ListenSocket = INVALID_SOCKET;
-    SOCKET ClientSocket = INVALID_SOCKET;
+    ListenSocket = INVALID_SOCKET_VAL;
+    SocketType ClientSocket = INVALID_SOCKET_VAL;
     struct addrinfo* result = NULL;
     struct addrinfo hints;
 
-    // Initialize Winsock
+    // Initialize Sockets (platform-specific)
+#ifdef PLATFORM_WINDOWS
+    WSADATA wsaData;
     iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (iResult != 0) {
         printf("WSAStartup failed with error: %d\n", iResult);
-        return 1;
+        return false;
     }
+#endif
 
     ZeroMemory(&hints, sizeof(hints));
     hints.ai_family = AF_INET;
@@ -165,50 +169,64 @@ bool Server::Start(const char* DEFAULT_PORT) {
     iResult = getaddrinfo(NULL, DEFAULT_PORT, &hints, &result);
     if (iResult != 0) {
         printf("getaddrinfo failed with error: %d\n", iResult);
+#ifdef PLATFORM_WINDOWS
         WSACleanup();
-        return 1;
+#endif
+        return false;
     }
 
     // Create a SOCKET for the server to listen for client connections.
     ListenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-    if (ListenSocket == INVALID_SOCKET) {
-        printf("socket failed with error: %ld\n", WSAGetLastError());
+    if (ListenSocket == INVALID_SOCKET_VAL) {
+        printf("socket failed with error: %d\n", GetSocketError());
         freeaddrinfo(result);
-        WSACleanup();
-        return 1;
+        SocketCleanup();
+        return false;
+    }
+
+    // Allow socket reuse (helps with "address already in use" errors)
+    int opt = 1;
+    if (setsockopt(ListenSocket, SOL_SOCKET, SO_REUSEADDR, 
+#ifdef PLATFORM_WINDOWS
+        (const char*)
+#else
+        (const void*)
+#endif
+        &opt, sizeof(opt)) < 0) {
+        printf("setsockopt failed with error: %d\n", GetSocketError());
     }
 
     // Setup the TCP listening socket
-    iResult = bind(ListenSocket, result->ai_addr, (int)result->ai_addrlen);
-    if (iResult == SOCKET_ERROR) {
-        printf("bind failed with error: %d\n", WSAGetLastError());
+    iResult = bind(ListenSocket, result->ai_addr, static_cast<int>(result->ai_addrlen));
+    if (iResult == SOCKET_ERROR_VAL) {
+        printf("bind failed with error: %d\n", GetSocketError());
         freeaddrinfo(result);
-        closesocket(ListenSocket);
-        WSACleanup();
-        return 1;
+        CloseSocket(ListenSocket);
+        SocketCleanup();
+        return false;
     }
 
     freeaddrinfo(result);
 
     iResult = listen(ListenSocket, SOMAXCONN);
-    if (iResult == SOCKET_ERROR) {
-        printf("listen failed with error: %d\n", WSAGetLastError());
-        closesocket(ListenSocket);
-        WSACleanup();
-        return 1;
+    if (iResult == SOCKET_ERROR_VAL) {
+        printf("listen failed with error: %d\n", GetSocketError());
+        CloseSocket(ListenSocket);
+        SocketCleanup();
+        return false;
     }
 
     printf("Server Started");
-    return 0;
+    return true;
 }
 
 bool Server::Stop() {
-    return 1;
+    return true;
 }
 
 bool Server::AcceptClient() {
-    SOCKET newSocket = accept(ListenSocket, NULL, NULL);
-    if (newSocket != INVALID_SOCKET) {
+    SocketType newSocket = accept(ListenSocket, NULL, NULL);
+    if (newSocket != INVALID_SOCKET_VAL) {
         ClientConnection* newClient = new ClientConnection(newSocket);
 
         // Set a unique client ID (you can use the socket number or a counter)

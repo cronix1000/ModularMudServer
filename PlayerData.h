@@ -12,12 +12,13 @@ struct SavedItemData {
 
 struct PlayerData {
     int id = 0;
+    int permission = 0;
     std::string name;
     std::string region;
     int room_id = 0;
     int x, y;
     std::vector<SavedItemData> items;
-    json stats;
+    json data;
 
 
 

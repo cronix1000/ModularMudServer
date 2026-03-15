@@ -25,7 +25,7 @@ public:
 	bool CheckIfRegionLoaded(const std::string& regionPath);
 	bool LoadRegion(const std::string& regionPath, GameContext& ctx);
 	bool LoadRoomFile(const std::string& path, const json& floorSettings, GameContext& ctx);
-	void ParseSpawns(const json& rData, const json& floorSettings, GameContext& ctx);
+	void ParseSpawns(const json& rData, int roomID, const json& floorSettings, GameContext& ctx);
 	
 	// Deprecated: Use WorldManager::GetRoomLayout/GetRoomExits instead
 	// Kept temporarily for backward compatibility during migration

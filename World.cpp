@@ -235,15 +235,14 @@ bool World::LoadRoomFile(const std::string& path, const json& floorSettings, Gam
 
     // Handle spawns
     if (rData.contains("spawns") && rData.contains("spawn_legend")) {
-        ParseSpawns(rData, floorSettings, ctx);
+        ParseSpawns(rData, roomEntity, floorSettings, ctx);
     }
 
     return true;
 }
 
-void World::ParseSpawns(const json& rData, const json& floorSettings, GameContext& ctx)
+void World::ParseSpawns(const json& rData, int roomID,const json& floorSettings, GameContext& ctx)
 {
-    int roomID = rData["id"];
     json legend = rData["spawn_legend"];
     int y = 0;
 

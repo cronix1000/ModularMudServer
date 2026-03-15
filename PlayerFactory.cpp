@@ -16,6 +16,9 @@
 #include "WorldManager.h"
 #include "World.h"
 #include "PermissionComponent.h"
+#include "PlayerVariablesComponent.h"
+#include "EventBus.h"
+#include "CommandTrie.h"
 
 EntityID PlayerFactory::LoadPlayer(std::string username, ClientConnection* connection) {
     PlayerData data;
@@ -39,15 +42,44 @@ EntityID PlayerFactory::LoadPlayer(std::string username, ClientConnection* conne
     ctx.registry->AddComponent(player, PlayerComponent{ data.id, username });
 
     // Stats from DB
-    auto& s = data.stats;
+    auto& s = data.data;
     StatComponent stats;
-    stats.Health = s.value("hp", 100);
-    stats.MaxHealth = s.value("max_hp", 100);
-    stats.Strength = s.value("str", 10);
+
+    auto statsJson = s["stats"];
+
+    // Extract all stat values with defaults
+    stats.Health = statsJson.value("hp", 100);
+    stats.MaxHealth = statsJson.value("max_hp", 100);
+    stats.Strength = statsJson.value("str", 10);
+    stats.Dexterity = statsJson.value("dex", 10);
+    stats.Intelligence = statsJson.value("int", 10);
+    stats.Wisdom = statsJson.value("wis", 10);
+    stats.AttackDamage = statsJson.value("atk", 5);
+    stats.attackSpeed = statsJson.value("atkspd", 1.0f);
+    stats.Mana = statsJson.value("mana", 50);
     ctx.registry->AddComponent(player, stats);
 
+    // Player variables (addon data) from DB
+    PlayerVariablesComponent playerVars;
+    if (s.contains("variables")) {
+        auto& varsJson = s["variables"];
+        if (varsJson.contains("intVars")) {
+            for (auto& [key, value] : varsJson["intVars"].items()) {
+                playerVars.intVars[key] = value.get<int>();
+            }
+        }
+        if (varsJson.contains("stringVars")) {
+            for (auto& [key, value] : varsJson["stringVars"].items()) {
+                playerVars.stringVars[key] = value.get<std::string>();
+            }
+        }
+    }
+    ctx.registry->AddComponent(player, playerVars);
+
     // Add Player Permissions
-    ctx.registry->AddComponent(player, PermissionComponent{ 50 });
+    uint8_t level = static_cast<uint8_t>(data.permission);
+
+    ctx.registry->AddComponent(player, PermissionComponent{ level });
 
     std::string regionToLoad = data.region.empty() ? "floor1" : data.region;
     if (!ctx.worldManager->world->LoadRegion(regionToLoad, ctx)) {
@@ -92,6 +124,12 @@ EntityID PlayerFactory::LoadPlayer(std::string username, ClientConnection* conne
             inv->items.push_back(item);
         }
     }
+
+    // send event that player logged in 
+    PlayerLoggedInData ectx = { player, username, data.permission };
+    EventContext event_data;
+    event_data.data = ectx;
+    ctx.eventBus->Publish(EventType::PlayerJoined, event_data);
 
     return player;
 }

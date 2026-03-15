@@ -49,7 +49,7 @@ struct PlayerLoggedInData {
 };
 
 struct EventContext {
-    std::variant<std::monostate, RoomEventData, CombatEventData, ChatEventData, PlayerEventData, ItemEquippedEventData> data;
+    std::variant<std::monostate, RoomEventData, CombatEventData, ChatEventData, PlayerEventData, ItemEquippedEventData, PlayerLoggedInData> data;
 };
 
 class EventBus {

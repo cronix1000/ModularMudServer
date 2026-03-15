@@ -1,31 +1,27 @@
 #pragma once
 
-#include <WinSock2.h>
+#include "Platform.h"
 #include "Command.h"
 #include <string>
 #include <queue>
 #include <stack>
-//#include "CommandInterpreter.h"
-
-
-#define DEFAULT_BUFLEN 1024
 
 class GameState;
 class GameEngine;
-class CommandInterpreter;  // Add forward declaration
+class CommandInterpreter;
 
 class ClientConnection
 {
 public:
-	SOCKET tcpSocket;
+	SocketType tcpSocket;
 	int clientID;
 	std::string recvBuffer;
-	ClientConnection(SOCKET newSocket) : tcpSocket(newSocket) {
+	ClientConnection(SocketType newSocket) : tcpSocket(newSocket) {
 	
 	}
 	~ClientConnection() {
-		if (tcpSocket != INVALID_SOCKET) {
-			closesocket(tcpSocket);
+		if (tcpSocket != INVALID_SOCKET_VAL) {
+			CloseSocket(tcpSocket);
 		}
 	}
 	int playerId;

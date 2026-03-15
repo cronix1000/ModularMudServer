@@ -50,11 +50,12 @@ void NetworkSystem::SetupListeners()
         const auto& data = std::get<PlayerLoggedInData>(ectx.data);
 
         // check player capabilities if web send command list
-        ClientComponent* client = ctx.registry->GetComponent<ClientComponent>(data.EntityID);
+        ClientComponent* client = ctx.registry->GetComponent<ClientComponent>(data.playerID);
 
         GameMessage msg;
         msg.type = "command_list";
-        msg.jsonData = ctx.commandRegistry->GetCommandListJson(data.permissionLevel);
+        PermissionLevel level = static_cast<PermissionLevel>(data.permissionLevel);
+        msg.jsonData = ctx.commandRegistry->GetCommandListJson(level);
         client->QueueGameMessage(msg);
 
     });
