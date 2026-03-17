@@ -109,7 +109,7 @@ void InteractionSystem::HandleInteractableResult(int userEntityID, const Interac
 	case 't': // "teleport"
 		if (result.actionType == "teleport" && result.targetRoomID != -1) {
 			auto* pos = ctx.registry->GetComponent<PositionComponent>(userEntityID);
-			if (pos) {
+			if (pos && ctx.worldManager) {
 				ctx.worldManager->AttemptTeleport(pos, result.targetRoomID);
 				ctx.registry->AddComponent<PositionChangedComponent>(userEntityID);
 			}

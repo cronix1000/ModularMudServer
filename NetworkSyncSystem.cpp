@@ -70,8 +70,8 @@ void NetworkSyncSystem::SendLook(ClientConnection* client)
 
     // Create an overlay grid to place entities on.
     std::vector<std::vector<VisualComponent*>> entityOverlay(
-        roomHeight + 1,
-        std::vector<VisualComponent*>(roomWidth + 1, nullptr)
+        roomHeight,
+        std::vector<VisualComponent*>(roomWidth, nullptr)
     );
 
     // This is the new pattern for iterating entities with multiple components.
@@ -111,9 +111,9 @@ void NetworkSyncSystem::SendLook(ClientConnection* client)
     std::string lastColor = "";
 
     // 3. Loop through the room tiles and draw them.
-    for (int y = 0; y <= roomHeight; y++) {
+    for (int y = 0; y < roomHeight; y++) {
         std::string row = "";
-        for (int x = 0; x <= roomWidth; x++) {
+        for (int x = 0; x < roomWidth; x++) {
             std::string currentColor;
             std::string symbol;
 

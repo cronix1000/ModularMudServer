@@ -55,7 +55,7 @@ void NetworkSystem::SetupListeners()
         GameMessage msg;
         msg.type = "command_list";
         PermissionLevel level = static_cast<PermissionLevel>(data.permissionLevel);
-        msg.jsonData = ctx.commandRegistry->GetCommandListJson(level);
+		msg.jsonData = ctx.commandRegistry->GetCommandListJson(level).dump();
         client->QueueGameMessage(msg);
 
     });

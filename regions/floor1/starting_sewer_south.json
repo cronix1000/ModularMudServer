@@ -39,6 +39,10 @@
           "chance": 0.3
         }
       }
+    },
+    "O": {
+      "type": "interactable",
+      "id": "portal"
     }
   }
 }

@@ -44,6 +44,15 @@ void ItemFactory::LoadSingleItemFromLua(const std::string& key, sol::table& t) {
     tpl.value = t.get_or("value", 0);
     tpl.itemType = t.get_or<std::string>("type", "misc");
 
+    sol::table skills = t["skills"];
+    if (skills.valid()) {
+        for (auto& skill : skills) {
+            std::string skillName = skill.second.as<std::string>();
+            tpl.skills.push_back(skillName);
+        }
+    }
+
+
     // Extract Type-Specific Data into JSON 'extra'
     if (tpl.itemType == "weapon") {
         sol::table dmg = t["damage"];
@@ -80,7 +89,7 @@ int ItemFactory::CreateItem(std::string templateID, json overrides, int x, int y
     ctx.registry->AddComponent<VisualComponent>(id, { tpl.symbol, tpl.color });
     ctx.registry->AddComponent<ItemComponent>(id, { tpl.itemType });
 
-    if (roomID == -1) {
+    if (roomID != -1) {
         ctx.registry->AddComponent<PositionComponent>(id, { x,y,roomID });
     }
 

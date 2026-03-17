@@ -2,3 +2,5 @@
 interactables = {}
 
 dofile("scripts/interactables/healing_shrine.lua")
+dofile("scripts/interactables/portal.lua")
+dofile("scripts/interactables/treasure_chest.lua")

@@ -24,7 +24,7 @@ ScriptManager::ScriptManager(Registry& r) : registry(r) {
 	lua.new_usertype<SkillContext>("SkillContext",
 		"source", &SkillContext::sourceID,
 		"target", &SkillContext::targetID,
-		"skillID", &SkillContext::skillID,   // <-- Very important for generic scripts!
+		"skillID", &SkillContext::skillID,   
 		"mastery", &SkillContext::masteryLevel,
 		"power", &SkillContext::basePower
 	);
@@ -45,6 +45,8 @@ ScriptManager::ScriptManager(Registry& r) : registry(r) {
 void ScriptManager::init() {
 	load_script("scripts/interactables/interactables_master.lua");
 	load_script("scripts/skills/skills_master.lua");
+	load_script("scripts/items/items_master.lua");
+	load_script("scripts/mobs/mobs_master.lua");
 
 
 	lua.set_function("send_to_char", [this](int player_id, const std::string& message) {
@@ -138,7 +140,7 @@ SkillResult ScriptManager::ExecuteSkillScript(const std::string& scriptPath, con
 }
 
 void ScriptManager::load_script(const std::string& path) {
-	auto result = lua.script_file(path);
+ 	auto result = lua.script_file(path);
 	if (!result.valid()) {
 		sol::error err = result;
 		std::cerr << "Failed to load " << path << ": " << err.what() << std::endl;

@@ -5,7 +5,7 @@
 interactables["portal"] = {
     name = "Mystical Portal",
     char = "O",
-    color = "&c",
+    color = "&d",
     description = "A swirling portal of magical energy. You can 'enter' it to travel.",
     type = "portal",
     components = {

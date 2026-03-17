@@ -18,6 +18,7 @@ struct ItemTemplate {
     std::string itemType; // "weapon", "armour", "consumable", "misc"
     int weight;
     int value;
+    std::vector<std::string> skills;
 
     json extra; // Raw data for specific components
 };

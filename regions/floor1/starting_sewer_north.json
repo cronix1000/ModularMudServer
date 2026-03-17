@@ -29,5 +29,14 @@
     ". . . . .",
     ". . . . ."
   ],
-  "spawn_legend": {}
+  "spawn_legend": {
+    "h": {
+      "type": "interactable",
+      "id": "healing_shrine"
+    },
+    "O": {
+      "type": "interactable",
+      "id": "portal"
+    }
+  }
 }

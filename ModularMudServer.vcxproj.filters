@@ -162,16 +162,10 @@
     <ClCompile Include="GameContext.cpp">
       <Filter>Source Files\Core</Filter>
     </ClCompile>
-    <ClCompile Include="PlayerFactory.cpp">
-      <Filter>Source Files\Factories</Filter>
-    </ClCompile>
     <ClCompile Include="InteractableFactory.cpp">
       <Filter>Source Files\Factories</Filter>
     </ClCompile>
     <ClCompile Include="ItemFactory.cpp">
-      <Filter>Source Files\Factories</Filter>
-    </ClCompile>
-    <ClCompile Include="MobFactory.cpp">
       <Filter>Source Files\Factories</Filter>
     </ClCompile>
     <ClCompile Include="RespawnSystem.cpp">
@@ -209,6 +203,12 @@
     </ClCompile>
     <ClCompile Include="RoomFactory.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PlayerFactory.cpp">
+      <Filter>Source Files\Factories</Filter>
+    </ClCompile>
+    <ClCompile Include="MobFactory.cpp">
+      <Filter>Source Files\Factories</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -319,9 +319,6 @@
     </ClInclude>
     <ClInclude Include="GameEngine.h">
       <Filter>Header Files\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="MobFactory.h">
-      <Filter>Header Files\Factory</Filter>
     </ClInclude>
     <ClInclude Include="MenuFactory.h">
       <Filter>Header Files\Factory</Filter>
@@ -598,6 +595,9 @@
     </ClInclude>
     <ClInclude Include="AmbientAIComponent.h">
       <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="MobFactory.h">
+      <Filter>Header Files\Factory</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

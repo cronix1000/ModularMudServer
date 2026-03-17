@@ -235,7 +235,8 @@ bool World::LoadRoomFile(const std::string& path, const json& floorSettings, Gam
 
     // Handle spawns
     if (rData.contains("spawns") && rData.contains("spawn_legend")) {
-        ParseSpawns(rData, roomEntity, floorSettings, ctx);
+        int logicalRoomId = rData.value("id", roomEntity);
+        ParseSpawns(rData, logicalRoomId, floorSettings, ctx);
     }
 
     return true;
@@ -259,6 +260,8 @@ void World::ParseSpawns(const json& rData, int roomID,const json& floorSettings,
             json spawnInfo = legend[symbol];
             std::string type = spawnInfo["type"];
             std::string templateID = spawnInfo["id"];
+            
+            std::cout << "[Spawn] Attempting to spawn " << type << " with template '" << templateID << "' at (" << x << "," << y << ") in room " << roomID << std::endl;
 
             // --- THE OVERRIDE MERGE ---
             json finalOverrides = json::object();
@@ -295,7 +298,11 @@ void World::ParseSpawns(const json& rData, int roomID,const json& floorSettings,
                 ctx.factories->items.CreateItem(templateID,finalOverrides,x,y,roomID);
             }
             else if (type == "interactable") {
-                ctx.factories->interactables.CreateInteractable(templateID, x, y, roomID);
+				ctx.factories->interactables.CreateInteractable(templateID, json::object(), x, y, roomID);
+			}
+            else if (type == "npc") {
+                // NPCs are essentially mobs without respawn
+                ctx.factories->mobs.CreateMob(templateID, finalOverrides, x, y, roomID);
             }
             x++;
         }

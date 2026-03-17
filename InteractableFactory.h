@@ -138,7 +138,7 @@ private:
             ChestComponent chest;
             chest.is_open = tpl.extra.value("is_open", false);
             chest.is_locked = tpl.extra.value("is_locked", false);
-            chest.key_id = tpl.extra.value("key_id", "");
+            chest.key_id = tpl.extra.value("key_id", -1);
             chest.loot_table = tpl.extra.value("loot_table", "");
             chest.max_uses = tpl.extra.value("max_uses", 1);
             chest.uses_remaining = chest.max_uses;

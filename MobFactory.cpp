@@ -9,8 +9,8 @@
 
 void MobFactory::LoadMobTemplatesFromLua() {
     try {
-        ctx.scripts->lua.script_file("scripts/data/mobs_master.lua");
-        sol::table mobsTable = ctx.scripts->lua["Mobs"];
+        ctx.scripts->lua.script_file("scripts/mobs/mobs_master.lua");
+        sol::table mobsTable = ctx.scripts->lua["mobs"];
 
         if (!mobsTable.valid()) return;
 
