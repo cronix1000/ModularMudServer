@@ -6,5 +6,6 @@ struct ItemComponent {
     int value = 0;
     bool is_gettable = true; 
     bool is_equippable = false;
-
+    int primarySkillId = -1;       
+    std::vector<int> extraSkillIds;
 };

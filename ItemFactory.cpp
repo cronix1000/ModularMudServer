@@ -4,6 +4,8 @@
 #include "Component.h"
 #include "TextHelperFunctions.h"
 #include "EquipmentSlot.h"
+#include "SkillFactory.h"
+#include "FactoryManager.h"
 void ItemFactory::LoadItemTemplatesFromLua() {
     // 1. Run the script
     try {
@@ -44,11 +46,11 @@ void ItemFactory::LoadSingleItemFromLua(const std::string& key, sol::table& t) {
     tpl.value = t.get_or("value", 0);
     tpl.itemType = t.get_or<std::string>("type", "misc");
 
-    sol::table skills = t["skills"];
+    sol::table skills = t["extra_skills"];
     if (skills.valid()) {
         for (auto& skill : skills) {
             std::string skillName = skill.second.as<std::string>();
-            tpl.skills.push_back(skillName);
+            tpl.extraSkills.push_back(skillName);
         }
     }
 
@@ -115,5 +117,37 @@ void ItemFactory::AttachTypeComponents(int id, const ItemTemplate& tpl, const js
         EquipmentSlot eqSlot = TextHelperFunctions::StringToSlot(slot);
         ac.slot = eqSlot;
         ctx.registry->AddComponent<ArmourComponent>(id, ac);
+    }
+
+    auto* itemComp = ctx.registry->GetComponent<ItemComponent>(id);
+    if (itemComp) {
+        // Use a lambda or helper to convert string names to IDs from your SkillFactory
+        auto addSkillById = [&](const std::string& skillKey, bool primary) {
+            int skillId = ctx.factories->skills.GetSkillID(skillKey);
+            if (skillId != -1) {
+                if (!primary)
+                    itemComp->extraSkillIds.push_back(skillId);
+                else
+                    itemComp->primarySkillId = skillId;
+            }
+            };
+
+        // 1. Add skills from the Template
+        for (const auto& skillName : tpl.extraSkills) {
+            addSkillById(skillName, false);
+        }
+
+        if (!tpl.primarySkill.empty())
+        {
+            addSkillById(tpl.primarySkill, true);
+
+        }
+
+        // 2. Add/Merge skills from the Overrides
+        if (overrides.contains("skills") && overrides["skills"].is_array()) {
+            for (const auto& skillName : overrides["skills"]) {
+                addSkillById(skillName.get<std::string>(), false);
+            }
+        }
     }
 }

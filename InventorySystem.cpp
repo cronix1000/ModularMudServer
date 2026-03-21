@@ -46,10 +46,22 @@ void InventorySystem::Run(float dt) {
             equipment->slots[slot] = intent->itemId;
 
             // Update the default "attack" skill alias.
+            auto* itemComp = ctx.registry->GetComponent<ItemComponent>(intent->itemId);
             auto* skillHolder = ctx.registry->GetComponent<SkillHolderComponent>(entity);
-            if (skillHolder) {
-                int skillID = ctx.factories->skills.GetSkillID(weapon->defaultSkillTemplate);
-                skillHolder->skillAliases["attack"] = skillID;
+            if (skillHolder && itemComp) {
+                // 1. Update the generic "attack" command to use the item's primary skill
+                if (itemComp->primarySkillId != -1) {
+                    skillHolder->skillAliases["attack"] = itemComp->primarySkillId;
+                }
+
+                // 2. Map the extra skills by their actual names so the player can call them
+                for (int sId : itemComp->extraSkillIds) {
+                    auto* nameComp = ctx.registry->GetComponent<NameComponent>(sId);
+                    if (nameComp) {
+                        // e.g. skillAliases["Heavy Slam"] = 402;
+                        skillHolder->skillAliases[nameComp->displayName] = sId;
+                    }
+                }
             }
         }
 

@@ -38,7 +38,7 @@ void InteractionSystem::run() {
 
 			// Mark player as dirty to sync client.
 			ctx.registry->AddComponent<PositionChangedComponent>(entity);
-			ctx.registry->AddComponent<InventoryChangedComponent>(entity);
+			ctx.registry->AddComponent<PlayerDirtyComponent>(entity);
 		} else {
 			client->client->QueueMessage("Inventory Full");
 		}

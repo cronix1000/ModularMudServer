@@ -9,5 +9,6 @@ items["stick"] = {
     color = "&y",
     weight = 1,
     value = 1,
-    skills = {"basic_attack"}
+primary_skill = "poke",     
+    extra_skills = {}
 }
