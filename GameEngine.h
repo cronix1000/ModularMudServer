@@ -30,6 +30,8 @@ class CleanUpSystem;
 class InventorySystem;
 class BehaviorSystem;
 class InteractionSystem;
+class TargetingSystem;
+class CombatStateSystem;
 class CommandInterpreter;
 class MessageSystem;
 class SaveSystem;
@@ -39,6 +41,7 @@ class AmbientAISystem;
 struct TimeData;
 class CommandRegistry;
 struct ClientInput;
+class SkillSystem;
 class GameEngine
 {
 public:
@@ -95,6 +98,9 @@ public:
 	RespawnSystem* respawnSystem;
 	WorldClimateSystem* climateSystem;
 	AmbientAISystem* ambientAISystem;
+	SkillSystem* skillSystem;
+	TargetingSystem* targetingSystem;
+	CombatStateSystem* combatStateSystem;
 
 private:
 	bool isRunning = true;

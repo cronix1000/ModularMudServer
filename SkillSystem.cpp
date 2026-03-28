@@ -58,8 +58,9 @@ void SkillSystem::Run(float dt)
                 ExecuteScriptAndDispatch(entity, intent->skillId, intent->targetId);
             }
             // Set the skill on cooldown *after* it has been successfully initiated.
-            skillHolder->SetCooldown(intent->skillId, ctx.time->globalTime, cooldown->cooldownTime);
-        }
+                skillHolder->SetCooldown(intent->skillId, ctx.time->globalTime, cooldown->cooldownTime);
+            }
+        
         
         // Remove the intent component now that it has been handled.
         ctx.registry->RemoveComponent<SkillIntentComponent>(entity);

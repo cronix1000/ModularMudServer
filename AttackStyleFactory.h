@@ -67,7 +67,9 @@ public:
             tpl.weight,
             tpl.value,
             tpl.gettable,
-            tpl.equippable
+            tpl.equippable,
+            -1,
+            {}
             });
 
         // 2. INJECTION: Check "extra" JSON and push data into components

@@ -5,10 +5,12 @@
 #include "Registry.h"
 #include "NameComponent.h"
 #include "PositionComponent.h"
-#include "AttackIntentComponent.h"
+#include "TargetingIntentComponent.h"
+#include "CombatStateComponent.h"
 #include "SkillHolderComponent.h"
 #include "SkillIntentComponent.h"
 #include "StatComponent.h"
+#include <cctype>
 
 EntityID CombatCommandHandler::FindTarget(GameContext& ctx, EntityID playerID, const std::string& targetName) {
 	auto* playerPos = ctx.registry->GetComponent<PositionComponent>(playerID);
@@ -65,17 +67,50 @@ void CombatCommandHandler::RegisterAll(CommandRegistry& registry) {
 	registry.RegisterWithAliases("cast", HandleCast, {"use"}, PermissionLevel::Player);
 }
 
+// Parse target name and optional index from params
+// e.g., ["goblin"] -> ("goblin", 0), ["goblin", "2"] -> ("goblin", 2)
+std::pair<std::string, int> ParseTargetWithIndex(const std::vector<std::string>& params) {
+	if (params.empty()) return {"", 0};
+	
+	// Check if last parameter is a number
+	const std::string& lastParam = params.back();
+	bool isNumber = !lastParam.empty() && std::all_of(lastParam.begin(), lastParam.end(), ::isdigit);
+	
+	if (isNumber && params.size() > 1) {
+		// Has index: "goblin 2"
+		int index = std::stoi(lastParam);
+		std::string targetName = "";
+		for (size_t i = 0; i < params.size() - 1; ++i) {
+			targetName += params[i];
+			if (i < params.size() - 2) targetName += " ";
+		}
+		return {targetName, index};
+	} else {
+		// No index: "goblin"
+		std::string targetName = "";
+		for (size_t i = 0; i < params.size(); ++i) {
+			targetName += params[i];
+			if (i < params.size() - 1) targetName += " ";
+		}
+		return {targetName, 0};
+	}
+}
+
 CommandResult CombatCommandHandler::HandleAttack(ClientConnection* client,
-												  const std::vector<std::string>& params,
-												  GameContext& ctx) {
+											  const std::vector<std::string>& params,
+											  GameContext& ctx) {
 	if (params.empty()) {
 		return CommandResult::Failure("Attack who?");
 	}
 
 	EntityID playerID = client->playerEntityID;
 	
-	// Build target name from all parameters (multi-word targets)
-	std::string targetName = BuildTargetName(params);
+	// Parse target name and optional index
+	auto [targetName, targetIndex] = ParseTargetWithIndex(params);
+	
+	if (targetName.empty()) {
+		return CommandResult::Failure("Attack who?");
+	}
 
 	// Find Skill ID for "attack"
 	auto* skillHolder = ctx.registry->GetComponent<SkillHolderComponent>(playerID);
@@ -89,16 +124,15 @@ CommandResult CombatCommandHandler::HandleAttack(ClientConnection* client,
 		return CommandResult::Failure("You have no attack skill ready.");
 	}
 
-	// Find Target
-	EntityID targetID = FindTarget(ctx, playerID, targetName);
-
-	if (targetID != -1) {
-		ctx.registry->AddComponent<SkillIntentComponent>(playerID, { skillID, targetID });
-		return CommandResult::Success();
-	}
-	else {
-		return CommandResult::Failure("You don't see any '" + targetName + "' here.");
-	}
+	// Create targeting intent - let TargetingSystem resolve multi-target ambiguity
+	TargetingIntentComponent targetingIntent;
+	targetingIntent.sourceID = playerID;
+	targetingIntent.targetName = targetName;
+	targetingIntent.targetIndex = targetIndex;
+	
+	ctx.registry->AddComponent<TargetingIntentComponent>(playerID, targetingIntent);
+	
+	return CommandResult::Success();
 }
 
 CommandResult CombatCommandHandler::HandleCast(ClientConnection* client,
@@ -123,7 +157,8 @@ CommandResult CombatCommandHandler::HandleCast(ClientConnection* client,
 		targetParams.push_back(params[i]);
 	}
 	
-	std::string targetName = BuildTargetName(targetParams);
+	// Parse target with optional index
+	auto [targetName, targetIndex] = ParseTargetWithIndex(targetParams);
 
 	// Lookup Skill
 	int skillID = skillHolder->Lookup(skillName);
@@ -131,22 +166,23 @@ CommandResult CombatCommandHandler::HandleCast(ClientConnection* client,
 		return CommandResult::Failure("You don't know a skill named '" + skillName + "'.");
 	}
 
-	// Lookup Target
-	EntityID targetID = -1;
 	if (targetName.empty() || targetName == "self") {
-		targetID = playerID;
-	}
-	else {
-		targetID = FindTarget(ctx, playerID, targetName);
-	}
-
-	if (targetID != -1) {
-		ctx.registry->AddComponent<SkillIntentComponent>(playerID, { skillID, targetID });
+		// Self-targeted, no need for targeting system
+		ctx.registry->AddComponent<SkillIntentComponent>(playerID, { skillID, playerID });
 		return CommandResult::Success();
 	}
-	else {
-		return CommandResult::Failure("You don't see '" + targetName + "' here.");
-	}
+
+	// Create targeting intent for target selection
+	TargetingIntentComponent targetingIntent;
+	targetingIntent.sourceID = playerID;
+	targetingIntent.targetName = targetName;
+	targetingIntent.targetIndex = targetIndex;
+	// Store skill ID for later use after targeting resolves
+	// This requires modifying TargetingIntentComponent to include skillID
+	
+	ctx.registry->AddComponent<TargetingIntentComponent>(playerID, targetingIntent);
+	
+	return CommandResult::Success();
 }
 
 CommandResult CombatCommandHandler::HandleKill(ClientConnection* client,

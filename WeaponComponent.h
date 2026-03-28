@@ -19,4 +19,9 @@ struct WeaponComponent {
     int maxRange = 1;
 
     std::string defaultSkillTemplate;
+    
+    // Windup and scaling for attack speed
+    float baseWindup = 1.0f;      // Base attack speed in seconds
+    std::string scalingStat;       // "strength", "dexterity", "intelligence"
+    float scalingFactor = 0.02f;   // Each stat point reduces windup (used in logarithmic formula)
 };

@@ -210,6 +210,15 @@
     <ClCompile Include="MobFactory.cpp">
       <Filter>Source Files\Factories</Filter>
     </ClCompile>
+    <ClCompile Include="CombatStateSystem.cpp">
+      <Filter>Source Files\System</Filter>
+    </ClCompile>
+    <ClCompile Include="TargetingSystem.cpp">
+      <Filter>Source Files\System</Filter>
+    </ClCompile>
+    <ClCompile Include="SkillFactory.cpp">
+      <Filter>Source Files\Factories</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MainMenuState.h">
@@ -598,6 +607,21 @@
     </ClInclude>
     <ClInclude Include="MobFactory.h">
       <Filter>Header Files\Factory</Filter>
+    </ClInclude>
+    <ClInclude Include="MobAttackComponent.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="CombatStateComponent.h">
+      <Filter>Header Files\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="CombatStateSystem.h">
+      <Filter>Header Files\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="TargetingSystem.h">
+      <Filter>Header Files\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="TargetingIntentComponent.h">
+      <Filter>Header Files\Component</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

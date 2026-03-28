@@ -25,7 +25,7 @@ public:
 	
 private:
 	void SendToWebClient(ClientConnection* client, const GameMessage& msg);
-	void SendToTerminalClient(ClientConnection* client, const GameMessage& msg, bool hasSideBar);
+	void SendToTerminalClient(ClientConnection* client, const GameMessage& msg);
 	std::string BuildJSONEnvelope(const GameMessage& msg);
 	std::string BuildGMCPSession(const std::string& moduleName, const std::string& jsonDataStr);
 	

@@ -34,7 +34,8 @@ void CombatSystem::run()
         ProcessCombatIntent(sourceID, *intent);
         
         // Remove the intent after processing
-        ctx.registry->RemoveComponent<CombatIntentComponent>(sourceID);
+        if(intent->attackOnce )
+            ctx.registry->RemoveComponent<CombatIntentComponent>(sourceID);
     }
 }
 
@@ -42,7 +43,15 @@ void CombatSystem::ProcessCombatIntent(int sourceID, const CombatIntentComponent
 {
     // Route to appropriate handler based on action type
     if (intent.actionType == "attack") {
-        ProcessAttack(sourceID, intent.targetID, intent.magnitude, intent.damageType);
+        // Check for critical hit
+        bool isCritical = false;
+        for (const auto& tag : intent.addedTags) {
+            if (tag == "critical") {
+                isCritical = true;
+                break;
+            }
+        }
+        ProcessAttack(sourceID, intent.targetID, intent.magnitude, intent.damageType, intent.dataString, isCritical);
     }
     else if (intent.actionType == "heal") {
         ProcessHeal(sourceID, intent.targetID, intent.magnitude);
@@ -53,7 +62,8 @@ void CombatSystem::ProcessCombatIntent(int sourceID, const CombatIntentComponent
     // Add more action types as needed
 }
 
-void CombatSystem::ProcessAttack(int sourceID, int targetID, float damage, const std::string& damageType)
+void CombatSystem::ProcessAttack(int sourceID, int targetID, float damage, const std::string& damageType,
+                                 const std::string& attackVerb, bool isCritical)
 {
     auto* targetStats = ctx.registry->GetComponent<StatComponent>(targetID);
     if (!targetStats || targetStats->Health <= 0) return;
@@ -67,6 +77,10 @@ void CombatSystem::ProcessAttack(int sourceID, int targetID, float damage, const
     // Apply damage
     targetStats->Health = (std::max)(0, targetStats->Health - finalDamage);
 
+    // Build message with verb and critical indicator
+    std::string critPrefix = isCritical ? "CRITICAL! " : "";
+    std::string damageColor = isCritical ? "&Y" : "&R"; // Yellow for crit, red for normal
+
     // Send combat messages using new GameMessage pattern
     auto* sourceClient = ctx.registry->GetComponent<ClientComponent>(sourceID);
     if (sourceClient) {
@@ -79,12 +93,14 @@ void CombatSystem::ProcessAttack(int sourceID, int targetID, float damage, const
             {"damage_type", damageType},
             {"target", targetNameStr},
             {"target_current_hp", targetStats->Health},
-            {"target_max_hp", targetStats->MaxHealth}
+            {"target_max_hp", targetStats->MaxHealth},
+            {"is_critical", isCritical}
         };
         
         GameMessage msg;
         msg.type = "combat_hit";
-        msg.consoleText = "You attack " + targetNameStr + " for &R" + std::to_string(finalDamage) + "&X " + damageType + " damage!";
+        msg.consoleText = critPrefix + "You " + attackVerb + " " + targetNameStr + " for " + damageColor + 
+                         std::to_string(finalDamage) + "&X " + damageType + " damage!";
         msg.jsonData = jsonData.dump();
         sourceClient->QueueGameMessage(msg);
     }
@@ -100,12 +116,14 @@ void CombatSystem::ProcessAttack(int sourceID, int targetID, float damage, const
             {"damage_type", damageType},
             {"source", sourceNameStr},
             {"current_hp", targetStats->Health},
-            {"max_hp", targetStats->MaxHealth}
+            {"max_hp", targetStats->MaxHealth},
+            {"is_critical", isCritical}
         };
         
         GameMessage msg;
         msg.type = "combat_hit";
-        msg.consoleText = sourceNameStr + " attacks you for &R" + std::to_string(finalDamage) + "&X " + damageType + " damage!";
+        msg.consoleText = critPrefix + sourceNameStr + " " + attackVerb + " you for " + damageColor + 
+                         std::to_string(finalDamage) + "&X " + damageType + " damage!";
         msg.jsonData = jsonData.dump();
         targetClient->QueueGameMessage(msg);
         

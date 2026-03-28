@@ -143,6 +143,7 @@
     <ClCompile Include="AmbientAISystem.cpp" />
     <ClCompile Include="AttackIntentComponent.h" />
     <ClCompile Include="BehaviorSystem.cpp" />
+    <ClCompile Include="CombatStateSystem.cpp" />
     <ClCompile Include="GameContext.cpp" />
     <ClCompile Include="InteractableFactory.cpp" />
     <ClCompile Include="ItemFactory.cpp" />
@@ -158,6 +159,7 @@
     <ClCompile Include="CombatCommandHandler.cpp" />
     <ClCompile Include="MovementCommandHandler.cpp" />
     <ClCompile Include="ItemCommandHandler.cpp" />
+    <ClCompile Include="SkillFactory.cpp" />
     <ClCompile Include="SocialCommandHandler.cpp" />
     <ClCompile Include="CommandInitializer.cpp" />
     <ClCompile Include="DialogueComponent.h" />
@@ -184,6 +186,7 @@
     <ClCompile Include="SkillDefintionComponent.h" />
     <ClCompile Include="SkillSystem.cpp" />
     <ClCompile Include="SQLiteDatabase.cpp" />
+    <ClCompile Include="TargetingSystem.cpp" />
     <ClCompile Include="TerrainDef.cpp" />
     <ClCompile Include="TextHelperFunctions.h" />
     <ClCompile Include="UpdateSystem.cpp" />
@@ -206,6 +209,8 @@
     <ClInclude Include="BusyComponent.h" />
     <ClInclude Include="CharCreatorState.h" />
     <ClInclude Include="ClientInput.h" />
+    <ClInclude Include="CombatStateComponent.h" />
+    <ClInclude Include="CombatStateSystem.h" />
     <ClInclude Include="ContainerComponent.h" />
     <ClInclude Include="CoolDownDefinitionComponent.h" />
     <ClInclude Include="CraftIntentComponent.h" />
@@ -224,6 +229,7 @@
     <ClInclude Include="CommandTrie.h" />
     <ClInclude Include="CommandRegistry.h" />
     <ClInclude Include="CommandChain.h" />
+    <ClInclude Include="MobAttackComponent.h" />
     <ClInclude Include="PermissionComponent.h" />
     <ClInclude Include="CombatCommandHandler.h" />
     <ClInclude Include="MovementCommandHandler.h" />
@@ -309,6 +315,8 @@
     <ClInclude Include="StatComponent.h" />
     <ClInclude Include="StatModifier.h" />
     <ClInclude Include="StatModifierComponent.h" />
+    <ClInclude Include="TargetingIntentComponent.h" />
+    <ClInclude Include="TargetingSystem.h" />
     <ClInclude Include="TerrainDef.h" />
     <ClInclude Include="ThreadSafeQueue.h" />
     <ClInclude Include="TimeData.h" />

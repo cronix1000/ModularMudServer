@@ -29,13 +29,12 @@ public:
     void LoadAllData() {
         std::cout << "Loading Game Database..." << std::endl;
 
-        // Order matters if they cross-reference
-        items.LoadItemTemplatesFromLua();
+        items.LoadItemTemplatesFromJSON("items.json");
         loot.LoadLootTables("loot_drops.json");
         dialogue.LoadDialogueAndVoices("dialogue.json");
-        mobs.LoadMobTemplatesFromLua();
+        mobs.LoadMobTemplatesFromJSON("mobs.json");
         interactables.LoadInteractableTemplatesFromLua();
-        skills.LoadSkillsFromLua();
+        skills.LoadSkillsFromJSON("skills.json");
 
         std::cout << "Database Loaded Successfully." << std::endl;
     }

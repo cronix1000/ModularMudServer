@@ -45,6 +45,7 @@ public:
                 case 'r': result += "\033[31m"; break; // Red
                 case 'm': result += "\033[35m"; break; // Magenta
                 case 'w': result += "\033[0m";  break; // Reset
+                case 'd': result += "\033[29m"; break;
                 default:  result += '&'; result += code; break; // Not a code, keep it
                 }
             }

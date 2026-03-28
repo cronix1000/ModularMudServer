@@ -73,7 +73,7 @@ void NetworkSystem::FlushQueues()
             if (clientComp->isWebClient) {
                 SendToWebClient(clientComp->client, msg);
             } else {
-                SendToTerminalClient(clientComp->client, msg, clientComp->hasSideBar);
+                SendToTerminalClient(clientComp->client, msg);
             }
         }
         
@@ -123,13 +123,13 @@ void NetworkSystem::SendToWebClient(ClientConnection* client, const GameMessage&
     client->QueueMessage(jsonEnvelope);
 }
 
-void NetworkSystem::SendToTerminalClient(ClientConnection* client, const GameMessage& msg, bool hasSideBar)
+void NetworkSystem::SendToTerminalClient(ClientConnection* client, const GameMessage& msg)
 {
     // Always send the console text (with ANSI color parsing)
     client->QueueMessage(TextHelperFunctions::Colorize(msg.consoleText));
     
     // Optionally send GMCP data for clients that support it (e.g., Mudlet)
-    if (hasSideBar && !msg.jsonData.empty() && msg.jsonData != "{}") {
+    if (!msg.jsonData.empty() && msg.jsonData != "{}") {
         std::string gmcpPacket = BuildGMCPSession(msg.type, msg.jsonData);
         client->SendPacket(gmcpPacket);
     }

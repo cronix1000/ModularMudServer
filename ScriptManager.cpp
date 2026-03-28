@@ -45,9 +45,6 @@ ScriptManager::ScriptManager(Registry& r) : registry(r) {
 void ScriptManager::init() {
 	load_script("scripts/interactables/interactables_master.lua");
 	load_script("scripts/skills/skills_master.lua");
-	load_script("scripts/items/items_master.lua");
-	load_script("scripts/mobs/mobs_master.lua");
-
 
 	lua.set_function("send_to_char", [this](int player_id, const std::string& message) {
 		auto* player = GetPlayer(player_id);
@@ -90,50 +87,80 @@ void ScriptManager::dispatch_event(const std::string& event_name, sol::table dat
 
 SkillResult ScriptManager::ExecuteSkillScript(const std::string& scriptPath, const SkillContext& ctx) {
 	// 1. Load Script
-	sol::load_result script = lua.load_file(scriptPath);
-	if (!script.valid()) {
-		std::cerr << "[LUA ERROR] Load failed: " << scriptPath << std::endl;
-		return SkillResult{ false };
-	}
+	//sol::load_result script = lua.load_file(scriptPath);
+	// Get Scripts Table
 
+	//if (!script.valid()) {
+	//	std::cerr << "[LUA ERROR] Load failed: " << scriptPath << std::endl;
+	//	return SkillResult{ false };
+	//}
+	sol::protected_function func = lua["skills"][scriptPath]["on_execute"];
 	// 2. Initialize Script (Runs global scope)
-	sol::protected_function_result scriptBody = script();
-	if (!scriptBody.valid()) {
-		std::cerr << "[LUA ERROR] Exec failed: " << scriptPath << std::endl;
-		return SkillResult{ false };
-	}
 
 	// 3. Find Function
-	sol::protected_function func = lua["on_execute"];
+	//sol::protected_function func = lua["on_execute"];
 	if (!func.valid()) {
 		std::cerr << "[LUA ERROR] No 'on_execute' in " << scriptPath << std::endl;
 		return SkillResult{ false };
 	}
 
 	// 4. Execute with Context
-	auto result = func(ctx);
+	// Get the skill table to pass as 'self' parameter
+	sol::table skillTable = lua["skills"][scriptPath];
+	
+	// Convert C++ SkillContext to Lua table
+	sol::table ctxTable = lua.create_table();
+	ctxTable["sourceID"] = ctx.sourceID;
+	ctxTable["targetID"] = ctx.targetID;
+	ctxTable["skillID"] = ctx.skillID;
+	ctxTable["masteryLevel"] = ctx.masteryLevel;
+	ctxTable["basePower"] = ctx.basePower;
+	
+	auto result = func(skillTable, ctxTable);
 
-	// 5. Unpack Result
-	if (result.valid() && result.return_count() > 0 && result[0].is<sol::table>()) {
-		sol::table tbl = result[0];
-		SkillResult res;
-
-		res.success = tbl.get_or("success", false);
-		res.actionType = tbl.get_or<std::string>("actionType", "none");
-		res.magnitude = tbl.get_or<float>("magnitude", 0.0);
-		res.damageType = tbl.get_or<std::string>("damageType", "physical");
-		res.dataString = tbl.get_or<std::string>("dataString", "");
-
-		sol::object tagsObj = tbl["addedTags"];
-		if (tagsObj.is<sol::table>()) {
-			sol::table tagsTbl = tagsObj;
-			for (auto& pair : tagsTbl) {
-				if (pair.second.is<std::string>()) {
-					res.addedTags.push_back(pair.second.as<std::string>());
+	// 5. Debug & Unpack Result
+	std::cerr << "[DEBUG] Result valid: " << result.valid() << std::endl;
+	std::cerr << "[DEBUG] Return count: " << result.return_count() << std::endl;
+	
+	if (!result.valid()) {
+		sol::error err = result;
+		std::cerr << "[LUA ERROR] Skill execution failed: " << err.what() << std::endl;
+		return SkillResult{ false };
+	}
+	
+	if (result.return_count() > 0) {
+		sol::object firstReturn = result[0];
+		std::cerr << "[DEBUG] First return type (int): " << static_cast<int>(firstReturn.get_type()) << std::endl;
+		std::cerr << "[DEBUG] Is table: " << firstReturn.is<sol::table>() << std::endl;
+		
+		if (firstReturn.is<sol::table>()) {
+			sol::table tbl = firstReturn;
+			
+			// Debug: print all keys in the table
+			std::cerr << "[DEBUG] Table keys:" << std::endl;
+			for (auto& pair : tbl) {
+				if (pair.first.is<std::string>()) {
+					std::cerr << "  - " << pair.first.as<std::string>() << std::endl;
 				}
 			}
+			
+			SkillResult res;
+			res.success = tbl.get_or("success", false);
+			res.actionType = tbl.get_or<std::string>("actionType", "none");
+			res.magnitude = tbl.get_or<float>("magnitude", 0.0);
+			res.damageType = tbl.get_or<std::string>("damageType", "physical");
+			
+			sol::object tagsObj = tbl["addedTags"];
+			if (tagsObj.is<sol::table>()) {
+				sol::table tagsTbl = tagsObj;
+				for (auto& pair : tagsTbl) {
+					if (pair.second.is<std::string>()) {
+						res.addedTags.push_back(pair.second.as<std::string>());
+					}
+				}
+			}
+			return res;
 		}
-		return res;
 	}
 
 	return SkillResult{ false };

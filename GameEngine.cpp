@@ -28,6 +28,8 @@
 #include "RespawnSystem.h"
 #include "WorldClimateSystem.h"
 #include "AmbientAISystem.h"
+#include "TargetingSystem.h"
+#include "CombatStateSystem.h"
 #include "RegionComponent.h"
 #include "TimeData.h"
 #include "ClientInput.h"
@@ -35,6 +37,7 @@
 #include "picosha2.h"
 #include "CommandRegistry.h"
 #include "CommandInitializer.h"
+#include "SkillSystem.h"
 #include <set>
 
 GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : gameContext(ctx), isRunning(true), inputQueue(input) {
@@ -70,6 +73,7 @@ GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : 
     behaviorSystem = new BehaviorSystem(gameContext);
     updateSystem = new UpdateSystem(gameContext);
     combatSystem = new CombatSystem(gameContext);
+    skillSystem = new SkillSystem(gameContext);
     respawnSystem = new RespawnSystem(gameContext);
     gameContext.respawnSystem = respawnSystem;  // Make accessible via GameContext
     climateSystem = new WorldClimateSystem(gameContext);
@@ -78,6 +82,8 @@ GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : 
     messageSytem = new MessageSystem(gameContext);
     saveSystem = new SaveSystem(gameContext);
     cleanSystem = new CleanUpSystem(gameContext);
+    targetingSystem = new TargetingSystem(gameContext);
+    combatStateSystem = new CombatStateSystem(gameContext);
 
     // Initialize climate zones for each loaded region
     // This will be called after regions are loaded
@@ -172,9 +178,13 @@ void GameEngine::Update(float deltaTime) {
     gameContext.time->globalTime += (double)deltaTime;
 
     movementSystem->MovementSystemRun();
+    targetingSystem->Run(deltaTime);        // Resolve ambiguous targets
     interactionSystem->run();
     networkSyncSystem->Run();
     invSystem->Run(deltaTime);
+    behaviorSystem->Run(deltaTime);         // AI decision making
+    combatStateSystem->Run(deltaTime);      // Auto-attack timer
+    skillSystem->Run(deltaTime);
     combatSystem->run();
     updateSystem->Update(deltaTime);
     respawnSystem->Update(deltaTime);

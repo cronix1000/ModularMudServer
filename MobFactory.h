@@ -3,28 +3,28 @@
 #include <map>
 #include <nlohmann/json.hpp>
 #include "Registry.h"
-#include <sol/sol.hpp>
+#include "MobAttackComponent.h"
 
 using json = nlohmann::json;
 
-// Include necessary component headers
-
 struct MobTemplate {
+    std::string id;
     std::string name;
     std::string description;
     std::string symbol;
     std::string color;
     int hp;
     int level;
-
-    // Flattened Stats
     int str, dex, intel;
-
-    // Logic
     std::string aiType;
     std::string lootTable;
-
-    json extra; // For special flags, custom scripts
+    int attackDamage;
+    float attackSpeed;
+    float criticalChance;
+    float criticalMultiplier;
+    std::vector<MobAttackPattern> attackPatterns;
+    std::string script;
+    json extra;
 };
 
 class MobFactory {
@@ -34,9 +34,9 @@ public:
 
     MobFactory(GameContext& g) : ctx(g) {}
 
-    void LoadMobTemplatesFromLua();
+    void LoadMobTemplatesFromJSON(const std::string& path = "mobs.json");
     int CreateMob(std::string templateID, json overrides = json::object(), int x = 0, int y = 0, int roomID = -1);
 
 private:
-    void LoadSingleMobFromLua(const std::string& key, sol::table& data);
+    void LoadSingleMobFromJSON(const std::string& key, const json& data);
 };

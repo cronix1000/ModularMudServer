@@ -10,4 +10,5 @@ public:
 	~BehaviorSystem() = default;
 	void SetupListeners();
 	void OnEntityDamaged(const EventContext& ectx);
+	void Run(float deltaTime);  // Process AI combat states
 };

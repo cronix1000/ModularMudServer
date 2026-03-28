@@ -11,4 +11,7 @@ struct CombatIntentComponent {
     std::string dataString;     // Extra data like "critical_hit", "poison", etc.
     std::vector<std::string> addedTags; // Additional effect tags
     int sourceID;              // Who initiated this combat action
+    bool attackOnce = false;
+
+    //CombatIntentComponent(int targetID, std::string actionType, std::strin    g damageType, ) : targetID(targetID), actionType(actionType),
 };

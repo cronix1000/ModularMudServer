@@ -5,23 +5,28 @@
 #include <nlohmann/json.hpp>
 #include "Registry.h"
 #include "Component.h"
-#include "sol/sol.hpp"
 
 using json = nlohmann::json;
 
-// The Blueprint
 struct ItemTemplate {
+    std::string id;
     std::string name;
     std::string description;
     std::string symbol;
     std::string color;
-    std::string itemType; // "weapon", "armour", "consumable", "misc"
+    std::string itemType;
     int weight;
     int value;
+    bool equippable;
     std::string primarySkill;
     std::vector<std::string> extraSkills;
-
-    json extra; // Raw data for specific components
+    int minDamage;
+    int maxDamage;
+    std::string damageType;
+    int defense;
+    std::string slot;
+    std::string script;
+    json extra;
 };
 
 class ItemFactory {
@@ -31,10 +36,10 @@ public:
 
     ItemFactory(GameContext& g) : ctx(g) {}
 
-    void LoadItemTemplatesFromLua();
+    void LoadItemTemplatesFromJSON(const std::string& path = "items.json");
     int CreateItem(std::string templateID, json overrides = json::object(), int x = -1, int y = -1, int roomID = -1);
 
 private:
-    void LoadSingleItemFromLua(const std::string& key, sol::table& data);
+    void LoadSingleItemFromJSON(const std::string& key, const json& data);
     void AttachTypeComponents(int entityID, const ItemTemplate& tpl, const json& overrides);
 };

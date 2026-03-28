@@ -1,54 +1,102 @@
 {
-  "poke": {
-    "name": "Quick Poke",
-    "description": "A rapid, probing strike that sacrifices power for speed.",
-    "type": "combat",
-    "cooldown": 1.0,
-    "costs": { "stamina": 5 },
-
-    "scripts": {
-      "on_use": "skills/common/standard_melee.lua"
+  "skill_categories": {
+    "blades": {
+      "name": "Blades",
+      "description": "Mastery of bladed weapons including swords, daggers, and similar cutting implements.",
+      "stats": ["str", "dex"],
+      "synergyBonus": 0.1
     },
-
-    "custom_data": {
-      "damage_type": "piercing",
-      "multiplier": 0.8,
-      "animation": "anim_poke"
+    "blunt": {
+      "name": "Blunt Weapons",
+      "description": "Mastery of maces, hammers, and other impact weapons.",
+      "stats": ["str"],
+      "synergyBonus": 0.1
+    },
+    "fire_magic": {
+      "name": "Pyromancy",
+      "description": "Control over fire and heat-based magic.",
+      "stats": ["int"],
+      "synergyBonus": 0.1
+    },
+    "alchemy": {
+      "name": "Alchemy",
+      "description": "Knowledge of alchemical processes and transmutations.",
+      "stats": ["int"],
+      "synergyBonus": 0.1
     }
   },
 
-  "sword_slash": {
-    "name": "Wide Slash",
-    "description": "A sweeping attack capable of hitting multiple foes.",
-    "type": "combat",
-    "cooldown": 2.5,
-    "costs": { "stamina": 15 },
-
-    "scripts": {
-      "on_use": "skills/common/standard_melee.lua"
+  "skills": {
+    "slash": {
+      "category": "blades",
+      "name": "Slash",
+      "description": "A wide sweeping strike that can hit multiple foes in front of you.",
+      "type": "combat",
+      "activation": "weapon",
+      "cooldown": 2.5,
+      "windup": 0.1,
+      "costs": { "stamina": 15 },
+      "targeting": "enemy",
+      "range": 1,
+      "script": "slash"
     },
 
-    "custom_data": {
-      "damage_type": "slashing",
-      "multiplier": 1.2,
-      "cleave_radius": 2
-    }
-  },
-  "alchemy_calcification": {
-    "name": "Rite of Calcification",
-    "description": "Applies alchemical heat to reduce organic ingredients into their base chemical salts.",
-    "type": "crafting",
-    "cooldown": 3.0,
-    "costs": { "mana": 5 },
-
-    "scripts": {
-      "on_use": "skills/alchemy/rite_generic.lua"
+    "stab": {
+      "category": "blades",
+      "name": "Stab",
+      "description": "A precise thrust attack that deals increased damage to vulnerable targets.",
+      "type": "combat",
+      "activation": "weapon",
+      "cooldown": 1.5,
+      "windup": 0.05,
+      "costs": { "stamina": 10 },
+      "targeting": "enemy",
+      "range": 1,
+      "script": "stab"
     },
 
-    "custom_data": {
-      "rite_type": "calcify", // The Key: Tells the script what lookup to perform
-      "tool_required": "crucible",
-      "base_yield": 1.0 // Mastery can increase this to 1.5, 2.0, etc.
+    "poke": {
+      "category": "blades",
+      "name": "Poke",
+      "description": "A quick jab to keep distance or test your opponent.",
+      "type": "combat",
+      "activation": "weapon",
+      "cooldown": 0.8,
+      "windup": 0.0,
+      "costs": { "stamina": 5 },
+      "targeting": "enemy",
+      "range": 1,
+      "script": "poke"
+    },
+
+    "fireball": {
+      "category": "fire_magic",
+      "name": "Fireball",
+      "description": "Hurl a ball of fire that explodes on impact.",
+      "type": "combat",
+      "activation": "typed",
+      "command": "fireball",
+      "cooldown": 2.0,
+      "windup": 0.5,
+      "costs": { "mana": 15 },
+      "targeting": "enemy",
+      "range": 5,
+      "script": "fireball"
+    },
+
+    "calcify": {
+      "category": "alchemy",
+      "name": "Calcification",
+      "description": "Apply alchemical heat to reduce organic ingredients into their base chemical salts.",
+      "type": "crafting",
+      "activation": "typed",
+      "command": "calcify",
+      "cooldown": 3.0,
+      "windup": 0.0,
+      "costs": { "mana": 5 },
+      "targeting": "none",
+      "range": 0,
+      "script": "calcify"
     }
   }
 }

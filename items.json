@@ -1,71 +1,83 @@
 {
-  "stick": {
-    "id": 1,
-    "name": "stick",
-    "description": "A basic wooden stick.",
-    "char": "|}",
-    "color": "&y",
-    "value": 1,
-    "weight": 1,
-    "equippable": true,
-    "gettable": true,
-    "components": {
-      "weapon": {
-        "minDamage": 1,
-        "maxDamage": 3,
-        "strScaling": 0.5,
-        "defaultSkill": "skill_poke",
-        "damageType": "blunt"
-      }
-    }
-  },
-  "flaming_sword": {
-    "name": "sword of embers",
-    "char": "|",
-    "components": {
-      "weapon": {
-        "minDamage": 10,
-        "maxDamage": 15,
-        "defaultSkill": "skill_slash",
-        "damageType": "slashing"
-      },
-      "scripts": {
-        "on_hit_proc": "procs/flame_burst.lua"
-      }
-    }
-  },
+    "stick": {
+        "name": "Stick",
+        "description": "A simple wooden stick. It can be used as a weapon or for crafting.",
+        "char": "/",
+        "color": "&y",
+        "value": 1,
+        "weight": 1,
+        "equippable": true,
+        "type": "weapon",
+        "components": {
+            "weapon": {
+                "minDamage": 1,
+                "maxDamage": 3,
+                "strScaling": 0.5,
+                "defaultSkill": "poke",
+                "damageType": "blunt"
+            }
+        }
+    },
 
-  "iron_chestplate": {
-    "name": "rusty iron chestplate",
-    "char": "[",
-    "color": "&w",
-    "weight": 15,
-    "equippable": true,
-    "components": {
-      "armour": {
-        "defense": 12,
-        "magic_defense": -2,
-        "slot": "torso",
-        "type": "plate"
-      },
-      "sockets": {
-        "max": 2
-      }
-    }
-  },
+    "flaming_sword": {
+        "name": "Sword of Embers",
+        "description": "A blade that burns with an inner fire.",
+        "char": "|",
+        "color": "&r",
+        "value": 150,
+        "weight": 5,
+        "equippable": true,
+        "type": "weapon",
+        "components": {
+            "weapon": {
+                "minDamage": 10,
+                "maxDamage": 15,
+                "strScaling": 0.8,
+                "defaultSkill": "slash",
+                "damageType": "slashing"
+            },
+            "scripts": {
+                "on_hit_proc": "procs/flame_burst.lua"
+            }
+        }
+    },
 
-  "wizard_hat": {
-    "name": "pointy wizard hat",
-    "char": "^",
-    "equippable": true,
-    "components": {
-      "armour": {
-        "defense": 1,
-        "magic_defense": 5,
-        "slot": "head",
-        "type": "cloth"
-      },
-      "passive_skills": [ "skill_mana_regen_minor" ]
+    "iron_chestplate": {
+        "name": "Rusty Iron Chestplate",
+        "description": "An old but sturdy chestplate offering decent protection.",
+        "char": "[",
+        "color": "&w",
+        "value": 75,
+        "weight": 15,
+        "equippable": true,
+        "type": "armour",
+        "components": {
+            "armour": {
+                "defense": 12,
+                "magic_defense": -2,
+                "slot": "torso",
+                "type": "plate"
+            }
+        }
+    },
+
+    "wizard_hat": {
+        "name": "Pointy Wizard Hat",
+        "description": "A tall conical hat that enhances magical abilities.",
+        "char": "^",
+        "color": "&b",
+        "value": 50,
+        "weight": 2,
+        "equippable": true,
+        "type": "armour",
+        "components": {
+            "armour": {
+                "defense": 1,
+                "magic_defense": 5,
+                "slot": "head",
+                "type": "cloth"
+            },
+            "passive_skills": [ "skill_mana_regen_minor" ]
+        }
     }
-  }
 }

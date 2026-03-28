@@ -1,71 +1,86 @@
 #include "ItemFactory.h"
 #include "GameContext.h"
-#include "ScriptManager.h"
 #include "Component.h"
 #include "TextHelperFunctions.h"
 #include "EquipmentSlot.h"
 #include "SkillFactory.h"
 #include "FactoryManager.h"
-void ItemFactory::LoadItemTemplatesFromLua() {
-    // 1. Run the script
+#include <fstream>
+
+void ItemFactory::LoadItemTemplatesFromJSON(const std::string& path) {
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        std::cerr << "[Error] Could not open items.json: " << path << std::endl;
+        return;
+    }
+
+    json data;
     try {
-        ctx.scripts->lua.script_file("scripts/items/items_master.lua");
-        sol::table itemsTable = ctx.scripts->lua["items"];
-
-        if (!itemsTable.valid()) {
-            std::cerr << "[Error] Global 'Items' table not found in Lua!" << std::endl;
-            return;
-        }
-
-        std::cout << "Loading Item Templates..." << std::endl;
-        int count = 0;
-
-        // 2. Iterate and cache
-        for (auto& kv : itemsTable) {
-            std::string key = kv.first.as<std::string>();
-            sol::table data = kv.second;
-            LoadSingleItemFromLua(key, data);
-            count++;
-        }
-        std::cout << "Loaded " << count << " items." << std::endl;
+        file >> data;
     }
-    catch (const sol::error& e) {
-        std::cerr << "Lua Error in items_master: " << e.what() << std::endl;
+    catch (const json::parse_error& e) {
+        std::cerr << "[Error] Failed to parse items.json: " << e.what() << std::endl;
+        return;
     }
+
+    std::cout << "Loading Item Templates from JSON..." << std::endl;
+    int count = 0;
+
+    for (auto& [key, j] : data.items()) {
+        LoadSingleItemFromJSON(key, j);
+        count++;
+    }
+    std::cout << "Loaded " << count << " items." << std::endl;
 }
 
-void ItemFactory::LoadSingleItemFromLua(const std::string& key, sol::table& t) {
+void ItemFactory::LoadSingleItemFromJSON(const std::string& key, const json& j) {
     ItemTemplate tpl;
+    tpl.id = key;
 
-    // Basic Fields
-    tpl.name = t.get_or<std::string>("name", "Unknown Item");
-    tpl.description = t.get_or<std::string>("desc", "...");
-    tpl.symbol = t.get_or<std::string>("symbol", "("); // Default item symbol
-    tpl.color = t.get_or<std::string>("color", "&w");
-    tpl.weight = t.get_or("weight", 1);
-    tpl.value = t.get_or("value", 0);
-    tpl.itemType = t.get_or<std::string>("type", "misc");
+    tpl.name = j.value("name", "Unknown Item");
+    tpl.description = j.value("description", "...");
+    tpl.symbol = j.value("char", "(");
+    tpl.color = j.value("color", "&w");
+    tpl.weight = j.value("weight", 1);
+    tpl.value = j.value("value", 0);
+    tpl.equippable = j.value("equippable", false);
+    tpl.itemType = j.value("type", "misc");
 
-    sol::table skills = t["extra_skills"];
-    if (skills.valid()) {
-        for (auto& skill : skills) {
-            std::string skillName = skill.second.as<std::string>();
-            tpl.extraSkills.push_back(skillName);
+    if (j.contains("components")) {
+        const json& comps = j["components"];
+
+        if (comps.contains("weapon")) {
+            const json& weapon = comps["weapon"];
+            tpl.itemType = "weapon";
+            tpl.minDamage = weapon.value("minDamage", 1);
+            tpl.maxDamage = weapon.value("maxDamage", 2);
+            tpl.damageType = weapon.value("damageType", "blunt");
+            tpl.primarySkill = weapon.value("defaultSkill", "");
+        }
+
+        if (comps.contains("armour")) {
+            const json& armor = comps["armour"];
+            tpl.itemType = "armour";
+            tpl.defense = armor.value("defense", 0);
+            tpl.slot = armor.value("slot", "torso");
+        }
+
+        if (comps.contains("scripts")) {
+            const json& scripts = comps["scripts"];
+            tpl.script = scripts.value("on_hit_proc", "");
         }
     }
 
+    if (j.contains("components")) {
+        const json& comps = j["components"];
+        if (comps.contains("passive_skills")) {
+            for (const auto& skill : comps["passive_skills"]) {
+                tpl.extraSkills.push_back(skill.get<std::string>());
+            }
+        }
+    }
 
-    // Extract Type-Specific Data into JSON 'extra'
-    if (tpl.itemType == "weapon") {
-        sol::table dmg = t["damage"];
-        tpl.extra["min_dmg"] = dmg.get_or("min", 1);
-        tpl.extra["max_dmg"] = dmg.get_or("max", 1);
-        tpl.extra["dmg_type"] = t.get_or<std::string>("dmg_type", "blunt");
-    }
-    else if (tpl.itemType == "armour") {
-        tpl.extra["ac"] = t.get_or("ac", 0);
-        tpl.extra["slot"] = t.get_or<std::string>("slot", "torso");
-    }
+    tpl.extra = j.value("extra", json::object());
 
     itemTemplates[key] = tpl;
 }
@@ -79,23 +94,45 @@ int ItemFactory::CreateItem(std::string templateID, json overrides, int x, int y
     const auto& tpl = itemTemplates[templateID];
     int id = ctx.registry->CreateEntity();
 
-    // 1. Apply Overrides to Basic Data
     std::string name = overrides.value("name", tpl.name);
-    std::string desc = overrides.value("desc", tpl.description);
+    std::string desc = overrides.value("description", tpl.description);
 
-    // 2. Add Basic Components
     ctx.registry->AddComponent<NameComponent>(id, { name });
     ctx.registry->AddComponent<DescriptionComponent>(id, { desc });
     ctx.registry->AddComponent<WeightComponent>(id, { tpl.weight });
     ctx.registry->AddComponent<ValueComponent>(id, { tpl.value });
     ctx.registry->AddComponent<VisualComponent>(id, { tpl.symbol, tpl.color });
-    ctx.registry->AddComponent<ItemComponent>(id, { tpl.itemType });
+    ItemComponent itemComp = ItemComponent{ templateID };
 
-    if (roomID != -1) {
-        ctx.registry->AddComponent<PositionComponent>(id, { x,y,roomID });
+    auto addSkillById = [&](const std::string& skillKey, bool primary) {
+        int skillId = ctx.factories->skills.GetSkillID(skillKey);
+        if (skillId != -1) {
+            if (!primary)
+                itemComp.extraSkillIds.push_back(skillId);
+            else
+                itemComp.primarySkillId = skillId;
+        }
+    };
+
+    if (!tpl.primarySkill.empty()) {
+        addSkillById(tpl.primarySkill, true);
     }
 
-    // 3. Add Type Specifics
+    for (const auto& skillName : tpl.extraSkills) {
+        addSkillById(skillName, false);
+    }
+
+    if (overrides.contains("skills") && overrides["skills"].is_array()) {
+        for (const auto& skillName : overrides["skills"]) {
+            addSkillById(skillName.get<std::string>(), false);
+        }
+    }
+
+    ctx.registry->AddComponent<ItemComponent>(id, itemComp);
+    if (roomID != -1) {
+        ctx.registry->AddComponent<PositionComponent>(id, { x, y, roomID });
+    }
+
     AttachTypeComponents(id, tpl, overrides);
 
     return id;
@@ -104,50 +141,17 @@ int ItemFactory::CreateItem(std::string templateID, json overrides, int x, int y
 void ItemFactory::AttachTypeComponents(int id, const ItemTemplate& tpl, const json& overrides) {
     if (tpl.itemType == "weapon") {
         WeaponComponent wc;
-        // Check overrides, fallback to template JSON
-        wc.minDamage = overrides.value("min_dmg", tpl.extra.value("min_dmg", 1));
-        wc.maxDamage = overrides.value("max_dmg", tpl.extra.value("max_dmg", 2));
-        wc.damageType = overrides.value("dmg_type", tpl.extra.value("dmg_type", "blunt"));
+        wc.minDamage = overrides.value("minDamage", tpl.minDamage);
+        wc.maxDamage = overrides.value("maxDamage", tpl.maxDamage);
+        wc.damageType = overrides.value("damageType", tpl.damageType);
         ctx.registry->AddComponent<WeaponComponent>(id, wc);
     }
     else if (tpl.itemType == "armour") {
         ArmourComponent ac;
-        ac.defense = overrides.value("ac", tpl.extra.value("ac", 0));
-        std::string slot = overrides.value("slot", tpl.extra.value("slot", "torso"));
+        ac.defense = overrides.value("defense", tpl.defense);
+        std::string slot = overrides.value("slot", tpl.slot);
         EquipmentSlot eqSlot = TextHelperFunctions::StringToSlot(slot);
         ac.slot = eqSlot;
         ctx.registry->AddComponent<ArmourComponent>(id, ac);
-    }
-
-    auto* itemComp = ctx.registry->GetComponent<ItemComponent>(id);
-    if (itemComp) {
-        // Use a lambda or helper to convert string names to IDs from your SkillFactory
-        auto addSkillById = [&](const std::string& skillKey, bool primary) {
-            int skillId = ctx.factories->skills.GetSkillID(skillKey);
-            if (skillId != -1) {
-                if (!primary)
-                    itemComp->extraSkillIds.push_back(skillId);
-                else
-                    itemComp->primarySkillId = skillId;
-            }
-            };
-
-        // 1. Add skills from the Template
-        for (const auto& skillName : tpl.extraSkills) {
-            addSkillById(skillName, false);
-        }
-
-        if (!tpl.primarySkill.empty())
-        {
-            addSkillById(tpl.primarySkill, true);
-
-        }
-
-        // 2. Add/Merge skills from the Overrides
-        if (overrides.contains("skills") && overrides["skills"].is_array()) {
-            for (const auto& skillName : overrides["skills"]) {
-                addSkillById(skillName.get<std::string>(), false);
-            }
-        }
     }
 }

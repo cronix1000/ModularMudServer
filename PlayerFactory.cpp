@@ -18,6 +18,7 @@
 #include "PermissionComponent.h"
 #include "PlayerVariablesComponent.h"
 #include "EventBus.h"
+#include "RegionComponent.h"
 #include "CommandTrie.h"
 
 EntityID PlayerFactory::LoadPlayer(std::string username, ClientConnection* connection) {
@@ -95,6 +96,7 @@ EntityID PlayerFactory::LoadPlayer(std::string username, ClientConnection* conne
         }
     }
     ctx.registry->AddComponent(player, pos);
+    ctx.registry->AddComponent(player, RegionComponent{ data.region });
     ctx.registry->AddComponent(player, VisualComponent{ "@", "&r" });
     ctx.registry->AddComponent(player, InventoryComponent{});
     ctx.registry->AddComponent(player, EquipmentComponent{});

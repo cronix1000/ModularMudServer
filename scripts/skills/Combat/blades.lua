@@ -28,9 +28,9 @@ skills["stab"] = MeleeSkill({
 skills["poke"] = MeleeSkill({
     name = "Precise Poke",
     damage = 10,
-    cooldown = 2.0,
+    cooldown = 0.2,
     damageType = "piercing",
-    
+     
     synergies = {
         -- If player has Lvl 30 Slash, Poke does 1.3x damage
         { skill = "slash", level = 30, type = "buff_dmg", amount = 1.3 },
