@@ -5,6 +5,7 @@
 #include "EquipmentSlot.h"
 #include "StatComponent.h"
 #include "MobAttackComponent.h"
+#include "BehaviourComponent.h"
 #include <fstream>
 
 void MobFactory::LoadMobTemplatesFromJSON(const std::string& path) {
@@ -143,6 +144,20 @@ int MobFactory::CreateMob(std::string templateID, json overrides, int x, int y, 
     ctx.registry->AddComponent<MobAttackComponent>(id, mobAttack);
 
     ctx.registry->AddComponent<MobComponent>(id, { tpl.aiType });
+
+    BehaviourComponent behaviour;
+    if (tpl.aiType == "aggressive") {
+        behaviour.behaviourType = BehaviourType::aggressive;
+    } else if (tpl.aiType == "passive") {
+        behaviour.behaviourType = BehaviourType::passive;
+    } else if (tpl.aiType == "neutral") {
+        behaviour.behaviourType = BehaviourType::neutral;
+    } else if (tpl.aiType == "boss") {
+        behaviour.behaviourType = BehaviourType::aggressive;
+    } else {
+        behaviour.behaviourType = BehaviourType::neutral;
+    }
+    ctx.registry->AddComponent<BehaviourComponent>(id, behaviour);
 
     if (!tpl.lootTable.empty()) {
         ctx.registry->AddComponent<LootDropComponent>(id, { tpl.lootTable });

@@ -128,8 +128,21 @@ void NetworkSystem::SendToTerminalClient(ClientConnection* client, const GameMes
     // Always send the console text (with ANSI color parsing)
     client->QueueMessage(TextHelperFunctions::Colorize(msg.consoleText));
     
-    // Optionally send GMCP data for clients that support it (e.g., Mudlet)
-    if (!msg.jsonData.empty() && msg.jsonData != "{}") {
+    // Only send GMCP data to clients that support it
+    if (msg.jsonData.empty() || msg.jsonData == "{}") {
+        return;
+    }
+    
+    ClientComponent* clientComp = nullptr;
+    for (EntityID entityID : ctx.registry->view<ClientComponent>()) {
+        ClientComponent* cc = ctx.registry->GetComponent<ClientComponent>(entityID);
+        if (cc && cc->client == client) {
+            clientComp = cc;
+            break;
+        }
+    }
+    
+    if (clientComp && clientComp->hasGMCP) {
         std::string gmcpPacket = BuildGMCPSession(msg.type, msg.jsonData);
         client->SendPacket(gmcpPacket);
     }

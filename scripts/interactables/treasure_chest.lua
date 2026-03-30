@@ -1,18 +1,26 @@
--- Treasure Chest Interactable Script
--- This script handles treasure chest interactions
+-- Treasure Chest Callback Script
+-- Contains only on_use and on_create functions
 
--- Template data for this interactable type
-interactables["treasure_chest"] = {
-    name = "Ornate Treasure Chest",
-    char = "C",
-    color = "&y",
-    description = "A golden chest that gleams in the light. You can 'open' it to see what's inside.",
-    type = "chest",
-    components = {
-        is_locked = false,
-        key_id = -1,
-        loot_table = "basic_treasure",
-        max_uses = 1
+function on_create(context)
+    return {
+        success = true,
+        actionType = "none"
     }
-}
+end
 
+function on_use(context)
+    if context.action == "open" or context.action == "use" then
+        return {
+            success = true,
+            actionType = "spawn_item",
+            message = "You open the chest and find treasures inside!",
+            roomMessage = context.userID .. " opens the treasure chest!"
+        }
+    else
+        return {
+            success = false,
+            actionType = "none",
+            message = "You can 'open' the chest."
+        }
+    end
+end

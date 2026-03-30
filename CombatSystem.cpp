@@ -24,11 +24,11 @@ void CombatSystem::run()
         auto* intent = ctx.registry->GetComponent<CombatIntentComponent>(sourceID);
         if (!intent) continue;
 
-        // Check if source is busy
-        auto* busy = ctx.registry->GetComponent<BusyComponent>(sourceID);
-        if (busy && busy->timeLeft > 0) {
-            continue; 
-        }
+        //// Check if source is busy
+        //auto* busy = ctx.registry->GetComponent<BusyComponent>(sourceID);
+        //if (busy && busy->timeLeft > 0) {
+        //    continue; 
+        //}
 
         // Process the combat intent based on action type
         ProcessCombatIntent(sourceID, *intent);
@@ -59,7 +59,6 @@ void CombatSystem::ProcessCombatIntent(int sourceID, const CombatIntentComponent
     else if (intent.actionType == "buff" || intent.actionType == "debuff") {
         ProcessBuff(sourceID, intent.targetID, intent.actionType, intent.magnitude);
     }
-    // Add more action types as needed
 }
 
 void CombatSystem::ProcessAttack(int sourceID, int targetID, float damage, const std::string& damageType,
@@ -77,11 +76,9 @@ void CombatSystem::ProcessAttack(int sourceID, int targetID, float damage, const
     // Apply damage
     targetStats->Health = (std::max)(0, targetStats->Health - finalDamage);
 
-    // Build message with verb and critical indicator
     std::string critPrefix = isCritical ? "CRITICAL! " : "";
-    std::string damageColor = isCritical ? "&Y" : "&R"; // Yellow for crit, red for normal
+    std::string damageColor = isCritical ? "&y" : "&r"; // Yellow for crit, red for normal
 
-    // Send combat messages using new GameMessage pattern
     auto* sourceClient = ctx.registry->GetComponent<ClientComponent>(sourceID);
     if (sourceClient) {
         auto* targetName = ctx.registry->GetComponent<NameComponent>(targetID);
@@ -100,7 +97,7 @@ void CombatSystem::ProcessAttack(int sourceID, int targetID, float damage, const
         GameMessage msg;
         msg.type = "combat_hit";
         msg.consoleText = critPrefix + "You " + attackVerb + " " + targetNameStr + " for " + damageColor + 
-                         std::to_string(finalDamage) + "&X " + damageType + " damage!";
+                         std::to_string(finalDamage) + "&w " + damageType + " damage!";
         msg.jsonData = jsonData.dump();
         sourceClient->QueueGameMessage(msg);
     }
@@ -123,7 +120,7 @@ void CombatSystem::ProcessAttack(int sourceID, int targetID, float damage, const
         GameMessage msg;
         msg.type = "combat_hit";
         msg.consoleText = critPrefix + sourceNameStr + " " + attackVerb + " you for " + damageColor + 
-                         std::to_string(finalDamage) + "&X " + damageType + " damage!";
+                         std::to_string(finalDamage) + "&w" + damageType + " damage!";
         msg.jsonData = jsonData.dump();
         targetClient->QueueGameMessage(msg);
         
@@ -141,12 +138,6 @@ void CombatSystem::ProcessAttack(int sourceID, int targetID, float damage, const
         }
     }
 
-    // Apply recovery time to the attacker
-    auto* sourceStatsForRecovery = ctx.registry->GetComponent<StatComponent>(sourceID);
-    if (sourceStatsForRecovery) {
-        float recovery = 20.0f / (float)sourceStatsForRecovery->attackSpeed;
-        ctx.registry->AddComponent<BusyComponent>(sourceID, BusyComponent{ recovery });
-    }
 
     // Handle mob death (separate from player death handling above)
     if (targetStats->Health <= 0) {

@@ -26,11 +26,11 @@ void UpdateSystem::Update(float dt) {
         auto* busy = ctx.registry->GetComponent<BusyComponent>(entity);
         if (!busy) continue;
 
-        busy->timeLeft -= dt;
-        if (busy->timeLeft <= 0) {
-            // Entity is no longer busy, remove the component.
-            ctx.registry->RemoveComponent<BusyComponent>(entity);
-        }
+        //busy->timeLeft -= dt;
+        //if (busy->timeLeft <= 0) {
+        //    // Entity is no longer busy, remove the component.
+        //    ctx.registry->RemoveComponent<BusyComponent>(entity);
+        //}
     }
 
     // Update all entities with a "pulse" (e.g., for health regeneration).

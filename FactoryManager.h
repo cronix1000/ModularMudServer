@@ -33,7 +33,7 @@ public:
         loot.LoadLootTables("loot_drops.json");
         dialogue.LoadDialogueAndVoices("dialogue.json");
         mobs.LoadMobTemplatesFromJSON("mobs.json");
-        interactables.LoadInteractableTemplatesFromLua();
+        interactables.LoadInteractableTemplatesFromJSON("interactables.json");
         skills.LoadSkillsFromJSON("skills.json");
 
         std::cout << "Database Loaded Successfully." << std::endl;

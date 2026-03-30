@@ -193,6 +193,7 @@ void GameEngine::Update(float deltaTime) {
     gameContext.eventBus->CallDefferedCalls();
     cleanSystem->run();
     saveSystem->Run(deltaTime);
+    networkSystem->FlushQueues();
 }
 
 const bool GameEngine::IsRunning() { return isRunning; }

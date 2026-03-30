@@ -129,6 +129,7 @@ CommandResult CombatCommandHandler::HandleAttack(ClientConnection* client,
 	targetingIntent.sourceID = playerID;
 	targetingIntent.targetName = targetName;
 	targetingIntent.targetIndex = targetIndex;
+	targetingIntent.skillID = skillID;
 	
 	ctx.registry->AddComponent<TargetingIntentComponent>(playerID, targetingIntent);
 	

@@ -114,7 +114,7 @@ void TargetingSystem::Run(float deltaTime) {
 
             // Resolve target - create skill intent for combat
             SkillIntentComponent skillIntent;
-            skillIntent.skillId = -1; // Basic attack
+            skillIntent.skillId = targeting->skillID; // Basic attack
             skillIntent.targetId = targetID;
             
             ctx.registry->AddComponent<SkillIntentComponent>(sourceID, skillIntent);

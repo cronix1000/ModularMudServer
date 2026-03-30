@@ -12,4 +12,5 @@ struct TargetingIntentComponent {
 	int resolvedTargetID = -1; // Filled by TargetingSystem
 	float promptExpireTime = 5.0f; // Seconds to wait for player response
 	float elapsedTime = 0.0f;      // Time since prompt sent
+	int skillID = -1;
 };

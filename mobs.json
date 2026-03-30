@@ -4,7 +4,7 @@
         "description": "A small, green creature with sharp teeth and a mischievous grin.",
         "char": "g",
         "color": "&g",
-        "hp": 30,
+        "hp": 100,
         "level": 1,
         "ai": "aggressive",
         "loot_drop": "goblin_loot",

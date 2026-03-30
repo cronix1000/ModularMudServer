@@ -115,6 +115,7 @@ SkillResult ScriptManager::ExecuteSkillScript(const std::string& scriptPath, con
 	ctxTable["skillID"] = ctx.skillID;
 	ctxTable["masteryLevel"] = ctx.masteryLevel;
 	ctxTable["basePower"] = ctx.basePower;
+
 	
 	auto result = func(skillTable, ctxTable);
 
@@ -149,6 +150,7 @@ SkillResult ScriptManager::ExecuteSkillScript(const std::string& scriptPath, con
 			res.actionType = tbl.get_or<std::string>("actionType", "none");
 			res.magnitude = tbl.get_or<float>("magnitude", 0.0);
 			res.damageType = tbl.get_or<std::string>("damageType", "physical");
+			res.dataString = tbl.get_or<std::string>("dataString", "attacked");
 			
 			sol::object tagsObj = tbl["addedTags"];
 			if (tagsObj.is<sol::table>()) {
