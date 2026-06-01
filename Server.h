@@ -27,5 +27,5 @@ public:
 	bool AcceptClient();
 private:
 	std::vector<ClientConnection*> activeClients;
-	SOCKET ListenSocket;
+	socket_t ListenSocket;
 };
