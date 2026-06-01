@@ -2,8 +2,8 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include "itemFactory.h"
-#include "mobFactory.h"
+#include "ItemFactory.h"
+#include "MobFactory.h"
 #include "FactoryManager.h"
 #include "GameContext.h"
 #include "InteractableFactory.h"
