@@ -1,3 +1,4 @@
+#include <cstring>
 #include "CommandChain.h"
 #include <sstream>
 #include <algorithm>
