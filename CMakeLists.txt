@@ -48,6 +48,7 @@ list(REMOVE_ITEM SOURCES
     "${CMAKE_SOURCE_DIR}/MainMenu.cpp"
     "${CMAKE_SOURCE_DIR}/MenuBuilder.cpp"
     "${CMAKE_SOURCE_DIR}/Stat.cpp"
+    "${CMAKE_SOURCE_DIR}/Component.cpp"
 )
 
 # Header files (for IDE support)
