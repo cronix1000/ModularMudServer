@@ -432,3 +432,5 @@ FodyWeavers.xsd
 *.msp
 /nul
 /vcpkg_installed
+/vcpkg
+/vcpkg.exe

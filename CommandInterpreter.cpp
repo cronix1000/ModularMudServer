@@ -452,7 +452,7 @@ void CommandInterpreter::HandleHello(ClientConnection* client, std::vector<std::
                 }
                 
                 // Update client capabilities - this is a web client
-                clientComp->SetCapabilities(true, hasSideBar, hasMiniMap);
+               // clientComp->SetCapabilities(true, hasSideBar, hasMiniMap);
                 
                 // Send acknowledgment
                 json response;
@@ -505,7 +505,7 @@ bool CommandInterpreter::TryHandleJSONHandshake(ClientConnection* client, const 
                 }
                 
                 // Update client capabilities - this is a web client
-                clientComp->SetCapabilities(true, hasSideBar, hasMiniMap);
+               // clientComp->SetCapabilities(true, hasSideBar, hasMiniMap);
                 
                 // Send acknowledgment
                 json response;
