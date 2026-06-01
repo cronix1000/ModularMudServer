@@ -12,10 +12,8 @@
     #ifndef WIN32_LEAN_AND_MEAN
         #define WIN32_LEAN_AND_MEAN
     #endif
-    #ifndef _WINSOCKAPI_
-        #define _WINSOCKAPI_
-    #endif
 
+    // winsock2.h must come BEFORE windows.h
     #include <winsock2.h>
     #include <ws2tcpip.h>
     #include <windows.h>
@@ -23,7 +21,7 @@
 
     #pragma comment(lib, "Ws2_32.lib")
 
-    // Windows: socket is SOCKET
+    // Unified socket type
     typedef SOCKET socket_t;
     typedef SOCKET SocketType;
     #define INVALID_SOCKET_VAL INVALID_SOCKET
@@ -44,14 +42,17 @@
     #define GetTickCountMs()       GetTickCount64()
     #define SleepMs(ms)            Sleep(ms)
 
-    // Shutdown constants
-    #define SHUT_RDWR              SD_BOTH
-    #define SHUT_WR                SD_SEND
-    #define SHUT_RD                SD_RECEIVE
-    // Aliases for old code that uses SD_*
-    #define SD_SEND                SD_SEND
-    #define SD_RECEIVE             SD_RECEIVE
-    #define SD_BOTH                SD_BOTH
+    // SHUT_* are aliases for Windows SD_* constants
+    // (SD_SEND, SD_RECEIVE, SD_BOTH are already defined in winsock2.h)
+    #ifndef SHUT_RD
+        #define SHUT_RD    SD_RECEIVE
+    #endif
+    #ifndef SHUT_WR
+        #define SHUT_WR    SD_SEND
+    #endif
+    #ifndef SHUT_RDWR
+        #define SHUT_RDWR  SD_BOTH
+    #endif
 #else
     #include <sys/socket.h>
     #include <sys/types.h>
@@ -74,7 +75,7 @@
     #define INVALID_SOCKET      (-1)
     #define SOCKET_ERROR        (-1)
 
-    // Function wrappers (both naming styles)
+    // Function wrappers
     #define close_socket(s)        ::close(s)
     #define CloseSocket(s)         ::close(s)
     #define init_sockets()         do {} while(0)
@@ -93,16 +94,27 @@
     inline void SleepMs(unsigned int ms) { sleep_ms(ms); }
 
     // SD_* aliases for Windows code compatibility
-    #define SD_SEND    SHUT_WR
-    #define SD_RECEIVE SHUT_RD
-    #define SD_BOTH    SHUT_RDWR
-    #define ZeroMemory(dest, len) memset((dest), 0, (len))
+    #ifndef SD_SEND
+        #define SD_SEND    SHUT_WR
+    #endif
+    #ifndef SD_RECEIVE
+        #define SD_RECEIVE SHUT_RD
+    #endif
+    #ifndef SD_BOTH
+        #define SD_BOTH    SHUT_RDWR
+    #endif
+
+    // ZeroMemory alias
+    #ifndef ZeroMemory
+        #define ZeroMemory(dest, len) memset((dest), 0, (len))
+    #endif
 #endif
 
 #define DEFAULT_BUFLEN 1024
 
 // SOCKET typedef for old code compatibility
 #ifdef PLATFORM_WINDOWS
+    // SOCKET is already defined by winsock2.h
 #else
     typedef socket_t SOCKET;
 #endif
