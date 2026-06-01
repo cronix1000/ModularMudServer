@@ -43,6 +43,11 @@ list(REMOVE_ITEM SOURCES
     "${CMAKE_SOURCE_DIR}/SkillDefintionComponent.cpp"
     "${CMAKE_SOURCE_DIR}/TextHelperFunctions.cpp"
     "${CMAKE_SOURCE_DIR}/WeaponComponent.cpp"
+    # Files that don't compile yet (missing headers or empty stubs)
+    "${CMAKE_SOURCE_DIR}/CombatManager.cpp"
+    "${CMAKE_SOURCE_DIR}/MainMenu.cpp"
+    "${CMAKE_SOURCE_DIR}/MenuBuilder.cpp"
+    "${CMAKE_SOURCE_DIR}/Stat.cpp"
 )
 
 # Header files (for IDE support)
