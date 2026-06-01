@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  mud:
+    build: .
+    container_name: modular-mud
+    ports:
+      - "27015:27015"
+    volumes:
+      - ./data:/mud/data
+      - ./logs:/mud/logs
+    environment:
+      - TZ=America/New_York
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ss", "-tlnp", "|", "grep", ":27015"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
