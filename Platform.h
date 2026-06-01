@@ -96,6 +96,7 @@
     #define SD_SEND    SHUT_WR
     #define SD_RECEIVE SHUT_RD
     #define SD_BOTH    SHUT_RDWR
+    #define ZeroMemory(dest, len) memset((dest), 0, (len))
 #endif
 
 #define DEFAULT_BUFLEN 1024
