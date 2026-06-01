@@ -1,0 +1,16 @@
+[Unit]
+Description=Modular MUD Server
+After=network.target
+
+[Service]
+Type=simple
+User=cronix
+WorkingDirectory=/home/cronix/mud_server
+ExecStart=/home/cronix/mud_server/ModularMudServer
+Restart=on-failure
+RestartSec=10
+StandardOutput=append:/home/cronix/mud_server/server.log
+StandardError=append:/home/cronix/mud_server/server.log
+
+[Install]
+WantedBy=multi-user.target
