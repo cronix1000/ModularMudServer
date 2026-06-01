@@ -1,11 +1,5 @@
 #pragma once
 
-// ============================================================
-// Cross-platform abstraction layer
-// Works on Windows (MSVC, MinGW) and Linux (GCC, Clang)
-// ============================================================
-
-// Platform detection
 #if defined(_WIN32) || defined(_WIN64) || defined(WIN32)
     #define PLATFORM_WINDOWS
 #elif defined(__linux__) || defined(__unix__) || defined(__APPLE__)
@@ -14,15 +8,12 @@
     #error "Unsupported platform"
 #endif
 
-// ============================================================
-// WINDOWS
-// ============================================================
 #ifdef PLATFORM_WINDOWS
     #ifndef WIN32_LEAN_AND_MEAN
         #define WIN32_LEAN_AND_MEAN
     #endif
     #ifndef _WINSOCKAPI_
-        #define _WINSOCKAPI_   // Prevent winsock1 redefinition
+        #define _WINSOCKAPI_
     #endif
 
     #include <winsock2.h>
@@ -32,29 +23,35 @@
 
     #pragma comment(lib, "Ws2_32.lib")
 
-    // Unified socket type (just an alias for Windows SOCKET)
+    // Windows: socket is SOCKET
     typedef SOCKET socket_t;
+    typedef SOCKET SocketType;
     #define INVALID_SOCKET_VAL INVALID_SOCKET
     #define SOCKET_ERROR_VAL  SOCKET_ERROR
 
-    // Function wrappers
+    // Function wrappers (both naming styles)
     #define close_socket(s)        closesocket(s)
+    #define CloseSocket(s)         closesocket(s)
     #define init_sockets()         do { WSADATA wsaData; WSAStartup(MAKEWORD(2, 2), &wsaData); } while(0)
+    #define InitSockets()          do { WSADATA wsaData; WSAStartup(MAKEWORD(2, 2), &wsaData); } while(0)
     #define cleanup_sockets()      WSACleanup()
+    #define SocketCleanup()        WSACleanup()
     #define get_socket_error()     WSAGetLastError()
+    #define GetSocketError()       WSAGetLastError()
 
-    // Timing
     #define get_tick_ms()          GetTickCount64()
     #define sleep_ms(ms)           Sleep(ms)
+    #define GetTickCountMs()       GetTickCount64()
+    #define SleepMs(ms)            Sleep(ms)
 
     // Shutdown constants
-    #define SHUT_RD_WR             SD_BOTH
-    #define SHUT_WR_ONLY           SD_SEND
-    #define SHUT_RD_ONLY           SD_RECEIVE
-
-// ============================================================
-// LINUX / UNIX / MAC
-// ============================================================
+    #define SHUT_RDWR              SD_BOTH
+    #define SHUT_WR                SD_SEND
+    #define SHUT_RD                SD_RECEIVE
+    // Aliases for old code that uses SD_*
+    #define SD_SEND                SD_SEND
+    #define SD_RECEIVE             SD_RECEIVE
+    #define SD_BOTH                SD_BOTH
 #else
     #include <sys/socket.h>
     #include <sys/types.h>
@@ -69,51 +66,42 @@
     #include <chrono>
     #include <thread>
 
-    // Unified socket type
+    // Linux: socket is int
     typedef int socket_t;
+    typedef int SocketType;
     #define INVALID_SOCKET_VAL  (-1)
     #define SOCKET_ERROR_VAL    (-1)
     #define INVALID_SOCKET      (-1)
     #define SOCKET_ERROR        (-1)
 
-    // Function wrappers
+    // Function wrappers (both naming styles)
     #define close_socket(s)        ::close(s)
+    #define CloseSocket(s)         ::close(s)
     #define init_sockets()         do {} while(0)
+    #define InitSockets()          do {} while(0)
     #define cleanup_sockets()      do {} while(0)
+    #define SocketCleanup()        do {} while(0)
     #define get_socket_error()     errno
+    #define GetSocketError()       errno
 
-    // Timing
     inline unsigned long long get_tick_ms() {
         using namespace std::chrono;
         return duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count();
     }
-    inline void sleep_ms(unsigned int ms) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(ms));
-    }
+    inline unsigned long long GetTickCountMs() { return get_tick_ms(); }
+    inline void sleep_ms(unsigned int ms) { std::this_thread::sleep_for(std::chrono::milliseconds(ms)); }
+    inline void SleepMs(unsigned int ms) { sleep_ms(ms); }
 
-    // Shutdown constants (already defined in sys/socket.h, but alias for compat)
-    // SHUT_RD, SHUT_WR, SHUT_RDWR are already in sys/socket.h
+    // SD_* aliases for Windows code compatibility
+    #define SD_SEND    SHUT_WR
+    #define SD_RECEIVE SHUT_RD
+    #define SD_BOTH    SHUT_RDWR
 #endif
 
-// ============================================================
-// COMMON (both platforms)
-// ============================================================
 #define DEFAULT_BUFLEN 1024
 
-// Compatibility macros for the existing codebase
-// These let the existing code (which uses Windows names) work on both platforms
+// SOCKET typedef for old code compatibility
 #ifdef PLATFORM_WINDOWS
-    // Already natively available
-    #define GetTickCountMs()  GetTickCount64()
-    #define SleepMs(ms)       Sleep(ms)
 #else
-    // Linux/macOS implementations
-    inline unsigned long long GetTickCountMs() {
-        return get_tick_ms();
-    }
-    inline void SleepMs(unsigned int ms) {
-        sleep_ms(ms);
-    }
-    // SOCKET type alias for compatibility with existing Windows-style code
     typedef socket_t SOCKET;
 #endif
