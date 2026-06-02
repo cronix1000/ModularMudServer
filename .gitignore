@@ -39,3 +39,7 @@ server.log
 # Local data
 *.db.bak
 Platform.h.bak
+/ModularMudServer/Debug
+/ModularMudServer/x64/Debug
+/x64/Debug
+/vcpkg
