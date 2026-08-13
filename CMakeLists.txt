@@ -36,19 +36,6 @@ file(GLOB SOURCES
 
 # Remove any .cpp files that are actually headers (as seen in vcxproj)
 list(REMOVE_ITEM SOURCES 
-    "${CMAKE_SOURCE_DIR}/AttackIntentComponent.cpp"
-    "${CMAKE_SOURCE_DIR}/DialogueComponent.cpp"
-    "${CMAKE_SOURCE_DIR}/DirtyFlagComponents.cpp"
-    "${CMAKE_SOURCE_DIR}/PickupItemIntentComponent.cpp"
-    "${CMAKE_SOURCE_DIR}/SkillDefintionComponent.cpp"
-    "${CMAKE_SOURCE_DIR}/TextHelperFunctions.cpp"
-    "${CMAKE_SOURCE_DIR}/WeaponComponent.cpp"
-    # Files that don't compile yet (missing headers or empty stubs)
-    "${CMAKE_SOURCE_DIR}/CombatManager.cpp"
-    "${CMAKE_SOURCE_DIR}/MainMenu.cpp"
-    "${CMAKE_SOURCE_DIR}/MenuBuilder.cpp"
-    "${CMAKE_SOURCE_DIR}/Stat.cpp"
-    "${CMAKE_SOURCE_DIR}/Component.cpp"
 )
 
 # Header files (for IDE support)
