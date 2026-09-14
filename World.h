@@ -16,17 +16,18 @@ class ItemFactory;
 class MobFactory;
 class RoomFactory;
 struct GameContext;
+class SQLiteDatabase;
 
 class World {
 public:
 	World();
 	~World();
-	void LoadWorld(const std::string& filepath, GameContext& ctx);
-	bool CheckIfRegionLoaded(const std::string& regionPath);
-	bool LoadRegion(const std::string& regionPath, GameContext& ctx);
+	bool CheckIfRegionLoaded(const std::string& regionId);
+	bool LoadRegion(const std::string& regionId, GameContext& ctx);
 	bool LoadRoomFile(const std::string& path, const json& floorSettings, GameContext& ctx);
+	bool LoadRoomFromJson(const json& rData, const json& floorSettings, GameContext& ctx);
 	void ParseSpawns(const json& rData, int roomID, const json& floorSettings, GameContext& ctx);
-	
+
 	// Deprecated: Use WorldManager::GetRoomLayout/GetRoomExits instead
 	// Kept temporarily for backward compatibility during migration
 	EntityID GetRoomEntity(int roomId);

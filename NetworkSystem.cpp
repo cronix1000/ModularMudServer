@@ -1,182 +1,175 @@
 #include "NetworkSystem.h"
 #include "ClientConnection.h"
+#include "GMCPModules.h"
 #include "WorldManager.h"
 #include "RoomComponents.h"
 #include "Registry.h"
 #include "CommandRegistry.h"
 
-// Telnet Constants for GMCP
-const char IAC = static_cast<char>(255);
-const char SB = static_cast<char>(250);
-const char SE = static_cast<char>(240);
-const char GMCP = static_cast<char>(201);
-
-void NetworkSystem::SetupListeners() 
+void NetworkSystem::SetupListeners()
 {
-    ctx.eventBus->Subscribe(EventType::RoomEntered, [this](const EventContext& ectx) {
-        if (!std::holds_alternative<RoomEventData>(ectx.data)) return;
-        const auto& data = std::get<RoomEventData>(ectx.data);
+	ctx.eventBus->Subscribe(EventType::RoomEntered, [this](const EventContext& ectx) {
+		if (!std::holds_alternative<RoomEventData>(ectx.data)) return;
+		const auto& data = std::get<RoomEventData>(ectx.data);
 
-        // Get room identity component for room name/description
-        const RoomIdentityComponent* roomIdentity = nullptr;
-        for (EntityID roomEnt : ctx.registry->view<RoomIdentityComponent>()) {
-            auto* identity = ctx.registry->GetComponent<RoomIdentityComponent>(roomEnt);
-            if (identity && identity->roomId == data.RoomID) {
-                roomIdentity = identity;
-                break;
-            }
-        }
-        
-        ClientComponent* client = ctx.registry->GetComponent<ClientComponent>(data.EntityID);
+		const RoomIdentityComponent* roomIdentity = nullptr;
+		for (EntityID roomEnt : ctx.registry->view<RoomIdentityComponent>()) {
+			auto* identity = ctx.registry->GetComponent<RoomIdentityComponent>(roomEnt);
+			if (identity && identity->roomId == data.RoomID) {
+				roomIdentity = identity;
+				break;
+			}
+		}
 
-        if (client && client->client && roomIdentity) {
-            // Build JSON data as string
-            json jsonData = {
-                {"room_id", data.RoomID},
-                {"room_name", roomIdentity->name},
-                {"description", roomIdentity->description}
-            };
-            
-            GameMessage msg;
-            msg.type = "room_enter";
-            msg.consoleText = "&w" + roomIdentity->name + "&w\r\n" + roomIdentity->description + "\r\n";
-            msg.jsonData = jsonData.dump();
-            client->QueueGameMessage(msg);
-        }
-    });
+		ClientComponent* client = ctx.registry->GetComponent<ClientComponent>(data.EntityID);
 
-    ctx.eventBus->Subscribe(EventType::PlayerJoined, [this](const EventContext& ectx) {
-        if (!std::holds_alternative<PlayerLoggedInData>(ectx.data)) return;
-        const auto& data = std::get<PlayerLoggedInData>(ectx.data);
+		if (client && client->client && roomIdentity) {
+			json roomInfo = {
+				{"num",   data.RoomID},
+				{"name",  roomIdentity->name},
+				{"desc",  roomIdentity->description},
+				{"terrain", "city"}
+			};
 
-        // check player capabilities if web send command list
-        ClientComponent* client = ctx.registry->GetComponent<ClientComponent>(data.playerID);
+			GameMessage msg;
+			msg.type = gmcp::Room_Info;
+			msg.consoleText = "&w" + roomIdentity->name + "&w\r\n" + roomIdentity->description + "\r\n";
+			msg.jsonData = roomInfo.dump();
+			client->QueueGameMessage(msg);
+		}
+	});
 
-        GameMessage msg;
-        msg.type = "command_list";
-        PermissionLevel level = static_cast<PermissionLevel>(data.permissionLevel);
-		msg.jsonData = ctx.commandRegistry->GetCommandListJson(level).dump();
-        client->QueueGameMessage(msg);
+	ctx.eventBus->Subscribe(EventType::PlayerJoined, [this](const EventContext& ectx) {
+		if (!std::holds_alternative<PlayerLoggedInData>(ectx.data)) return;
+		const auto& data = std::get<PlayerLoggedInData>(ectx.data);
 
-    });
+		ClientComponent* client = ctx.registry->GetComponent<ClientComponent>(data.playerID);
+
+		if (client) {
+			GameMessage msg;
+			msg.type = gmcp::Command_List;
+			PermissionLevel level = static_cast<PermissionLevel>(data.permissionLevel);
+			msg.jsonData = ctx.commandRegistry->GetCommandListJson(level).dump();
+			client->QueueGameMessage(msg);
+		}
+	});
 }
 
 void NetworkSystem::FlushQueues()
 {
-    for (EntityID entityID : ctx.registry->view<ClientComponent>()) {
-        ClientComponent* clientComp = ctx.registry->GetComponent<ClientComponent>(entityID);
-        if (!clientComp || !clientComp->client) continue;
-        
-        if (!clientComp->HasPendingMessages()) continue;
-        
-        for (const GameMessage& msg : clientComp->messageQueue) {
-            if (clientComp->isWebClient) {
-                SendToWebClient(clientComp->client, msg);
-            } else {
-                SendToTerminalClient(clientComp->client, msg);
-            }
-        }
-        
-        clientComp->ClearMessageQueue();
-    }
+	for (EntityID entityID : ctx.registry->view<ClientComponent>()) {
+		ClientComponent* clientComp = ctx.registry->GetComponent<ClientComponent>(entityID);
+		if (!clientComp || !clientComp->client) continue;
+
+		if (!clientComp->HasPendingMessages()) continue;
+
+		for (const GameMessage& msg : clientComp->messageQueue) {
+			if (clientComp->isWebClient) {
+				SendToWebClient(clientComp->client, clientComp, msg);
+			} else {
+				SendToTerminalClient(clientComp->client, clientComp, msg);
+			}
+		}
+
+		clientComp->ClearMessageQueue();
+	}
 }
 
 void NetworkSystem::SendCommandList(EntityID playerId)
 {
-    ClientComponent* clientComp = ctx.registry->GetComponent<ClientComponent>(playerId);
-    if (!clientComp || !clientComp->client) return;
-    
-    // Get player permission level
-    PermissionLevel playerPerm = PermissionLevel::Guest;
-    if (ctx.commandRegistry) {
-        playerPerm = ctx.commandRegistry->GetPlayerPermission(playerId);
-    }
-    
-    // Build command list JSON
-    json cmdList = BuildCommandListJson(playerPerm);
-    
-    // Create message
-    GameMessage msg;
-    msg.type = "command_list";
-    msg.consoleText = "[Available commands loaded]\r\n";
-    msg.jsonData = cmdList.dump();
-    
-    // Queue the message
-    clientComp->QueueGameMessage(msg);
+	ClientComponent* clientComp = ctx.registry->GetComponent<ClientComponent>(playerId);
+	if (!clientComp || !clientComp->client) return;
+
+	PermissionLevel playerPerm = PermissionLevel::Guest;
+	if (ctx.commandRegistry) {
+		playerPerm = ctx.commandRegistry->GetPlayerPermission(playerId);
+	}
+
+	json cmdList = BuildCommandListJson(playerPerm);
+
+	GameMessage msg;
+	msg.type = gmcp::Command_List;
+	msg.consoleText = "[Available commands loaded]\r\n";
+	msg.jsonData = cmdList.dump();
+
+	clientComp->QueueGameMessage(msg);
 }
 
 json NetworkSystem::BuildCommandListJson(PermissionLevel playerPerm)
 {
-    json result = json::array();
-    
-    if (!ctx.commandRegistry) return result;
-    
-    // Use CommandRegistry to get the command list
-    result = ctx.commandRegistry->GetCommandListJson(playerPerm);
-    
-    return result;
+	json result = json::array();
+
+	if (!ctx.commandRegistry) return result;
+
+	result = ctx.commandRegistry->GetCommandListJson(playerPerm);
+
+	return result;
 }
 
-void NetworkSystem::SendToWebClient(ClientConnection* client, const GameMessage& msg)
+void NetworkSystem::SendToWebClient(ClientConnection* client,
+                                    ClientComponent* clientComp,
+                                    const GameMessage& msg)
 {
-    std::string jsonEnvelope = BuildJSONEnvelope(msg);
-    client->QueueMessage(jsonEnvelope);
+	(void)clientComp;
+
+	if (!msg.jsonData.empty() && msg.jsonData != "{}") {
+		if (clientComp == nullptr || !client->isSubscribed(msg.type)) return;
+		std::string envelope = BuildWebEnvelope(msg.type, msg.consoleText, msg.jsonData);
+		client->QueueMessage(envelope);
+	}
+	else if (!msg.consoleText.empty()) {
+		json envelope = {
+			{"channel", "text"},
+			{"data",    msg.consoleText}
+		};
+		client->QueueMessage(envelope.dump() + "\n");
+	}
 }
 
-void NetworkSystem::SendToTerminalClient(ClientConnection* client, const GameMessage& msg)
+void NetworkSystem::SendToTerminalClient(ClientConnection* client,
+                                        ClientComponent* clientComp,
+                                        const GameMessage& msg)
 {
-    // Always send the console text (with ANSI color parsing)
-    client->QueueMessage(TextHelperFunctions::Colorize(msg.consoleText));
-    
-    // Only send GMCP data to clients that support it
-    if (msg.jsonData.empty() || msg.jsonData == "{}") {
-        return;
-    }
-    
-    ClientComponent* clientComp = nullptr;
-    for (EntityID entityID : ctx.registry->view<ClientComponent>()) {
-        ClientComponent* cc = ctx.registry->GetComponent<ClientComponent>(entityID);
-        if (cc && cc->client == client) {
-            clientComp = cc;
-            break;
-        }
-    }
-    
-    if (clientComp && clientComp->hasGMCP) {
-        std::string gmcpPacket = BuildGMCPSession(msg.type, msg.jsonData);
-        client->SendPacket(gmcpPacket);
-    }
+	if (!msg.consoleText.empty()) {
+		client->QueueMessage(TextHelperFunctions::Colorize(msg.consoleText));
+	}
+
+	if (msg.jsonData.empty() || msg.jsonData == "{}") return;
+
+	if (clientComp == nullptr) return;
+	if (!clientComp->hasGMCP) return;
+	if (!client->isSubscribed(msg.type)) return;
+
+	std::string gmcpPacket = BuildGMCPFrame(msg.type, msg.jsonData);
+	client->SendPacket(gmcpPacket);
 }
 
-std::string NetworkSystem::BuildJSONEnvelope(const GameMessage& msg)
+std::string NetworkSystem::BuildWebEnvelope(const std::string& module,
+                                            const std::string& consoleText,
+                                            const std::string& jsonDataStr)
 {
-    json envelope;
-    envelope["type"] = msg.type;
-    envelope["console_text"] = msg.consoleText;
-    
-    // Parse the stored JSON string back into a json object
-    if (!msg.jsonData.empty()) {
-        try {
-            envelope["ui_data"] = json::parse(msg.jsonData);
-        } catch (...) {
-            envelope["ui_data"] = json::object();
-        }
-    } else {
-        envelope["ui_data"] = json::object();
-    }
-    
-    return envelope.dump() + "\n";
+	json envelope;
+	envelope["channel"] = "gmcp";
+	envelope["module"]  = module;
+
+	if (!jsonDataStr.empty()) {
+		try {
+			envelope["data"] = json::parse(jsonDataStr);
+		} catch (...) {
+			envelope["data"] = json::object();
+		}
+	} else {
+		envelope["data"] = json::object();
+	}
+
+	if (!consoleText.empty()) {
+		envelope["text"] = consoleText;
+	}
+
+	return envelope.dump() + "\n";
 }
 
-std::string NetworkSystem::BuildGMCPSession(const std::string& module, const std::string& jsonDataStr)
+std::string NetworkSystem::BuildGMCPFrame(const std::string& module, const std::string& jsonDataStr)
 {
-    std::stringstream packet;
-    
-    // Build GMCP packet: IAC SB GMCP <module> <data> IAC SE
-    packet << IAC << SB << GMCP;
-    packet << "GameMessages." << module << " ";
-    packet << jsonDataStr;
-    packet << IAC << SE;
-    
-    return packet.str();
+	return telnet::buildGMCPSubneg(module, jsonDataStr);
 }

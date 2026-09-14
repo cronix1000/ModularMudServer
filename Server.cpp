@@ -6,6 +6,7 @@
 #include "MainMenuState.h"
 #include "GameContext.h"
 #include "ThreadSafeQueue.h"
+#include "TelnetCodec.h"
 
 Server::Server(GameContext& context, GameEngine* engine, ThreadSafeQueue<ClientInput>& queue) : gameContext(context), engine(engine), inputQueue(queue) {
 }
@@ -230,10 +231,19 @@ bool Server::AcceptClient() {
         ClientConnection* newClient = new ClientConnection(newSocket);
 
         // Set a unique client ID (you can use the socket number or a counter)
-        newClient->clientID = static_cast<int>(newSocket); 
+        newClient->clientID = static_cast<int>(newSocket);
 
         newClient->SetEngine(engine);
         newClient->PushState(new MainMenuState());
+
+        // Offer GMCP. Real telnet clients (Mudlet etc.) reply IAC DO GMCP
+        // and our Negotiation handler flips ClientComponent.hasGMCP = true.
+        // Browser clients via the gateway ignore these bytes.
+        // Use SendPacket (not QueueMessage) to bypass the outbound escape pass,
+        // which would otherwise double every IAC byte and corrupt the frame.
+        newClient->SendPacket(telnet::buildNegotiation(telnet::WILL, telnet::GMCP));
+        newClient->SendPacket(telnet::buildNegotiation(telnet::DO,   telnet::GMCP));
+
         activeClients.push_back(newClient);
 
         printf("New client connected with ID: %d\n", newClient->clientID);

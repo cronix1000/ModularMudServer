@@ -17,14 +17,16 @@ void InteractableFactory::LoadInteractableTemplatesFromJSON(const std::string& p
         return;
     }
 
-    std::cout << "Loading Interactable Templates from JSON..." << std::endl;
+    LoadInteractableTemplatesFromJson(data);
+}
 
+void InteractableFactory::LoadInteractableTemplatesFromJson(const json& data) {
+    std::cout << "Loading Interactable Templates from JSON..." << std::endl;
     int count = 0;
     for (auto& [key, j] : data.items()) {
         LoadSingleInteractableFromJSON(key, j);
         count++;
     }
-
     std::cout << "[InteractableFactory] Loaded " << count << " interactable templates." << std::endl;
 }
 

@@ -10,16 +10,40 @@ ModularMudServer.sln
 # MSBuild command line
 msbuild ModularMudServer.sln /p:Configuration=Release
 msbuild ModularMudServer.sln /p:Configuration=Debug
+
+# CMake (recommended)
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH="$(pwd)/vcpkg_installed/x64-windows"
+cmake --build build --config Release
 ```
 
 ### Dependencies (vcpkg)
 ```bash
-# Install dependencies
 vcpkg install nlohmann-json sqlite3 sol2 lua
 ```
 
+### Smoke Test (DB loaders)
+```bash
+cmake --build build --target test_db_loaders --config Release
+./build/Release/test_db_loaders.exe ./mud.db
+```
+Exercises `SQLiteDatabase::Load*` methods against the live `mud.db`.
+
+## Data Loading (DB-backed)
+
+World content (items, mobs, interactables, skills, dialogues, terrain, regions, rooms, exits, spawns, loot tables) is loaded from the SQLite database `mud.db` tables `world_*` at startup. JSON files in this directory (`items.json`, `mobs.json`, etc.) are no longer read by the running server; they are kept on disk as legacy fallback only.
+
+The flow:
+1. `FactoryManager::LoadAllData()` (`FactoryManager.h:30`) calls `ctx.db->Load*()` for each content type.
+2. `SQLiteDatabase` queries the `world_*` tables and assembles a `nlohmann::json` object shaped identically to the legacy JSON file the corresponding factory used to consume.
+3. Each factory exposes a `LoadXxxFromJson(const json&)` method. The original file-reading path is preserved as `LoadXxxFromJSON(filename)` but is unused at runtime.
+
+When adding a new world_* table or column:
+- Add the column to the corresponding `Load*` method in `SQLiteDatabase.cpp` and pass it through `RowToJson()`.
+- Map `*_json` columns: object-typed values are merged into the parent JSON; array-typed values get the `_json` suffix stripped.
+- Component-style columns (e.g. `world_items.components_json`) need explicit wrapping under `components` in the loader — see `LoadItems()` for the pattern.
+
 ### No Test Framework
-**Note**: This project currently has no unit tests. The gitignore references test frameworks but none are configured. To add tests, use Catch2 or GoogleTest.
+**Note**: This project currently has no unit tests beyond the DB-loader smoke test. The gitignore references test frameworks but none are configured. To add tests, use Catch2 or GoogleTest.
 
 ## Project Overview
 

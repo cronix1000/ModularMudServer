@@ -6,6 +6,7 @@
 #include "PlayerFactory.h"
 #include "SkillFactory.h"
 #include "InteractableFactory.h"
+#include "SQLiteDatabase.h"
 
 class FactoryManager {
 public:
@@ -25,16 +26,26 @@ public:
         : ctx(g), items(g), mobs(g), loot(), dialogue(g), player(g), skills(g), interactables(g) {
     }
 
-    // One function to load the entire game database
+    // One function to load the entire game database.
+    // Source of truth: the world_* / player_* tables in mud.db.
     void LoadAllData() {
-        std::cout << "Loading Game Database..." << std::endl;
+        std::cout << "Loading Game Database from mud.db..." << std::endl;
 
-        items.LoadItemTemplatesFromJSON("items.json");
-        loot.LoadLootTables("loot_drops.json");
-        dialogue.LoadDialogueAndVoices("dialogue.json");
-        mobs.LoadMobTemplatesFromJSON("mobs.json");
-        interactables.LoadInteractableTemplatesFromJSON("interactables.json");
-        skills.LoadSkillsFromJSON("skills.json");
+        const std::string worldId = "default";
+
+        if (!ctx.db) {
+            std::cerr << "[FactoryManager] No database available; aborting LoadAllData." << std::endl;
+            return;
+        }
+
+        ctx.db->LoadTerrain();
+
+        items.LoadItemTemplatesFromJson(ctx.db->LoadItems(worldId));
+        mobs.LoadMobTemplatesFromJson(ctx.db->LoadMobs(worldId));
+        interactables.LoadInteractableTemplatesFromJson(ctx.db->LoadInteractables(worldId));
+        skills.LoadSkillsFromJson(ctx.db->LoadSkills(worldId));
+        loot.LoadLootTablesFromJson(ctx.db->LoadLootTables(worldId));
+        dialogue.LoadDialogueAndVoicesFromJson(ctx.db->LoadDialogues(worldId));
 
         std::cout << "Database Loaded Successfully." << std::endl;
     }

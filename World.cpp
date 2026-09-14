@@ -10,10 +10,12 @@
 #include "RespawnSystem.h"
 #include "RoomFactory.h"
 #include "Registry.h"
+#include "SQLiteDatabase.h"
 
 namespace fs = std::filesystem;
 
 const fs::path REGION_DIR = "regions";
+const std::string DEFAULT_WORLD_ID = "default";
 
 namespace {
     bool ResolveRegionDirectory(const std::string& region, fs::path& outDir) {
@@ -38,52 +40,9 @@ namespace {
         return false;
     }
 }
+
 World::World()
 {
-    // load global terrains
-    std::string globalTerrainFilePath = "global_terrain.json";
-    std::ifstream file(globalTerrainFilePath);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open terrain file: " << globalTerrainFilePath << std::endl;
-        return;
-    }
-
-
-    json terrainData;
-    try {
-        file >> terrainData;
-    }
-    catch (json::parse_error& e) {
-        std::cerr << "JSON Parse Error: " << e.what() << std::endl;
-        return;
-    }
-
-    try {
-
-        if (terrainData.is_object()) {
-            for (auto& [key, val] : terrainData.items()) {
-                if (key.empty()) continue;
-                char symbol = key[0];
-
-                globalTerrain[symbol] = {
-                    symbol,
-                    // Use .value() for EVERYTHING to prevent crashes on typos
-                    val.value("name", "Unknown Terrain"),
-                    val.value("color", "white"),
-                    val.value("blocks_move", false),
-                    val.value("blocks_sight", false),
-                    val.value("move_cost", 1)
-                };
-            }
-        }
-
-        printf("terrain loaded");
-    }
-    catch (const json::exception& e) {
-        // This catches Parse errors AND Type errors (missing keys)
-        std::cerr << "JSON Error in " << globalTerrainFilePath << ": " << e.what() << std::endl;
-    }
-    
 }
 
 World::~World()
@@ -97,77 +56,61 @@ Direction StringToDirection(const std::string& str) {
     if (str == "west")  return Direction::West;
     if (str == "up") return Direction::Up;
     if (str == "down") return Direction::Down;
-    return Direction::North; // Default/Error case
+    return Direction::North;
 }
 
-void World::LoadWorld(const std::string& filepath, GameContext& ctx) {
-    // Create room factory if not exists
-    if (!roomFactory) {
-        roomFactory = new RoomFactory(ctx);
-    }
-
-    std::ifstream file(filepath);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open world file: " << filepath << std::endl;
-        return;
-    }
-
-    // 1. Read file safely into string buffer first (prevents empty input error)
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    std::string fileContent = buffer.str();
-
-    json worldData;
-    try {
-        worldData = json::parse(fileContent);
-    }
-    catch (json::parse_error& e) {
-        std::cerr << "JSON Parse Error: " << e.what() << std::endl;
-        return;
-    }
-
-    // --- PASS 1: CREATE ROOMS AND LAYOUTS ---
-    for (const auto& rData : worldData["rooms"]) {
-        // Use RoomFactory to create room entity with all components
-        roomFactory->CreateRoom(rData);
-    }
-
-    std::cout << "World Loaded Successfully." << std::endl;
-}
-
-bool World::CheckIfRegionLoaded(const std::string& regionPath)
+bool World::CheckIfRegionLoaded(const std::string& regionId)
 {
-    if (loadedRegions.find(regionPath) == loadedRegions.end()) {
+    if (loadedRegions.find(regionId) == loadedRegions.end()) {
         return false;
     }
     return true;
 }
 
-bool World::LoadRegion(const std::string& region, GameContext& ctx)
+bool World::LoadRegion(const std::string& regionId, GameContext& ctx)
 {
-    if (CheckIfRegionLoaded(region))
+    if (CheckIfRegionLoaded(regionId))
         return true;
 
-    // Create room factory if not exists
     if (!roomFactory) {
         roomFactory = new RoomFactory(ctx);
     }
 
+    // Prefer DB. Fall back to filesystem regions/ only if region does not exist in DB.
+    if (ctx.db && ctx.db->RegionExists(DEFAULT_WORLD_ID, regionId)) {
+        nlohmann::json floorSettings;
+        ctx.db->LoadRegionFloorSettings(DEFAULT_WORLD_ID, regionId, floorSettings);
+
+        std::vector<int> roomIds = ctx.db->LoadRoomIds(DEFAULT_WORLD_ID, regionId);
+        for (int roomId : roomIds) {
+            nlohmann::json rData;
+            if (!ctx.db->LoadRoomJson(DEFAULT_WORLD_ID, regionId, roomId, rData)) {
+                std::cerr << "World::LoadRegion: failed to load room " << roomId << " for region " << regionId << std::endl;
+                continue;
+            }
+            LoadRoomFromJson(rData, floorSettings, ctx);
+        }
+
+        loadedRegions.insert(regionId);
+        return true;
+    }
+
+    // Legacy fallback (deprecated): walk regions/<id>/*.json files.
     fs::path regionDir;
-    if (!ResolveRegionDirectory(region, regionDir)) {
-        std::cerr << "World::LoadRegion: cannot find region '" << region << "' near "
+    if (!ResolveRegionDirectory(regionId, regionDir)) {
+        std::cerr << "World::LoadRegion: cannot find region '" << regionId << "' in DB or near "
             << fs::current_path() << std::endl;
         return false;
     }
 
-    json floorSettings;
+    nlohmann::json floorSettings;
     fs::path settingsPath = regionDir / "floor_settings.json";
     if (fs::exists(settingsPath)) {
         std::ifstream sFile(settingsPath);
         try {
             sFile >> floorSettings;
         }
-        catch (const json::parse_error& e) {
+        catch (const nlohmann::json::parse_error& e) {
             std::cerr << "JSON Parse Error in " << settingsPath << ": " << e.what() << std::endl;
         }
     }
@@ -188,14 +131,13 @@ bool World::LoadRegion(const std::string& region, GameContext& ctx)
             << e.what() << std::endl;
         return false;
     }
-    
-    loadedRegions.insert(region);
+
+    loadedRegions.insert(regionId);
     return true;
 }
 
 bool World::LoadRoomFile(const std::string& path, const json& floorSettings, GameContext& ctx)
 {
-    // Create room factory if not exists
     if (!roomFactory) {
         roomFactory = new RoomFactory(ctx);
     }
@@ -220,22 +162,29 @@ bool World::LoadRoomFile(const std::string& path, const json& floorSettings, Gam
         return false;
     }
 
+    return LoadRoomFromJson(rData, floorSettings, ctx);
+}
+
+bool World::LoadRoomFromJson(const json& rData, const json& floorSettings, GameContext& ctx)
+{
     int id = rData.value("id", -1);
     if (id < 0) {
-        std::cerr << "World::LoadRoomFile: missing valid id in " << path << std::endl;
+        std::cerr << "World::LoadRoomFromJson: missing valid id" << std::endl;
         return false;
     }
 
-    // Use RoomFactory to create room
+    if (!roomFactory) {
+        roomFactory = new RoomFactory(ctx);
+    }
+
     EntityID roomEntity = roomFactory->CreateRoom(rData);
     if (roomEntity == 0) {
-        std::cerr << "World::LoadRoomFile: Failed to create room from " << path << std::endl;
+        std::cerr << "World::LoadRoomFromJson: Failed to create room id=" << id << std::endl;
         return false;
     }
 
-    // Handle spawns
     if (rData.contains("spawns") && rData.contains("spawn_legend")) {
-        int logicalRoomId = rData.value("id", roomEntity);
+        int logicalRoomId = rData.value("id", (int)roomEntity);
         ParseSpawns(rData, logicalRoomId, floorSettings, ctx);
     }
 
@@ -249,24 +198,20 @@ void World::ParseSpawns(const json& rData, int roomID,const json& floorSettings,
 
     for (const std::string& line : rData["spawns"]) {
         int x = 0;
-        std::stringstream ss(line);
-        std::string symbol;
-
-        while (ss >> symbol) {
-            if (symbol == "." || !legend.contains(symbol)) {
+        for (char ch : line) {
+            std::string symbol(1, ch);
+            if (symbol == "." || symbol == " " || !legend.contains(symbol)) {
                 x++; continue;
             }
 
             json spawnInfo = legend[symbol];
             std::string type = spawnInfo["type"];
             std::string templateID = spawnInfo["id"];
-            
+
             std::cout << "[Spawn] Attempting to spawn " << type << " with template '" << templateID << "' at (" << x << "," << y << ") in room " << roomID << std::endl;
 
-            // --- THE OVERRIDE MERGE ---
             json finalOverrides = json::object();
 
-            // 1. Check Floor Overrides (e.g., Global floor health buff)
             if (floorSettings.contains("overrides") && floorSettings["overrides"].contains(type)) {
                 for (auto& globalOver : floorSettings["overrides"][type]) {
                     if (globalOver["id"] == templateID) {
@@ -275,22 +220,17 @@ void World::ParseSpawns(const json& rData, int roomID,const json& floorSettings,
                 }
             }
 
-            // 2. Apply Local Room Overrides (e.g., This specific goblin is weak)
             if (spawnInfo.contains("overrides")) {
                 finalOverrides.update(spawnInfo["overrides"]);
             }
 
-            // 3. Execution
             if (type == "mob") {
-                // Check if this mob should have a spawn point (respawn capability)
-                float respawnTime = spawnInfo.value("respawn_time", 30.0f); // Default 30 seconds
-                bool shouldRespawn = spawnInfo.value("respawn", true); // Default true
-                
+                float respawnTime = spawnInfo.value("respawn_time", 30.0f);
+                bool shouldRespawn = spawnInfo.value("respawn", true);
+
                 if (shouldRespawn && ctx.respawnSystem) {
-                    // Create a spawn point that will manage this mob
                     ctx.respawnSystem->CreateSpawnPoint(templateID, respawnTime, x, y, roomID);
                 } else {
-                    // Just create the mob directly without respawn capability
                     ctx.factories->mobs.CreateMob(templateID, finalOverrides, x, y, roomID);
                 }
             }
@@ -301,7 +241,6 @@ void World::ParseSpawns(const json& rData, int roomID,const json& floorSettings,
 				ctx.factories->interactables.CreateInteractable(templateID, json::object(), x, y, roomID);
 			}
             else if (type == "npc") {
-                // NPCs are essentially mobs without respawn
                 ctx.factories->mobs.CreateMob(templateID, finalOverrides, x, y, roomID);
             }
             x++;

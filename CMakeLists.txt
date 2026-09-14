@@ -92,6 +92,7 @@ set(DATA_FILES
     loot_drops.json
     mobs.json
     skills.json
+    dialogue.json
     mud.db
 )
 
@@ -117,3 +118,30 @@ install(TARGETS ${PROJECT_NAME}
 
 install(FILES ${DATA_FILES} DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY scripts DESTINATION share/${PROJECT_NAME} OPTIONAL)
+
+# Optional smoke test for the SQLiteDatabase world loaders.
+# Build with: cmake --build . --target test_db_loaders
+if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_db_loaders.cpp")
+    add_executable(test_db_loaders
+        "${CMAKE_SOURCE_DIR}/tests/test_db_loaders.cpp"
+        "${CMAKE_SOURCE_DIR}/SQLiteDatabase.cpp"
+        "${CMAKE_SOURCE_DIR}/TerrainDef.cpp"
+    )
+    target_include_directories(test_db_loaders PRIVATE
+        "${CMAKE_SOURCE_DIR}"
+        ${SQLite3_INCLUDE_DIRS}
+    )
+    target_link_libraries(test_db_loaders PRIVATE ${SQLite3_LIBRARIES})
+endif()
+
+# Optional unit tests for the TelnetCodec (parser + outbound escape).
+# Build with: cmake --build . --target test_telnet_codec
+if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_telnet_codec.cpp")
+    add_executable(test_telnet_codec
+        "${CMAKE_SOURCE_DIR}/tests/test_telnet_codec.cpp"
+        "${CMAKE_SOURCE_DIR}/TelnetCodec.cpp"
+    )
+    target_include_directories(test_telnet_codec PRIVATE
+        "${CMAKE_SOURCE_DIR}"
+    )
+endif()

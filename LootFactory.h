@@ -24,7 +24,10 @@ public:
         if (!file.is_open()) return;
         json data;
         file >> data;
+        LoadLootTablesFromJson(data);
+    }
 
+    void LoadLootTablesFromJson(const json& data) {
         for (auto& [tableID, list] : data.items()) {
             std::vector<LootEntry> entries;
             for (auto& entry : list) {

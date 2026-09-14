@@ -41,6 +41,7 @@ public:
     InteractableFactory(GameContext& g) : ctx(g) {}
 
     void LoadInteractableTemplatesFromJSON(const std::string& path = "interactables.json");
+    void LoadInteractableTemplatesFromJson(const json& data);
 
     int CreateInteractable(std::string templateID, json overrides = json::object(), int x = 0, int y = 0, int roomId = -1);
 

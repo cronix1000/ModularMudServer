@@ -37,6 +37,7 @@ public:
     ItemFactory(GameContext& g) : ctx(g) {}
 
     void LoadItemTemplatesFromJSON(const std::string& path = "items.json");
+    void LoadItemTemplatesFromJson(const json& data);
     int CreateItem(std::string templateID, json overrides = json::object(), int x = -1, int y = -1, int roomID = -1);
 
 private:

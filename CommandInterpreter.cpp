@@ -452,8 +452,8 @@ void CommandInterpreter::HandleHello(ClientConnection* client, std::vector<std::
                 }
                 
                 // Update client capabilities - this is a web client
-               // clientComp->SetCapabilities(true, hasSideBar, hasMiniMap);
-                
+                clientComp->SetCapabilities(true, false, hasSideBar, hasMiniMap);
+
                 // Send acknowledgment
                 json response;
                 response["type"] = "hello_ack";
@@ -471,6 +471,18 @@ void CommandInterpreter::HandleHello(ClientConnection* client, std::vector<std::
         client->QueueMessage("Invalid hello packet format.\r\n");
     }
 }
+
+void CommandInterpreter::HandleGMCP(ClientConnection* client, const std::string& module, const std::string& jsonText)
+{
+	if (module == "Core.Hello") {
+		std::cout << "GMPC Hello Message";
+	}
+	if (module == "Core.Goodbye") {
+		// graceful disconnect 
+	}
+}
+
+
 
 bool CommandInterpreter::TryHandleJSONHandshake(ClientConnection* client, const std::string& input) {
     // Check if input looks like JSON (starts with '{' or '[')
@@ -505,8 +517,8 @@ bool CommandInterpreter::TryHandleJSONHandshake(ClientConnection* client, const 
                 }
                 
                 // Update client capabilities - this is a web client
-               // clientComp->SetCapabilities(true, hasSideBar, hasMiniMap);
-                
+                clientComp->SetCapabilities(true, false, hasSideBar, hasMiniMap);
+
                 // Send acknowledgment
                 json response;
                 response["type"] = "hello_ack";
@@ -517,7 +529,7 @@ bool CommandInterpreter::TryHandleJSONHandshake(ClientConnection* client, const 
                     {"minimap", hasMiniMap}
                 };
                 
-                client->QueueMessage(response.dump() + "\n");
+                client->QueueMessage(response.dump() + "\r" + "\n"  );
                 return true; // Handled
             }
         }

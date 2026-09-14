@@ -40,7 +40,10 @@ public:
         if (!file.is_open()) return;
         json data;
         file >> data;
+        LoadDialogueAndVoicesFromJson(data);
+    }
 
+    void LoadDialogueAndVoicesFromJson(const json& data) {
         for (auto& [key, val] : data.items()) {
             // TYPE 1: Interactive Dialogue Node
             if (val.contains("text")) {
