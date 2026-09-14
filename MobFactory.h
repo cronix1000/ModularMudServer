@@ -35,6 +35,7 @@ public:
     MobFactory(GameContext& g) : ctx(g) {}
 
     void LoadMobTemplatesFromJSON(const std::string& path = "mobs.json");
+    void LoadMobTemplatesFromJson(const json& data);
     int CreateMob(std::string templateID, json overrides = json::object(), int x = 0, int y = 0, int roomID = -1);
 
 private:

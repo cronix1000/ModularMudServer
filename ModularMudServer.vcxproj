@@ -145,6 +145,7 @@
     <ClCompile Include="BehaviorSystem.cpp" />
     <ClCompile Include="CombatStateSystem.cpp" />
     <ClCompile Include="GameContext.cpp" />
+    <ClCompile Include="GMCPHandler.cpp" />
     <ClCompile Include="InteractableFactory.cpp" />
     <ClCompile Include="ItemFactory.cpp" />
     <ClCompile Include="MessageSystem.cpp" />
@@ -187,6 +188,7 @@
     <ClCompile Include="SkillSystem.cpp" />
     <ClCompile Include="SQLiteDatabase.cpp" />
     <ClCompile Include="TargetingSystem.cpp" />
+    <ClCompile Include="TelnetCodec.cpp" />
     <ClCompile Include="TerrainDef.cpp" />
     <ClCompile Include="TextHelperFunctions.h" />
     <ClCompile Include="UpdateSystem.cpp" />
@@ -216,6 +218,8 @@
     <ClInclude Include="CraftIntentComponent.h" />
     <ClInclude Include="DamageScalingComponent.h" />
     <ClInclude Include="DeadTag.h" />
+    <ClInclude Include="GMPCHandler.h" />
+    <ClInclude Include="GMPCModules.h" />
     <ClInclude Include="InteractableFactory.h" />
     <ClInclude Include="MessageComponent.h" />
     <ClInclude Include="MessageSystem.h" />
@@ -317,6 +321,7 @@
     <ClInclude Include="StatModifierComponent.h" />
     <ClInclude Include="TargetingIntentComponent.h" />
     <ClInclude Include="TargetingSystem.h" />
+    <ClInclude Include="TelnetCodec.h" />
     <ClInclude Include="TerrainDef.h" />
     <ClInclude Include="ThreadSafeQueue.h" />
     <ClInclude Include="TimeData.h" />

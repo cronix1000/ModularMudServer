@@ -211,34 +211,30 @@ void RoomFactory::ParseLayout(RoomLayoutComponent& layout, const json& layoutDat
         if (!line.is_string()) continue;
         std::string row = line;
         int x = 0;
-        
+
         for (char c : row) {
-            if (c == ' ') continue;  // Skip spaces
-            
             if (x >= layout.width) break;
-            
-            // Determine terrain ID
-            int terrainId = -1;  // Default void
-            
-            // Check local terrain first
+            if (c == ' ') { x++; continue; }
+
+            int terrainId = -1;
+
             auto localIt = localTerrainIds.find(c);
             if (localIt != localTerrainIds.end()) {
                 terrainId = localIt->second;
             } else if (globalTerrain.count(c)) {
-                // Use char value as ID for global terrain (simple approach)
                 terrainId = static_cast<int>(c);
             } else if (globalTerrain.count('.')) {
-                // Default to floor
                 terrainId = static_cast<int>('.');
             }
-            
+
             layout.SetTerrain(x, y, terrainId);
             x++;
         }
-        
+
         y++;
         if (y >= layout.height) break;
     }
+}
 }
 
 void RoomFactory::ParseExits(RoomExitsComponent& exits, const json& exitsData) {

@@ -41,25 +41,38 @@
 #include <set>
 
 GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : gameContext(ctx), isRunning(true), inputQueue(input) {
-    // 1. Initialize core resources
+    fprintf(stderr, "DEBUG: GE 1\n"); fflush(stderr);
     world = new World();
+    fprintf(stderr, "DEBUG: GE 2 (after World)\n"); fflush(stderr);
     gameContext.registry = std::make_unique<Registry>();
+    fprintf(stderr, "DEBUG: GE 3 (after Registry)\n"); fflush(stderr);
     gameContext.eventBus = std::make_unique<EventBus>();
+    fprintf(stderr, "DEBUG: GE 4 (after EventBus)\n"); fflush(stderr);
     gameContext.scripts = std::make_unique<ScriptManager>(*gameContext.registry);
+    fprintf(stderr, "DEBUG: GE 5 (after ScriptManager)\n"); fflush(stderr);
     gameContext.worldManager = std::make_unique<WorldManager>(world, gameContext.registry.get());
+    fprintf(stderr, "DEBUG: GE 6 (after WorldManager)\n"); fflush(stderr);
     gameContext.scripts->init();
+    fprintf(stderr, "DEBUG: GE 7 (after scripts init)\n"); fflush(stderr);
     gameContext.scripts->load_all_scripts("scripts");
+    fprintf(stderr, "DEBUG: GE 8 (after load_all_scripts)\n"); fflush(stderr);
     gameContext.scripts->lua.script("print('Hello from Lua')");
+    fprintf(stderr, "DEBUG: GE 9 (after lua print)\n"); fflush(stderr);
     scriptEventBridge = new ScriptEventBridge(gameContext.eventBus.get(), gameContext.scripts.get());
+    fprintf(stderr, "DEBUG: GE 10 (after ScriptEventBridge)\n"); fflush(stderr);
     gameContext.db = std::make_unique<SQLiteDatabase>();
+    fprintf(stderr, "DEBUG: GE 11 (after db make)\n"); fflush(stderr);
 	gameContext.db->Connect("mud.db");
-
+    fprintf(stderr, "DEBUG: GE 12 (after db Connect)\n"); fflush(stderr);
 
     // 3. Link the manager back to the context
 
     gameContext.time = std::make_unique<TimeData>();
+    fprintf(stderr, "DEBUG: GE 13 (after time)\n"); fflush(stderr);
     gameContext.factories = std::make_unique<FactoryManager>(gameContext);
+    fprintf(stderr, "DEBUG: GE 14 (after FactoryManager)\n"); fflush(stderr);
     gameContext.interpreter = std::make_unique<CommandInterpreter>(gameContext);
+    fprintf(stderr, "DEBUG: GE 15 (after CommandInterpreter)\n"); fflush(stderr);
     
     // Initialize new command system
     gameContext.commandRegistry = std::make_unique<CommandRegistry>(gameContext, gameContext.scripts->lua);

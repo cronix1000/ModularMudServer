@@ -24,6 +24,10 @@ void MobFactory::LoadMobTemplatesFromJSON(const std::string& path) {
         return;
     }
 
+    LoadMobTemplatesFromJson(data);
+}
+
+void MobFactory::LoadMobTemplatesFromJson(const json& data) {
     std::cout << "Loading Mob Templates from JSON..." << std::endl;
     for (auto& [key, j] : data.items()) {
         LoadSingleMobFromJSON(key, j);

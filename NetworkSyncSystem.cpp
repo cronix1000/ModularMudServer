@@ -13,11 +13,11 @@
 #include "ClientConnection.h"
 
 
-// Telnet Constants
-const char IAC = (char)255;
-const char SB = (char)250;
-const char SE = (char)240;
-const char GMCP = (char)201;
+//// Telnet Constants
+//const char IAC = (char)255;
+//const char SB = (char)250;
+//const char SE = (char)240;
+//const char GMCP = (char)201;
 
 
 NetworkSyncSystem::NetworkSyncSystem(GameContext& c) : ctx(c) {}

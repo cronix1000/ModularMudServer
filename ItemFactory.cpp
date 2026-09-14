@@ -23,9 +23,12 @@ void ItemFactory::LoadItemTemplatesFromJSON(const std::string& path) {
         return;
     }
 
+    LoadItemTemplatesFromJson(data);
+}
+
+void ItemFactory::LoadItemTemplatesFromJson(const json& data) {
     std::cout << "Loading Item Templates from JSON..." << std::endl;
     int count = 0;
-
     for (auto& [key, j] : data.items()) {
         LoadSingleItemFromJSON(key, j);
         count++;

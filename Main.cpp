@@ -63,9 +63,11 @@ void ProcessConsoleCommand(const std::string& command, GameEngine* engine, GameC
 }
 
 int main(void) {
+	fprintf(stderr, "DEBUG: main() entered\n"); fflush(stderr);
 	GameContext ctx;
 	ThreadSafeQueue<ClientInput> inputQueue;
 	GameEngine engine(ctx, inputQueue);
+	fprintf(stderr, "DEBUG: GameEngine constructed\n"); fflush(stderr);
 	Server server(ctx, &engine, inputQueue);
 	
 	if (!server.Start(DEFAULT_PORT)) {

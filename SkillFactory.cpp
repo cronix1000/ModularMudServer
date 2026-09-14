@@ -21,6 +21,10 @@ void SkillFactory::LoadSkillsFromJSON(const std::string& path) {
         return;
     }
 
+    LoadSkillsFromJson(data);
+}
+
+void SkillFactory::LoadSkillsFromJson(const json& data) {
     std::cout << "Loading Skills from JSON..." << std::endl;
 
     if (data.contains("skill_categories")) {

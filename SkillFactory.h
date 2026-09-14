@@ -48,6 +48,7 @@ public:
     SkillFactory(GameContext& g) : ctx(g) {}
 
     void LoadSkillsFromJSON(const std::string& path = "skills.json");
+    void LoadSkillsFromJson(const json& data);
 
     int GetSkillID(const std::string& key) {
         if (skillLookup.find(key) != skillLookup.end()) {
