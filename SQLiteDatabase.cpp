@@ -1,7 +1,9 @@
 #include "SQLiteDatabase.h"
+#include "DatabaseAttach.h"
 #include <stdio.h>
 #include <iostream>
 #include <cstring>
+#include <cstdlib>
 #include "picosha2.h"
 #include "GameContext.h"
 #include "Registry.h"
@@ -31,6 +33,104 @@ bool SQLiteDatabase::Connect(const std::string& filepath) {
     sqlite3_exec(db, "PRAGMA foreign_keys = ON;", nullptr, nullptr, nullptr);
 
     InitializeSchema();
+
+    const char* envPlayers = std::getenv("MUD_PLAYERS_DB");
+    const bool splitEnabled = envPlayers && envPlayers[0] != '\0';
+    const std::string playersPath = splitEnabled
+                                        ? std::string(envPlayers)
+                                        : DatabaseAttach::DerivePlayersPath(filepath);
+
+    const bool hasAnyPlayerRows = [] (sqlite3* db) -> bool {
+        if (!db) return false;
+        const char* tables[] = {"player_players", "player_items", "player_known_recipes"};
+        for (const char* t : tables) {
+            std::string q = "select exists(select 1 from ";
+            q += t;
+            q += ");";
+            sqlite3_stmt* stmt = nullptr;
+            if (sqlite3_prepare_v2(db, q.c_str(), -1, &stmt, nullptr) != SQLITE_OK) continue;
+            int hit = 0;
+            if (sqlite3_step(stmt) == SQLITE_ROW) hit = sqlite3_column_int(stmt, 0);
+            sqlite3_finalize(stmt);
+            if (hit) return true;
+        }
+        return false;
+    }(db);
+
+    if (DatabaseAttach::AttachPlayers(db, playersPath)) {
+        printf("[Database] Players DB attached: %s\n", playersPath.c_str());
+
+        bool needsMigrate = false;
+        {
+            const std::string q =
+                std::string("select name from ") + DatabaseAttach::kPlayersDbAlias +
+                ".sqlite_master where type='table' and name in "
+                "('player_players','player_items','player_known_recipes')";
+            sqlite3_stmt* stmt = nullptr;
+            if (sqlite3_prepare_v2(db, q.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+                int found = 0;
+                while (sqlite3_step(stmt) == SQLITE_ROW) ++found;
+                sqlite3_finalize(stmt);
+                needsMigrate = found < 3;
+            }
+        }
+
+        if (hasAnyPlayerRows && needsMigrate) {
+            printf("[Database] Migrating player_* rows from main -> players ...\n");
+            sqlite3_exec(db, "BEGIN TRANSACTION;", nullptr, nullptr, nullptr);
+
+            sqlite3_exec(db,
+                "INSERT OR IGNORE INTO players.player_players "
+                "(id, region_id, account_id, permission, name, password_hash, salt, room_id, data) "
+                "SELECT id, region_id, account_id, permission, name, password_hash, salt, room_id, data "
+                "FROM main.player_players",
+                nullptr, nullptr, nullptr);
+
+            sqlite3_exec(db,
+                "INSERT OR IGNORE INTO players.player_items "
+                "(id, owner_id, template_id, item_state) "
+                "SELECT id, owner_id, template_id, item_state FROM main.player_items",
+                nullptr, nullptr, nullptr);
+
+            sqlite3_exec(db,
+                "INSERT OR IGNORE INTO players.player_known_recipes "
+                "(uid, world_id, recipe_id, learned_at) "
+                "SELECT uid, world_id, recipe_id, learned_at FROM main.player_known_recipes",
+                nullptr, nullptr, nullptr);
+
+            sqlite3_exec(db, "COMMIT;", nullptr, nullptr, nullptr);
+
+            sqlite3_exec(db, "DROP TABLE IF EXISTS main.player_known_recipes;", nullptr, nullptr, nullptr);
+            sqlite3_exec(db, "DROP TABLE IF EXISTS main.player_items;",       nullptr, nullptr, nullptr);
+            sqlite3_exec(db, "DROP TABLE IF EXISTS main.player_players;",      nullptr, nullptr, nullptr);
+
+            printf("[Database] Player migration complete; main.player_* dropped.\n");
+        } else if (needsMigrate) {
+            sqlite3_exec(db,
+                "INSERT OR IGNORE INTO players.player_players "
+                "(id, region_id, account_id, permission, name, password_hash, salt, room_id, data) "
+                "SELECT id, region_id, account_id, permission, name, password_hash, salt, room_id, data "
+                "FROM main.player_players",
+                nullptr, nullptr, nullptr);
+            sqlite3_exec(db,
+                "INSERT OR IGNORE INTO players.player_items "
+                "(id, owner_id, template_id, item_state) "
+                "SELECT id, owner_id, template_id, item_state FROM main.player_items",
+                nullptr, nullptr, nullptr);
+            sqlite3_exec(db,
+                "INSERT OR IGNORE INTO players.player_known_recipes "
+                "(uid, world_id, recipe_id, learned_at) "
+                "SELECT uid, world_id, recipe_id, learned_at FROM main.player_known_recipes",
+                nullptr, nullptr, nullptr);
+            sqlite3_exec(db, "DROP TABLE IF EXISTS main.player_known_recipes;", nullptr, nullptr, nullptr);
+            sqlite3_exec(db, "DROP TABLE IF EXISTS main.player_items;",       nullptr, nullptr, nullptr);
+            sqlite3_exec(db, "DROP TABLE IF EXISTS main.player_players;",      nullptr, nullptr, nullptr);
+        }
+    } else if (splitEnabled) {
+        printf("[Database] WARNING: MUD_PLAYERS_DB was set but ATTACH failed; "
+               "running in single-file mode against %s\n", filepath.c_str());
+    }
+
     return true;
 }
 

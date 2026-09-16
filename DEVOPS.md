@@ -1,205 +1,129 @@
 # ModularMudServer - DevOps Setup
 
-## Overview
+The C++ server runs inside Docker. See the repo-root `DEPLOY.md` for the
+canonical two-host (prod/beta) deployment workflow.
 
-This C++ MUD server is hosted locally with GitHub Actions for auto-deployment on push.
+This file documents the **server-only** operational details: build, env,
+DB split, and manual fallback options.
 
-## Architecture
-
-```
-Local Dev → Git Push → GitHub Actions → Build → Deploy to Local Server
-                                                       ↓
-                                              Run on port 27015
-```
-
-## Local Setup (One-time)
-
-### Install Dependencies
-
-**Ubuntu/Debian:**
-```bash
-sudo apt-get update
-sudo apt-get install -y build-essential cmake \
-  nlohmann-json3-dev libsqlite3-dev liblua5.3-dev sol2 git
-```
-
-**macOS:**
-```bash
-brew install cmake nlohmann-json sqlite3 lua sol2
-```
-
-**Windows (WSL2 recommended):**
-Same as Ubuntu.
-
-### Build the MUD
+## Build
 
 ```bash
-cd ~/ModularMudServer  # or wherever you cloned it
-chmod +x build.sh
-./build.sh
+docker build -f docker/Dockerfile.server -t mud-server:dev .
 ```
 
-This creates `build/bin/ModularMudServer`.
+The build uses `apt-get` to fetch CMake, sol2, nlohmann/json, Lua 5.3, and
+SQLite. The output binary is `/mud/ModularMudServer` inside the image.
 
-### Run Locally
+## Runtime environment
 
-```bash
-cd build/bin
-./ModularMudServer
-# Server listens on port 27015
-# Connect via: telnet localhost 27015
+| Variable             | Default                              | Notes                       |
+|----------------------|--------------------------------------|-----------------------------|
+| `MUD_DB_PATH`        | `/data/mud.world.db`                 | World DB. Mounted volume.   |
+| `MUD_PLAYERS_DB`     | derived from `MUD_DB_PATH`           | Players DB. Same dir.       |
+| `PORT`               | `27015`                              | Telnet port.                |
+
+The server processes at boot:
+
+1. Opens the world DB at `$MUD_DB_PATH`.
+2. ATTACHes the players DB at `$MUD_PLAYERS_DB` under alias `players`.
+3. Migrates any orphaned `player_*` rows from `main` into `players` once,
+   then DROPs those tables in `main`.
+4. Loads world content (items, mobs, regions, …) from the world DB.
+5. Listens on `$PORT` for client connections.
+
+## Data layout on the host
+
+```
+/opt/mud/
+├── docker-compose.yml         # one repo, two profiles
+├── .env                       # per-host overrides
+├── data/
+│   ├── mud.world.db           # design/world state — overwritten each deploy
+│   ├── mud.players.db         # player state — preserved across deploys
+│   ├── _snapshots/            # .bak files written by safe-db-swap
+│   └── backups/               # nightly backups (cron)
+└── scripts/
+    ├── split-existing-db.mjs  # one-shot split of an old single mud.db
+    ├── safe-db-swap.sh        # run on every deploy
+    ├── prune-snapshots.sh     # keeps last N .bak files
+    └── migrate.mjs            # headless migration runner
 ```
 
-## Auto-Deploy with GitHub Actions
+## Bare-metal fallback (no Docker)
 
-### 1. Create a GitHub Repo
+If you ever need to bypass Docker and run the server directly:
 
 ```bash
+# apt-get install -y build-essential cmake \
+#   libsqlite3-dev liblua5.3-dev nlohmann-json3-dev sol2
 cd ModularMudServer
-git init  # if not already
-git remote add origin git@github.com:YOUR_USERNAME/ModularMudServer.git
-git add -A
-git commit -m "Initial commit"
-git push -u origin main
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
+
+mkdir -p /tmp/mud-data
+cp /opt/mud/data/mud.world.db   /tmp/mud-data/
+cp /opt/mud/data/mud.players.db /tmp/mud-data/
+
+MUD_DB_PATH=/tmp/mud-data/mud.world.db \
+MUD_PLAYERS_DB=/tmp/mud-data/mud.players.db \
+./build/bin/ModularMudServer
 ```
 
-### 2. Add SSH Key for Auto-Deploy
+## Migrations
 
-Generate a key for GitHub Actions:
+Migrations are version-controlled in `MudAdmin/server/utils/migrate.ts` and
+applied **manually** via the admin UI (`/admin/_migrate`) or via the
+`scripts/migrate.mjs` CLI on the host. They are **never** auto-run.
+
+Schema flow:
+
+| Target file                | What's stored                                            |
+|----------------------------|----------------------------------------------------------|
+| `mud.world.db`             | `world_*` tables + `_migrations` + ad-hoc design data    |
+| `mud.players.db`           | `player_*` tables (player accounts, inventories, recipes) |
+
+When a migration touches a `player_*` table, the migration is written to
+target `players.<table>` so it lands in the players file.
+
+## Backups
+
+The deploy script (`safe-db-swap.sh`) snapshots the current world DB into
+`data/_snapshots/` before swapping in the new one. Players DB is **not**
+touched by deploys.
+
+Schedule a nightly player DB backup on each host:
+
+```cron
+0 3 * * *  /opt/mud/scripts/backup-players.sh
+```
+
+(`/opt/mud/scripts/backup-players.sh` not yet shipped — create on host
+using the snippet in DEPLOY.md.)
+
+## Healthcheck
+
+Docker healthcheck is `ss -tln | grep :27015`. Bare-metal:
+
 ```bash
-ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/github_deploy
-# Add PUBLIC key to your server's authorized_keys
-cat ~/.ssh/github_deploy.pub >> ~/.ssh/authorized_keys
+ss -tln | grep :27015 || echo "server NOT listening"
 ```
 
-In your GitHub repo, go to **Settings → Secrets and variables → Actions** and add:
-- `VPS_HOST` — your local machine IP or hostname (e.g., `cronix@localhost`)
-- `VPS_SSH_KEY` — the private key (`~/.ssh/github_deploy` content)
-- `VPS_PORT` — SSH port (default 22)
+## Stopping / starting
 
-### 3. Workflow File
-
-Create `.github/workflows/deploy.yml` in your repo:
-
-```yaml
-name: Build & Deploy MUD
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake \
-            nlohmann-json3-dev libsqlite3-dev liblua5.3-dev sol2
-
-      - name: Build
-        run: |
-          mkdir -p build
-          cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release
-          cmake --build . --parallel
-
-      - name: Stop old server
-        uses: appleboy/ssh-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: pkill -f ModularMudServer || true; sleep 2
-
-      - name: Copy binary
-        uses: appleboy/scp-action@v0.1.4
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          source: "build/bin/ModularMudServer"
-          target: "~/mud_server/"
-
-      - name: Copy data files
-        uses: appleboy/scp-action@v0.1.4
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          source: "*.json,*.db,*.lua,scripts/,regions/"
-          target: "~/mud_server/"
-
-      - name: Start server
-        uses: appleboy/ssh-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            cd ~/mud_server
-            nohup ./ModularMudServer > server.log 2>&1 &
-            echo "Server started on port 27015"
-```
-
-## Connect to Your MUD
-
-Once running, players connect with:
 ```bash
-telnet localhost 27015
-# or
-nc localhost 27015
+# Docker (prod profile)
+docker compose --profile prod stop mud-server
+docker compose --profile prod start mud-server
+
+# Bare-metal
+pkill -TERM -f ModularMudServer
+./build/bin/ModularMudServer &
 ```
 
-Or for a richer experience, use a MUD client like:
-- **Mudlet** (cross-platform)
-- **TinTin++**
-- **BeipMU**
+## Where the data goes after a deploy
 
-## DevOps Learning Path
-
-| What You'll Learn | How |
-|-------------------|-----|
-| SSH key auth | Setting up deploy keys |
-| Git workflows | Push, branch, PR |
-| CI/CD pipelines | GitHub Actions YAML |
-| Build systems | CMake, make, ccache |
-| Server processes | nohup, systemd, signals |
-| Monitoring | Log files, processes |
-| Reverse proxy | nginx in front of MUD |
-| SSL/TLS | Let's Encrypt + certbot |
-| Containerization | Docker, docker-compose |
-
-## Optional: Run as Systemd Service
-
-Create `~/mud_server/mud.service`:
-```ini
-[Unit]
-Description=Modular MUD Server
-After=network.target
-
-[Service]
-Type=simple
-User=YOUR_USER
-WorkingDirectory=/home/YOUR_USER/mud_server
-ExecStart=/home/YOUR_USER/mud_server/ModularMudServer
-Restart=on-failure
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Then:
-```bash
-sudo cp ~/mud_server/mud.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now mud
-sudo systemctl status mud
-```
-
-Now `systemctl restart mud` controls the server properly.
+Each container restart re-ATTACHes the same two DB files from the
+bind-mounted `/data` directory. World DB is replaced (with snapshot) by
+`scripts/safe-db-swap.sh` *before* the container restarts. Players DB is
+never modified by the deployment.
