@@ -38,9 +38,13 @@
 #include "CommandRegistry.h"
 #include "CommandInitializer.h"
 #include "SkillSystem.h"
+#include <cstdlib> 
 #include <set>
 
 GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : gameContext(ctx), isRunning(true), inputQueue(input) {
+    const char* envPath = std::getenv("MUD_DB_PATH");
+    const std::string dbPath = envPath ? envPath : "mud.db";
+
     fprintf(stderr, "DEBUG: GE 1\n"); fflush(stderr);
     world = new World();
     fprintf(stderr, "DEBUG: GE 2 (after World)\n"); fflush(stderr);
@@ -62,7 +66,7 @@ GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : 
     fprintf(stderr, "DEBUG: GE 10 (after ScriptEventBridge)\n"); fflush(stderr);
     gameContext.db = std::make_unique<SQLiteDatabase>();
     fprintf(stderr, "DEBUG: GE 11 (after db make)\n"); fflush(stderr);
-	gameContext.db->Connect("mud.db");
+    gameContext.db->Connect(dbPath);
     fprintf(stderr, "DEBUG: GE 12 (after db Connect)\n"); fflush(stderr);
 
     // 3. Link the manager back to the context
