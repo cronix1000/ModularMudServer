@@ -17,16 +17,30 @@ find_package(SQLite3 REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(Lua REQUIRED)
 
-# Find sol2 (header-only)
+# Find sol2 (header-only). Prefer system / vcpkg install; fall back to FetchContent.
+set(SOL2_VERSION v3.3.0)
+
 find_path(SOL2_INCLUDE_DIR sol/sol.hpp
-    PATHS 
+    PATHS
         /usr/include
         /usr/local/include
         ${CMAKE_PREFIX_PATH}/include
 )
 
 if(NOT SOL2_INCLUDE_DIR)
-    message(FATAL_ERROR "sol2 not found. Install with: sudo apt-get install sol2 or vcpkg install sol2")
+    include(FetchContent)
+    FetchContent_Declare(
+        sol2
+        GIT_REPOSITORY https://github.com/ThePhD/sol2.git
+        GIT_TAG        ${SOL2_VERSION}
+        GIT_SHALLOW    TRUE
+    )
+    set(SOL2_BUILD_TESTS  OFF CACHE BOOL "" FORCE)
+    set(SOL2_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(SOL2_EXAMPLES       OFF CACHE BOOL "" FORCE)
+    set(SOL2_INSTALL        OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(sol2)
+    set(SOL2_INCLUDE_DIR ${sol2_SOURCE_DIR}/include)
 endif()
 
 # Source files (automatically collect all .cpp files)
@@ -125,6 +139,7 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_db_loaders.cpp")
     add_executable(test_db_loaders
         "${CMAKE_SOURCE_DIR}/tests/test_db_loaders.cpp"
         "${CMAKE_SOURCE_DIR}/SQLiteDatabase.cpp"
+        "${CMAKE_SOURCE_DIR}/DatabaseAttach.cpp"
         "${CMAKE_SOURCE_DIR}/TerrainDef.cpp"
     )
     target_include_directories(test_db_loaders PRIVATE

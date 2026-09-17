@@ -214,17 +214,22 @@ void RoomFactory::ParseLayout(RoomLayoutComponent& layout, const json& layoutDat
 
         for (char c : row) {
             if (x >= layout.width) break;
-            if (c == ' ') { x++; continue; }
 
             int terrainId = -1;
 
-            auto localIt = localTerrainIds.find(c);
-            if (localIt != localTerrainIds.end()) {
-                terrainId = localIt->second;
-            } else if (globalTerrain.count(c)) {
-                terrainId = static_cast<int>(c);
-            } else if (globalTerrain.count('.')) {
-                terrainId = static_cast<int>('.');
+            if (c == ' ') {
+                if (globalTerrain.count('.')) {
+                    terrainId = static_cast<int>('.');
+                }
+            } else {
+                auto localIt = localTerrainIds.find(c);
+                if (localIt != localTerrainIds.end()) {
+                    terrainId = localIt->second;
+                } else if (globalTerrain.count(c)) {
+                    terrainId = static_cast<int>(c);
+                } else if (globalTerrain.count('.')) {
+                    terrainId = static_cast<int>('.');
+                }
             }
 
             layout.SetTerrain(x, y, terrainId);
@@ -235,7 +240,7 @@ void RoomFactory::ParseLayout(RoomLayoutComponent& layout, const json& layoutDat
         if (y >= layout.height) break;
     }
 }
-}
+
 
 void RoomFactory::ParseExits(RoomExitsComponent& exits, const json& exitsData) {
     for (auto& [dirString, exitValue] : exitsData.items()) {

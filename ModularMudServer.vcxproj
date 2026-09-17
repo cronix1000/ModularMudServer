@@ -116,6 +116,10 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <DebugSymbols>
+        <SymbolSearchPaths>SRV*https://mssymbols.blob.core.windows.net/symbols</SymbolSearchPaths>
+        <ExcludeFiles>ucrtbased.dll</ExcludeFiles>
+      </DebugSymbols>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -139,11 +143,23 @@
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup>
+  <Link>
+  <SubSystem>Console</SubSystem>
+  <GenerateDebugInformation>true</GenerateDebugInformation>
+  <AdditionalDependencies>vcruntimed.lib;msvcrtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+  <DebugSymbols>
+    <SymbolSearchPaths>SRV*https://mssymbols.blob.core.windows.net/symbols</SymbolSearchPaths>
+    <ExcludeFiles>ucrtbased.dll</ExcludeFiles>
+  </DebugSymbols>
+</Link>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AmbientAISystem.cpp" />
     <ClCompile Include="AttackIntentComponent.h" />
     <ClCompile Include="BehaviorSystem.cpp" />
     <ClCompile Include="CombatStateSystem.cpp" />
+    <ClCompile Include="DatabaseAttach.cpp" />
     <ClCompile Include="GameContext.cpp" />
     <ClCompile Include="GMCPHandler.cpp" />
     <ClCompile Include="InteractableFactory.cpp" />
@@ -337,6 +353,7 @@
     <ClInclude Include="ZoneClimateComponent.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include=".env" />
     <None Include="ClassDiagram.cd" />
     <None Include="global_terrain.json" />
     <None Include="interactables.json" />
@@ -344,6 +361,8 @@
     <None Include="loot_drops.json" />
     <None Include="mobs.json" />
     <None Include="mud.db" />
+    <None Include="mud.players.db" />
+    <None Include="mud.world.db" />
     <None Include="skills.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

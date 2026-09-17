@@ -57,6 +57,11 @@ private:
     // Helper to run the CREATE TABLE sql
     void InitializeSchema();
 
+    // One-shot copy of any main.player_* rows into players.player_*, then
+    // drop the originals. No-op if the world DB has no player rows or the
+    // players DB already contains them.
+    void MigratePlayersFromMain();
+
     void SeedDefaultPlayerIfEmpty();
 
     // Helper for error logging
