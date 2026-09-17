@@ -17,7 +17,8 @@ find_package(SQLite3 REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(Lua REQUIRED)
 
-# Find sol2 (header-only). Prefer system / vcpkg install; fall back to FetchContent.
+# Find sol2 (header-only). Prefer system / vcpkg install; otherwise fetch the
+# single-header release tarball (no CMake subdir, no Lua rebuild).
 set(SOL2_VERSION v3.3.0)
 
 find_path(SOL2_INCLUDE_DIR sol/sol.hpp
@@ -28,19 +29,16 @@ find_path(SOL2_INCLUDE_DIR sol/sol.hpp
 )
 
 if(NOT SOL2_INCLUDE_DIR)
-    include(FetchContent)
-    FetchContent_Declare(
-        sol2
-        GIT_REPOSITORY https://github.com/ThePhD/sol2.git
-        GIT_TAG        ${SOL2_VERSION}
-        GIT_SHALLOW    TRUE
-    )
-    set(SOL2_BUILD_TESTS  OFF CACHE BOOL "" FORCE)
-    set(SOL2_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-    set(SOL2_EXAMPLES       OFF CACHE BOOL "" FORCE)
-    set(SOL2_INSTALL        OFF CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(sol2)
-    set(SOL2_INCLUDE_DIR ${sol2_SOURCE_DIR}/include)
+    set(SOL2_SRC ${CMAKE_BINARY_DIR}/_deps/sol2-src)
+    file(MAKE_DIRECTORY ${SOL2_SRC}/include/sol)
+    if(NOT EXISTS ${SOL2_SRC}/include/sol/sol.hpp)
+        file(DOWNLOAD
+            https://github.com/ThePhD/sol2/releases/download/${SOL2_VERSION}/sol.hpp
+            ${SOL2_SRC}/include/sol/sol.hpp
+            SHOW_PROGRESS
+        )
+    endif()
+    set(SOL2_INCLUDE_DIR ${SOL2_SRC}/include)
 endif()
 
 # Source files (automatically collect all .cpp files)
