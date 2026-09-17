@@ -42,8 +42,17 @@
 #include <set>
 
 GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : gameContext(ctx), isRunning(true), inputQueue(input) {
-    const char* envPath = std::getenv("MUD_DB_PATH");
-    const std::string dbPath = envPath ? envPath : "mud.db";
+    std::string dbPath = "mud.world.db";
+    char* envBuf = nullptr;
+    size_t envLen = 0;
+    errno_t err = _dupenv_s(&envBuf, &envLen, "MUD_DB_PATH");
+    if (err == 0 && envBuf != nullptr && envLen > 0) {
+        dbPath.assign(envBuf, envLen);
+    }
+    if (envBuf) {
+        free(envBuf);
+        envBuf = nullptr;
+    }
 
     fprintf(stderr, "DEBUG: GE 1\n"); fflush(stderr);
     world = new World();
@@ -322,3 +331,4 @@ void GameEngine::OnPlayerChangedZone(int playerEntityId, const std::string& oldZ
         ambientAISystem->OnPlayerEnteredZone(newZone);
     }
 }
+

@@ -30,4 +30,9 @@ public:
     // Used by the admin loader / split script so the players file is born
     // with the expected tables even when the server isn't running.
     static bool EnsurePlayersFile(const std::string& playersDbPath);
+
+    // Single entry point: resolves the players DB path (MUD_PLAYERS_DB env or
+    // derived from worldDbPath), ensures the file exists, and ATTACHes it onto
+    // `db` under alias `kPlayersDbAlias`. Returns false on any failure.
+    static bool OpenAndAttach(sqlite3* db, const std::string& worldDbPath);
 };
