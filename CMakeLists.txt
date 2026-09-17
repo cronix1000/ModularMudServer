@@ -67,6 +67,14 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${SOL2_INCLUDE_DIR}
 )
 
+# Pin sol2 to the Lua version we link against (apt: liblua5.3-dev).
+if(LUA_VERSION_MAJOR AND NOT LUA_VERSION_MAJOR STREQUAL "5")
+    message(FATAL_ERROR "This project expects Lua 5.x; found Lua ${LUA_VERSION_MAJOR}.${LUA_VERSION_MINOR}")
+endif()
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    SOL2_USING_LUA_VERSION=5${LUA_VERSION_MINOR}0
+)
+
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Threads::Threads
