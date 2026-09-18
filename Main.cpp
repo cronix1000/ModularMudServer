@@ -7,6 +7,7 @@
 #include <iostream>
 #include <string>
 #include <atomic>
+#include <unistd.h>
 
 #define DEFAULT_PORT "27015"
 
@@ -16,16 +17,20 @@ std::atomic<bool> consoleRunning{true};
 
 void ConsoleInputThread() {
 	std::cout << "Server console ready. Type 'help' for commands or 'quit' to shutdown." << std::endl;
-	
+
 	std::string line;
 	while (consoleRunning) {
 		std::cout << "> " << std::flush;
 		if (!std::getline(std::cin, line)) {
-			// EOF or error - trigger shutdown
-			consoleQueue.Push("quit");
+			if (!consoleRunning) {
+				break;
+			}
+			if (isatty(STDIN_FILENO)) {
+				consoleQueue.Push("quit");
+			}
 			break;
 		}
-		
+
 		if (!line.empty()) {
 			consoleQueue.Push(line);
 		}
@@ -81,9 +86,14 @@ int main(void) {
 	});
 	networkThread.detach();
 	
-	// Start console input thread
-	std::thread consoleThread(ConsoleInputThread);
-	consoleThread.detach();
+	// Start console input thread only when stdin is a TTY (interactive).
+	// In detached/backgrounded contexts (CI, docker compose up -d without -t,
+	// systemd, etc.) stdin is a closed pipe, and reading EOF would push "quit"
+	// and shut the server down within seconds.
+	if (isatty(STDIN_FILENO)) {
+		std::thread consoleThread(ConsoleInputThread);
+		consoleThread.detach();
+	}
 
 	// 2. Run the Game Engine on the Main Thread
 	// This is your "New Loop"
