@@ -169,10 +169,16 @@ SkillResult ScriptManager::ExecuteSkillScript(const std::string& scriptPath, con
 }
 
 void ScriptManager::load_script(const std::string& path) {
- 	auto result = lua.script_file(path);
+	auto loaded = lua.load_file(path);
+	if (!loaded.valid()) {
+		sol::error err = loaded;
+		std::cerr << "Failed to parse " << path << ": " << err.what() << std::endl;
+		return;
+	}
+	auto result = loaded();
 	if (!result.valid()) {
 		sol::error err = result;
-		std::cerr << "Failed to load " << path << ": " << err.what() << std::endl;
+		std::cerr << "Failed to execute " << path << ": " << err.what() << std::endl;
 	}
 }
 
