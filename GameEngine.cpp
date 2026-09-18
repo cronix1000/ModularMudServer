@@ -43,15 +43,8 @@
 
 GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : gameContext(ctx), isRunning(true), inputQueue(input) {
     std::string dbPath = "mud.world.db";
-    char* envBuf = nullptr;
-    size_t envLen = 0;
-    errno_t err = _dupenv_s(&envBuf, &envLen, "MUD_DB_PATH");
-    if (err == 0 && envBuf != nullptr && envLen > 0) {
-        dbPath.assign(envBuf, envLen);
-    }
-    if (envBuf) {
-        free(envBuf);
-        envBuf = nullptr;
+    if (const char* envBuf = std::getenv("MUD_DB_PATH"); envBuf != nullptr && *envBuf != '\0') {
+        dbPath = envBuf;
     }
 
     fprintf(stderr, "DEBUG: GE 1\n"); fflush(stderr);
