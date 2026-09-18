@@ -25,7 +25,10 @@ SQLiteDatabase::~SQLiteDatabase() {
 bool SQLiteDatabase::Connect(const std::string& filepath) {
     int rc = sqlite3_open(filepath.c_str(), &db);
     if (rc) {
+        fprintf(stderr, "[Database] sqlite3_open(%s) failed rc=%d msg=%s\n",
+                filepath.c_str(), rc, sqlite3_errmsg(db));
         LogError("Can't open database");
+        if (db) { sqlite3_close(db); db = nullptr; }
         return false;
     }
     printf("[Database] Connected to %s\n", filepath.c_str());
