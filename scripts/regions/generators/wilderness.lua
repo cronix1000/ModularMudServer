@@ -81,7 +81,7 @@ function generate(config)
                 type = 'mob',
                 template_id = mob_template,
             })
-        }
+        end
         if i > 1 then
             local parent = randint(1, i - 1)
             local dir = dirs[randint(1, 4)]
