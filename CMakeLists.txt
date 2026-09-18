@@ -31,13 +31,14 @@ find_path(SOL2_INCLUDE_DIR sol/sol.hpp
 if(NOT SOL2_INCLUDE_DIR)
     set(SOL2_SRC ${CMAKE_BINARY_DIR}/_deps/sol2-src)
     file(MAKE_DIRECTORY ${SOL2_SRC}/include/sol)
-    if(NOT EXISTS ${SOL2_SRC}/include/sol/sol.hpp)
-        file(DOWNLOAD
-            https://github.com/ThePhD/sol2/releases/download/${SOL2_VERSION}/sol.hpp
-            ${SOL2_SRC}/include/sol/sol.hpp
-            SHOW_PROGRESS
-        )
-    endif()
+    foreach(sol2_header sol.hpp forward.hpp config.hpp)
+        if(NOT EXISTS ${SOL2_SRC}/include/sol/${sol2_header})
+            file(DOWNLOAD
+                https://github.com/ThePhD/sol2/releases/download/${SOL2_VERSION}/${sol2_header}
+                ${SOL2_SRC}/include/sol/${sol2_header}
+            )
+        endif()
+    endforeach()
     set(SOL2_INCLUDE_DIR ${SOL2_SRC}/include)
 endif()
 

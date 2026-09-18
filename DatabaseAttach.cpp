@@ -24,8 +24,8 @@ void ExecOrWarn(sqlite3* db, const char* sql, const char* context) {
 
 bool FileExists(const std::string& path) {
     if (path.empty()) return false;
-    FILE* f = nullptr;
-    if (fopen_s(&f, path.c_str(), "rb") != 0 || !f) return false;
+    FILE* f = std::fopen(path.c_str(), "rb");
+    if (!f) return false;
     std::fclose(f);
     return true;
 }
@@ -159,15 +159,8 @@ bool DatabaseAttach::OpenAndAttach(sqlite3* db, const std::string& worldDbPath) 
 
     std::string playersPath = DerivePlayersPath(worldDbPath);
 
-    char* envBuf = nullptr;
-    size_t envLen = 0;
-    errno_t err = _dupenv_s(&envBuf, &envLen, "MUD_PLAYERS_DB");
-    if (err == 0 && envBuf != nullptr && envLen > 0) {
-        playersPath.assign(envBuf, envLen);
-    }
-    if (envBuf) {
-        free(envBuf);
-        envBuf = nullptr;
+    if (const char* envBuf = std::getenv("MUD_PLAYERS_DB"); envBuf != nullptr && *envBuf != '\0') {
+        playersPath = envBuf;
     }
 
     if (!FileExists(playersPath)) {
