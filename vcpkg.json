@@ -2,7 +2,7 @@
   "name": "modularmudserver",
   "version": "1.0.0",
   "dependencies": [
-    "sqlite3",
+    "libpqxx",
     "sol2",
     "nlohmann-json",
     "lua"
