@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "dependencies": [
     "libpqxx",
-    "sqlite3",
     "sol2",
     "nlohmann-json",
     "lua"

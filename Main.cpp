@@ -1,3 +1,4 @@
+#include "Platform.h"
 #include "Server.h"
 #include "GameEngine.h"
 #include "GameContext.h"
@@ -7,7 +8,10 @@
 #include <iostream>
 #include <string>
 #include <atomic>
+
+#ifdef PLATFORM_LINUX
 #include <unistd.h>
+#endif
 
 #define DEFAULT_PORT "27015"
 
@@ -25,9 +29,11 @@ void ConsoleInputThread() {
 			if (!consoleRunning) {
 				break;
 			}
+#ifdef PLATFORM_LINUX
 			if (isatty(STDIN_FILENO)) {
 				consoleQueue.Push("quit");
 			}
+#endif
 			break;
 		}
 
@@ -90,10 +96,16 @@ int main(void) {
 	// In detached/backgrounded contexts (CI, docker compose up -d without -t,
 	// systemd, etc.) stdin is a closed pipe, and reading EOF would push "quit"
 	// and shut the server down within seconds.
+#ifdef PLATFORM_LINUX
 	if (isatty(STDIN_FILENO)) {
 		std::thread consoleThread(ConsoleInputThread);
 		consoleThread.detach();
 	}
+#else
+	// Windows: spawn console thread unconditionally; user can close the console window to shut down.
+	std::thread consoleThread(ConsoleInputThread);
+	consoleThread.detach();
+#endif
 
 	// 2. Run the Game Engine on the Main Thread
 	// This is your "New Loop"

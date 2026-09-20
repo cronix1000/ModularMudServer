@@ -159,7 +159,6 @@
     <ClCompile Include="AttackIntentComponent.h" />
     <ClCompile Include="BehaviorSystem.cpp" />
     <ClCompile Include="CombatStateSystem.cpp" />
-    <ClCompile Include="DatabaseAttach.cpp" />
     <ClCompile Include="GameContext.cpp" />
     <ClCompile Include="GMCPHandler.cpp" />
     <ClCompile Include="InteractableFactory.cpp" />
@@ -176,6 +175,7 @@
     <ClCompile Include="CombatCommandHandler.cpp" />
     <ClCompile Include="MovementCommandHandler.cpp" />
     <ClCompile Include="ItemCommandHandler.cpp" />
+    <ClCompile Include="PostgresDatabase.cpp" />
     <ClCompile Include="SkillFactory.cpp" />
     <ClCompile Include="SocialCommandHandler.cpp" />
     <ClCompile Include="CommandInitializer.cpp" />
@@ -202,7 +202,6 @@
     <ClCompile Include="Server.cpp" />
     <ClCompile Include="SkillDefintionComponent.h" />
     <ClCompile Include="SkillSystem.cpp" />
-    <ClCompile Include="SQLiteDatabase.cpp" />
     <ClCompile Include="TargetingSystem.cpp" />
     <ClCompile Include="TelnetCodec.cpp" />
     <ClCompile Include="TerrainDef.cpp" />
@@ -254,6 +253,7 @@
     <ClInclude Include="CombatCommandHandler.h" />
     <ClInclude Include="MovementCommandHandler.h" />
     <ClInclude Include="ItemCommandHandler.h" />
+    <ClInclude Include="PostgresDatabase.h" />
     <ClInclude Include="SocialCommandHandler.h" />
     <ClInclude Include="CommandInitializer.h" />
     <ClInclude Include="Component.h" />
@@ -331,7 +331,6 @@
     <ClInclude Include="SkillSystem.h" />
     <ClInclude Include="SkillWindupComponents.h" />
     <ClInclude Include="SocketComponent.h" />
-    <ClInclude Include="SQLiteDatabase.h" />
     <ClInclude Include="StatComponent.h" />
     <ClInclude Include="StatModifier.h" />
     <ClInclude Include="StatModifierComponent.h" />

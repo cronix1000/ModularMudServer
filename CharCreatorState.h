@@ -1,11 +1,12 @@
 #pragma once
 #include "GameState.h"
-#include "ClientConnection.h"  
+#include "ClientConnection.h"
+#include "IDatabase.h"
+#include "PlayerData.h"
 #include <string>
 #include "PlayingState.h"
 #include "ClassComponent.h"
 #include "LoginState.h"
-#include "SQLiteDatabase.h"
 #include "GameEngine.h"
 
 class CharCreationState : public GameState {

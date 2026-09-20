@@ -3,7 +3,7 @@
 #include "ClientConnection.h"
 #include "GameEngine.h"
 #include "GameContext.h"
-#include "SQLiteDatabase.h"
+#include "IDatabase.h"
 #include "picosha2.h"
 #include <random>
 

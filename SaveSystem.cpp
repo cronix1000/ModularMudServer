@@ -1,6 +1,6 @@
 #include "SaveSystem.h"
+#include "IDatabase.h"
 #include "GameContext.h"
-#include "SQLiteDatabase.h"
 #include "Registry.h"
 #include "DirtyFlagComponents.h"
 

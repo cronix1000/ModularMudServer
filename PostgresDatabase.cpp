@@ -1,4 +1,9 @@
 #include "PostgresDatabase.h"
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
 #include "picosha2.h"
 #include "GameContext.h"
 #include "Registry.h"
@@ -46,7 +51,9 @@ void PostgresDatabase::LogError(const char* message) {
 bool PostgresDatabase::Connect(const std::string& connectionString) {
     try {
         conn = std::make_unique<pqxx::connection>(connectionString);
-        printf("[Postgres] Connected (search_path=%s)\n", conn->get_variable("search_path").c_str());
+        std::string searchPath;
+        try { searchPath = conn->get_var("search_path"); } catch (...) {}
+        printf("[Postgres] Connected (search_path=%s)\n", searchPath.c_str());
         return true;
     } catch (const std::exception& e) {
         std::fprintf(stderr, "[Postgres] Connect failed: %s\n", e.what());
@@ -109,8 +116,7 @@ nlohmann::json PostgresDatabase::RowToJson(const pqxx::row& row,
         if (shouldSkip(name, skipColumns)) continue;
         if (field.is_null()) continue;
 
-        const auto& oidType = field.type();
-        const auto oid = oidType.oid();
+        const auto oid = field.type();
 
         // text / varchar / char / jsonb / unknown-but-string — treat as text
         // and let jsonColumns decide if we should re-parse.
@@ -838,3 +844,7 @@ bool PostgresDatabase::LoadRoomJson(const std::string& worldId,
         return false;
     }
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
