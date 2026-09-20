@@ -4,6 +4,7 @@
 #include "WorldManager.h"
 #include "MovementSystem.h"
 #include "SQLiteDatabase.h"
+#include "PostgresDatabase.h"
 #include "PlayerData.h"
 #include "ClientConnection.h"
 #include "NetworkSyncSystem.h"
@@ -38,14 +39,14 @@
 #include "CommandRegistry.h"
 #include "CommandInitializer.h"
 #include "SkillSystem.h"
-#include <cstdlib> 
+#include <cstdlib>
 #include <set>
 
 GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : gameContext(ctx), isRunning(true), inputQueue(input) {
-    std::string dbPath = "mud.world.db";
-    if (const char* envBuf = std::getenv("MUD_DB_PATH"); envBuf != nullptr && *envBuf != '\0') {
-        dbPath = envBuf;
-    }
+    const char* dbUrl = std::getenv("MUD_DATABASE_URL");
+    const char* dbPathEnv = std::getenv("MUD_DB_PATH");
+    std::string dbPath = dbPathEnv ? dbPathEnv : "mud.world.db";
+    bool usePostgres = (dbUrl != nullptr && *dbUrl != '\0');
 
     fprintf(stderr, "DEBUG: GE 1\n"); fflush(stderr);
     world = new World();
@@ -66,9 +67,17 @@ GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : 
     fprintf(stderr, "DEBUG: GE 9 (after lua print)\n"); fflush(stderr);
     scriptEventBridge = new ScriptEventBridge(gameContext.eventBus.get(), gameContext.scripts.get());
     fprintf(stderr, "DEBUG: GE 10 (after ScriptEventBridge)\n"); fflush(stderr);
-    gameContext.db = std::make_unique<SQLiteDatabase>();
-    fprintf(stderr, "DEBUG: GE 11 (after db make)\n"); fflush(stderr);
-    gameContext.db->Connect(dbPath);
+    if (usePostgres) {
+        fprintf(stderr, "[GameEngine] backend=postgres\n");
+        gameContext.db = std::make_unique<PostgresDatabase>();
+        fprintf(stderr, "DEBUG: GE 11 (after pg db make)\n"); fflush(stderr);
+        gameContext.db->Connect(dbUrl);
+    } else {
+        fprintf(stderr, "[GameEngine] backend=sqlite path=%s\n", dbPath.c_str());
+        gameContext.db = std::make_unique<SQLiteDatabase>();
+        fprintf(stderr, "DEBUG: GE 11 (after sqlite db make)\n"); fflush(stderr);
+        gameContext.db->Connect(dbPath);
+    }
     fprintf(stderr, "DEBUG: GE 12 (after db Connect)\n"); fflush(stderr);
 
     // 3. Link the manager back to the context

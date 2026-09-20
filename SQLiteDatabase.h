@@ -27,11 +27,11 @@ public:
     std::vector<SavedItemData> GetSavedItems(int dbId);
     bool PlayerExists(const std::string& name) override;
 
-    int CreatePlayerRow(const std::string& name, const std::string& passwordHash, const std::string& salt);
+    int CreatePlayerRow(const std::string& name, const std::string& passwordHash, const std::string& salt) override;
     bool SavePlayer(EntityID playerEnt, GameContext& ctx) override;
-    void BeginTransaction();
+    void BeginTransaction() override;
 
-    void EndTransaction();
+    void EndTransaction() override;
 
     // Password Management
     bool UpdatePassword(const std::string& name, const std::string& passwordHash, const std::string& salt) override;
@@ -39,19 +39,19 @@ public:
 
     // World loading from world_* tables. Each returns a JSON array shaped to match
     // the legacy JSON file the corresponding factory used to consume.
-    bool LoadTerrain();
-    nlohmann::json LoadItems(const std::string& worldId);
-    nlohmann::json LoadMobs(const std::string& worldId);
-    nlohmann::json LoadInteractables(const std::string& worldId);
-    nlohmann::json LoadSkills(const std::string& worldId);
-    nlohmann::json LoadLootTables(const std::string& worldId);
-    nlohmann::json LoadDialogues(const std::string& worldId);
+    bool LoadTerrain() override;
+    nlohmann::json LoadItems(const std::string& worldId) override;
+    nlohmann::json LoadMobs(const std::string& worldId) override;
+    nlohmann::json LoadInteractables(const std::string& worldId) override;
+    nlohmann::json LoadSkills(const std::string& worldId) override;
+    nlohmann::json LoadLootTables(const std::string& worldId) override;
+    nlohmann::json LoadDialogues(const std::string& worldId) override;
 
     // Region / room loading
-    bool RegionExists(const std::string& worldId, const std::string& regionId);
-    bool LoadRegionFloorSettings(const std::string& worldId, const std::string& regionId, nlohmann::json& outSettings);
-    std::vector<int> LoadRoomIds(const std::string& worldId, const std::string& regionId);
-    bool LoadRoomJson(const std::string& worldId, const std::string& regionId, int roomId, nlohmann::json& outRoom);
+    bool RegionExists(const std::string& worldId, const std::string& regionId) override;
+    bool LoadRegionFloorSettings(const std::string& worldId, const std::string& regionId, nlohmann::json& outSettings) override;
+    std::vector<int> LoadRoomIds(const std::string& worldId, const std::string& regionId) override;
+    bool LoadRoomJson(const std::string& worldId, const std::string& regionId, int roomId, nlohmann::json& outRoom) override;
 
 private:
     // Helper to run the CREATE TABLE sql
