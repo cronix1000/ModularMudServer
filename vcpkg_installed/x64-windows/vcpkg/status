@@ -2,14 +2,14 @@ Package: vcpkg-cmake-config
 Version: 2024-05-23
 Architecture: x64-windows
 Multi-Arch: same
-Abi: 183a97d7f0da336c8e23f72f668ca2e0df80613151305495be4fe4f7a46c7e1d
+Abi: 13c4577ba6fefc4291c2d770842a80253defa33c26c46937ea654cf926db3483
 Status: install ok installed
 
 Package: vcpkg-cmake
 Version: 2024-04-23
 Architecture: x64-windows
 Multi-Arch: same
-Abi: accaffbf222c89141d21080180e8c021eb64e9480dcea569a694fe59a2df2fd6
+Abi: e6d0ef40cff1c36b5617065c1858d1f88198f326bcd99358dc051095925b446e
 Status: install ok installed
 
 Package: sqlite3
@@ -20,21 +20,21 @@ Multi-Arch: same
 Abi: 962c7a10b860471e3ca131d1e0e1b310eabbebcff12de5e7bef3c980b84f1c41
 Description: SQLite is a software library that implements a self-contained, serverless, zero-configuration, transactional SQL database engine.
 Default-Features: json1
-Status: install ok installed
+Status: purge ok not-installed
 
 Package: sqlite3
 Feature: json1
 Architecture: x64-windows
 Multi-Arch: same
 Description: Enable JSON functionality for sqlite3
-Status: install ok installed
+Status: purge ok not-installed
 
 Package: lua
 Version: 5.4.8
 Depends: vcpkg-cmake, vcpkg-cmake-config
 Architecture: x64-windows
 Multi-Arch: same
-Abi: e2fc89226443f7ca3c52f438ec9dd4373dfeb08ae55a25088d35769579ff062b
+Abi: d58b46f9c6b0322bb4230ca2cd0440bb30f4892d665bbee02f23cffc409c4671
 Description: A powerful, fast, lightweight, embeddable scripting language
 Status: install ok installed
 
@@ -44,7 +44,7 @@ Port-Version: 1
 Depends: vcpkg-cmake, vcpkg-cmake-config
 Architecture: x64-windows
 Multi-Arch: same
-Abi: 00df11c3a54d57a01a5f663c4fded533d59a658b7dfeea9c014ae482c52c96f6
+Abi: e25b54f10710acf7c787fae2d2a9350c88495c7204a83bff4cacc51a744357bb
 Description: JSON for Modern C++
 Status: install ok installed
 
@@ -53,7 +53,116 @@ Version: 3.5.0
 Depends: vcpkg-cmake, vcpkg-cmake-config
 Architecture: x64-windows
 Multi-Arch: same
-Abi: b12b44cd68414a91be228b7e9610b30af0297d8a3d21dfc23c26e761c18071b8
+Abi: bc5ce6911b7abe4bd8941218f3ef58bb37f4477bf0215f1ba4744bb6491d4ead
 Description: Sol3 (sol2 v3.0) - a C++ <-> Lua API wrapper with advanced features and top notch performance
+Status: install ok installed
+
+Package: zlib
+Version: 1.3.1
+Depends: vcpkg-cmake
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 33ff8e712c7f43ee648f870fe22bbd2751548b0cf6834c2cfaf23ca7f801cb0b
+Description: A compression library
+Status: install ok installed
+
+Package: vcpkg-cmake-get-vars
+Version: 2025-05-29
+Depends: vcpkg-cmake
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 891c9dbe408f31df9da744a93756207c0bbb02c3ec387703a23048518794e8d8
+Status: install ok installed
+
+Package: openssl
+Version: 3.6.0
+Port-Version: 3
+Depends: vcpkg-cmake, vcpkg-cmake-config, vcpkg-cmake-get-vars
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 187fc97d2cc402492b87a86f2ab792f7d2d64009b08ce56fc5bec9cab34066e7
+Description: OpenSSL is an open source project that provides a robust, commercial-grade, and full-featured toolkit for the Transport Layer Security (TLS) and Secure Sockets Layer (SSL) protocols. It is also a general-purpose cryptography library.
+Status: install ok installed
+
+Package: lz4
+Version: 1.10.0
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 8023ff40ca63223b3328bfa94bd4b3e37a5091dc402b1393f2d3f5fb82450355
+Description: Lossless compression algorithm, providing compression speed at 400 MB/s per core.
+Status: install ok installed
+
+Package: vcpkg-tool-meson
+Version: 1.9.0
+Port-Version: 3
+Depends: vcpkg-cmake-get-vars
+Architecture: x64-windows
+Multi-Arch: same
+Abi: a2cd9c62de3f792e68182f2773de0052850818fc6a2ad287be69b6d4e44a6447
+Description: Meson build system
+Status: install ok installed
+
+Package: pkgconf
+Version: 2.5.1
+Port-Version: 4
+Depends: vcpkg-tool-meson
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 68111fee85484d5a297c74069c2c8d5f92f55b9adb1771528e6cd0fb7013c7da
+Description: pkgconf is a program which helps to configure compiler and linker flags for development libraries. It is similar to pkg-config from freedesktop.org.
+Status: install ok installed
+
+Package: vcpkg-pkgconfig-get-modules
+Version: 2024-04-03
+Depends: pkgconf
+Architecture: x64-windows
+Multi-Arch: same
+Abi: dcbf12ce97be8d5ae2124b18c78725f4f39a6d03c4cf4b5389011f0e01603019
+Status: install ok installed
+
+Package: libpq
+Version: 16.9
+Port-Version: 2
+Depends: vcpkg-cmake-get-vars, vcpkg-pkgconfig-get-modules
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 931398c4cde3906a523b8e7796293d8f2f42c64682b336360d7f34694a532a63
+Description: The official database access API of postgresql
+Default-Features: lz4, openssl, zlib
+Status: install ok installed
+
+Package: libpq
+Feature: lz4
+Depends: lz4
+Architecture: x64-windows
+Multi-Arch: same
+Description: Use lz4
+Status: install ok installed
+
+Package: libpq
+Feature: openssl
+Depends: openssl
+Architecture: x64-windows
+Multi-Arch: same
+Description: support for encrypted client connections and random number generation on platforms that do not have "/dev/urandom" (except windows)
+Status: install ok installed
+
+Package: libpq
+Feature: zlib
+Depends: zlib
+Architecture: x64-windows
+Multi-Arch: same
+Description: Use zlib
+Status: install ok installed
+
+Package: libpqxx
+Version: 7.10.4
+Depends: libpq, vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 4bb775a5e73ad74a591f5340d54a6e866dd96b128845d85906058cd924e4036b
+Description: The official* C++ client API for PostgreSQL.
+    *) NB https://pqxx.org/libpqxx/faq/
 Status: install ok installed
 
