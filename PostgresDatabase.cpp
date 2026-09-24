@@ -404,7 +404,7 @@ bool PostgresDatabase::LoadTerrain() {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec(
             "SELECT symbol, name, color, blocks_move, blocks_sight, move_cost "
-            "FROM terrains"
+            "FROM world.world_terrains"
         );
         int count = 0;
         for (const auto& row : r) {
@@ -436,7 +436,7 @@ nlohmann::json PostgresDatabase::LoadItems(const std::string& worldId) {
         pqxx::result r = tx.exec_params(
             "SELECT template_id, name, description, char, color, value, weight, "
             "       equippable, type, components_json, script_ref "
-            "FROM items WHERE world_id = $1",
+            "FROM world.world_items WHERE world_id = $1",
             worldId
         );
         int count = 0;
@@ -480,7 +480,7 @@ nlohmann::json PostgresDatabase::LoadMobs(const std::string& worldId) {
             "SELECT template_id, name, description, char, color, hp, level, ai, loot_drop, "
             "       strength, dexterity, intelligence, attack_damage, attack_speed, crit_chance, "
             "       crit_mult, attack_patterns_json, script_ref, extra_json "
-            "FROM mobs WHERE world_id = $1",
+            "FROM world.world_mobs WHERE world_id = $1",
             worldId
         );
         int count = 0;
@@ -517,7 +517,7 @@ nlohmann::json PostgresDatabase::LoadInteractables(const std::string& worldId) {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec_params(
             "SELECT template_id, name, description, char, color, components_json, script_ref "
-            "FROM interactables WHERE world_id = $1",
+            "FROM world.world_interactables WHERE world_id = $1",
             worldId
         );
         int count = 0;
@@ -556,7 +556,7 @@ nlohmann::json PostgresDatabase::LoadSkills(const std::string& worldId) {
         json categories = json::object();
         pqxx::result cats = tx.exec_params(
             "SELECT category_id, name, description, stats_json, synergy_bonus "
-            "FROM skill_categories WHERE world_id = $1",
+            "FROM world.world_skill_categories WHERE world_id = $1",
             worldId
         );
         int catCount = 0;
@@ -574,7 +574,7 @@ nlohmann::json PostgresDatabase::LoadSkills(const std::string& worldId) {
         pqxx::result sks = tx.exec_params(
             "SELECT skill_id, category_id, name, description, type, activation, command, "
             "       cooldown, windup, costs_json, targeting, range, script_ref "
-            "FROM skills WHERE world_id = $1",
+            "FROM world.world_skills WHERE world_id = $1",
             worldId
         );
         int skillCount = 0;
@@ -604,7 +604,7 @@ nlohmann::json PostgresDatabase::LoadLootTables(const std::string& worldId) {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec_params(
             "SELECT table_id, name, entries_json "
-            "FROM loot_tables WHERE world_id = $1",
+            "FROM world.world_loot_tables WHERE world_id = $1",
             worldId
         );
         int count = 0;
@@ -629,7 +629,7 @@ nlohmann::json PostgresDatabase::LoadDialogues(const std::string& worldId) {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec_params(
             "SELECT node_id, text, idle_json, combat_json, death_json, options_json "
-            "FROM dialogues WHERE world_id = $1",
+            "FROM world.world_dialogues WHERE world_id = $1",
             worldId
         );
         int count = 0;
