@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ModularMudServer.vcxproj.user.example
+
+    Copy this file to `ModularMudServer.vcxproj.user` (same directory) and
+    replace CHANGE_ME with your real database password. The .vcxproj.user
+    file is gitignored (see ModularMudServer/.gitignore:24 `*.user`), so
+    the populated file never enters version control.
+
+    Visual Studio reads <LocalDebuggerEnvironment> on F5 and exports the
+    values into the spawned mud-server.exe process. ModularMudServer
+    consumes MUD_DATABASE_URL via std::getenv in GameEngine.cpp:45.
+
+    The URL does NOT need the `?options=-c search_path=...` segment:
+    - The role-level search_path default is set by
+      docker/postgresql/init/00-bootstrap.sh (new installs) and
+      docker/postgresql/init/01-search-path.sh (existing installs).
+    - ModularMudServer/PostgresDatabase.cpp:54 issues
+      `SET search_path TO world, players, _meta, public` on every connect.
+
+    Tunnel example (local dev against the VPS beta DB):
+        MUD_DATABASE_URL=postgresql://mud_beta:<pw>@127.0.0.1:5432/mud_beta
+
+    On the VPS itself use `postgres` instead of `127.0.0.1`. See
+    docker/.env.example for the prod/beta pair shipped with compose.
+-->
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition="'$(Platform)'=='x64'">
+    <LocalDebuggerEnvironment>MUD_DATABASE_URL=postgresql://mud_beta:CHANGE_ME@127.0.0.1:5432/mud_beta</LocalDebuggerEnvironment>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+</Project>
