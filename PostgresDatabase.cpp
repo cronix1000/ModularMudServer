@@ -51,8 +51,11 @@ void PostgresDatabase::LogError(const char* message) {
 bool PostgresDatabase::Connect(const std::string& connectionString) {
     try {
         conn = std::make_unique<pqxx::connection>(connectionString);
+        pqxx::work tx(*conn);
+        tx.exec("SET search_path TO world, players, _meta, public");
         std::string searchPath;
         try { searchPath = conn->get_var("search_path"); } catch (...) {}
+        tx.commit();
         printf("[Postgres] Connected (search_path=%s)\n", searchPath.c_str());
         return true;
     } catch (const std::exception& e) {

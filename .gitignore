@@ -32,6 +32,10 @@ CMakeUserPresets.json
 Thumbs.db
 desktop.ini
 
+# Local env (real .env stays untracked; .env.example is checked in)
+.env
+.env.local
+
 # Logs
 *.log
 server.log
