@@ -54,7 +54,9 @@ bool PostgresDatabase::Connect(const std::string& connectionString) {
         pqxx::work tx(*conn);
         tx.exec("SET search_path TO world, players, _meta, public");
         std::string searchPath;
-        try { searchPath = conn->get_var("search_path"); } catch (...) {}
+        try {
+            searchPath = tx.exec1("SHOW search_path")[0].as<std::string>();
+        } catch (...) {}
         tx.commit();
         printf("[Postgres] Connected (search_path=%s)\n", searchPath.c_str());
         return true;
@@ -70,10 +72,7 @@ void PostgresDatabase::Disconnect() {
         try { activeTx->abort(); } catch (...) {}
         activeTx.reset();
     }
-    if (conn) {
-        try { conn->close(); } catch (...) {}
-        conn.reset();
-    }
+    conn.reset();
 }
 
 void PostgresDatabase::BeginTransaction() {
