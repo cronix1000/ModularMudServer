@@ -45,8 +45,8 @@ public:
 		}
 
 		// Resize sparse map if the entity ID is out of bounds
-		if (entity >= sparse_map.size()) {
-			sparse_map.resize(entity + 1, -1);
+		if (entity >= static_cast<EntityID>(sparse_map.size())) {
+			sparse_map.resize(static_cast<size_t>(entity) + 1, -1);
 		}
 
 		// Add the component and entity to the end of the dense, packed arrays
@@ -70,7 +70,9 @@ public:
 	 * @brief Checks if an entity has a component in this pool.
 	 */
 	bool Has(EntityID entity) const {
-		return entity < sparse_map.size() && sparse_map[entity] != -1;
+		return entity >= 0
+			&& static_cast<size_t>(entity) < sparse_map.size()
+			&& sparse_map[entity] != -1;
 	}
 
 	/**
