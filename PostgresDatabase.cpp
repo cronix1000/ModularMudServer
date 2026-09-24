@@ -404,7 +404,7 @@ bool PostgresDatabase::LoadTerrain() {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec(
             "SELECT symbol, name, color, blocks_move, blocks_sight, move_cost "
-            "FROM world_terrains"
+            "FROM terrains"
         );
         int count = 0;
         for (const auto& row : r) {
@@ -420,7 +420,7 @@ bool PostgresDatabase::LoadTerrain() {
             ++count;
         }
         tx.commit();
-        printf("[Postgres] Loaded %d terrain symbols from world_terrains.\n", count);
+        printf("[Postgres] Loaded %d terrain symbols from terrains.\n", count);
         return true;
     } catch (const std::exception& e) {
         std::fprintf(stderr, "[Postgres] LoadTerrain failed: %s\n", e.what());
@@ -436,7 +436,7 @@ nlohmann::json PostgresDatabase::LoadItems(const std::string& worldId) {
         pqxx::result r = tx.exec_params(
             "SELECT template_id, name, description, char, color, value, weight, "
             "       equippable, type, components_json, script_ref "
-            "FROM world_items WHERE world_id = $1",
+            "FROM items WHERE world_id = $1",
             worldId
         );
         int count = 0;
@@ -464,7 +464,7 @@ nlohmann::json PostgresDatabase::LoadItems(const std::string& worldId) {
             ++count;
         }
         tx.commit();
-        printf("[Postgres] Loaded %d items from world_items.\n", count);
+        printf("[Postgres] Loaded %d items from items.\n", count);
     } catch (const std::exception& e) {
         std::fprintf(stderr, "[Postgres] LoadItems failed: %s\n", e.what());
     }
@@ -480,7 +480,7 @@ nlohmann::json PostgresDatabase::LoadMobs(const std::string& worldId) {
             "SELECT template_id, name, description, char, color, hp, level, ai, loot_drop, "
             "       strength, dexterity, intelligence, attack_damage, attack_speed, crit_chance, "
             "       crit_mult, attack_patterns_json, script_ref, extra_json "
-            "FROM world_mobs WHERE world_id = $1",
+            "FROM mobs WHERE world_id = $1",
             worldId
         );
         int count = 0;
@@ -503,7 +503,7 @@ nlohmann::json PostgresDatabase::LoadMobs(const std::string& worldId) {
             ++count;
         }
         tx.commit();
-        printf("[Postgres] Loaded %d mobs from world_mobs.\n", count);
+        printf("[Postgres] Loaded %d mobs from mobs.\n", count);
     } catch (const std::exception& e) {
         std::fprintf(stderr, "[Postgres] LoadMobs failed: %s\n", e.what());
     }
@@ -517,7 +517,7 @@ nlohmann::json PostgresDatabase::LoadInteractables(const std::string& worldId) {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec_params(
             "SELECT template_id, name, description, char, color, components_json, script_ref "
-            "FROM world_interactables WHERE world_id = $1",
+            "FROM interactables WHERE world_id = $1",
             worldId
         );
         int count = 0;
@@ -540,7 +540,7 @@ nlohmann::json PostgresDatabase::LoadInteractables(const std::string& worldId) {
             ++count;
         }
         tx.commit();
-        printf("[Postgres] Loaded %d interactables from world_interactables.\n", count);
+        printf("[Postgres] Loaded %d interactables from interactables.\n", count);
     } catch (const std::exception& e) {
         std::fprintf(stderr, "[Postgres] LoadInteractables failed: %s\n", e.what());
     }
@@ -556,7 +556,7 @@ nlohmann::json PostgresDatabase::LoadSkills(const std::string& worldId) {
         json categories = json::object();
         pqxx::result cats = tx.exec_params(
             "SELECT category_id, name, description, stats_json, synergy_bonus "
-            "FROM world_skill_categories WHERE world_id = $1",
+            "FROM skill_categories WHERE world_id = $1",
             worldId
         );
         int catCount = 0;
@@ -574,7 +574,7 @@ nlohmann::json PostgresDatabase::LoadSkills(const std::string& worldId) {
         pqxx::result sks = tx.exec_params(
             "SELECT skill_id, category_id, name, description, type, activation, command, "
             "       cooldown, windup, costs_json, targeting, range, script_ref "
-            "FROM world_skills WHERE world_id = $1",
+            "FROM skills WHERE world_id = $1",
             worldId
         );
         int skillCount = 0;
@@ -589,7 +589,7 @@ nlohmann::json PostgresDatabase::LoadSkills(const std::string& worldId) {
         tx.commit();
         out["skill_categories"] = categories;
         out["skills"] = skills;
-        printf("[Postgres] Loaded %d skill categories and %d skills from world_skills.\n",
+        printf("[Postgres] Loaded %d skill categories and %d skills from skills.\n",
                catCount, skillCount);
     } catch (const std::exception& e) {
         std::fprintf(stderr, "[Postgres] LoadSkills failed: %s\n", e.what());
@@ -604,7 +604,7 @@ nlohmann::json PostgresDatabase::LoadLootTables(const std::string& worldId) {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec_params(
             "SELECT table_id, name, entries_json "
-            "FROM world_loot_tables WHERE world_id = $1",
+            "FROM loot_tables WHERE world_id = $1",
             worldId
         );
         int count = 0;
@@ -615,7 +615,7 @@ nlohmann::json PostgresDatabase::LoadLootTables(const std::string& worldId) {
             ++count;
         }
         tx.commit();
-        printf("[Postgres] Loaded %d loot tables from world_loot_tables.\n", count);
+        printf("[Postgres] Loaded %d loot tables from loot_tables.\n", count);
     } catch (const std::exception& e) {
         std::fprintf(stderr, "[Postgres] LoadLootTables failed: %s\n", e.what());
     }
@@ -629,7 +629,7 @@ nlohmann::json PostgresDatabase::LoadDialogues(const std::string& worldId) {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec_params(
             "SELECT node_id, text, idle_json, combat_json, death_json, options_json "
-            "FROM world_dialogues WHERE world_id = $1",
+            "FROM dialogues WHERE world_id = $1",
             worldId
         );
         int count = 0;
