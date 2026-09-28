@@ -1,32 +1,48 @@
-// Standalone smoke test for SQLiteDatabase world loaders.
-// Build: included in CMakeLists as a non-default target.
-// Run from the project root: ./test_db_loaders ../ModularMudServer/mud.db
+// Standalone smoke test for PostgresDatabase world loaders.
+//
+// Build: included in CMakeLists as a non-default target when a libpqxx
+// development install is present.
+//
+// Run:
+//   MUD_DATABASE_URL=postgresql://mud_prod:pw@localhost:5432/mud_prod \
+//       ./test_pg_loaders
+//
+// The test connects to whatever MUD_DATABASE_URL points at and exercises the
+// same surface as test_db_loaders.cpp. The intent is parity: a database
+// imported from the same SQLite source via scripts/pg-import.sh should produce
+// the same JSON shape here as the SQLite test produces against mud.world.db.
 
-#include "SQLiteDatabase.h"
+#include "PostgresDatabase.h"
 #include <iostream>
+#include <cstdlib>
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
 
 static int errors = 0;
-#define CHECK(cond, msg) do { if (!(cond)) { std::cerr << "FAIL: " << msg << std::endl; ++errors; } else { std::cout << "PASS: " << msg << std::endl; } } while(0)
+#define CHECK(cond, msg) do { \
+    if (!(cond)) { std::cerr << "FAIL: " << msg << std::endl; ++errors; } \
+    else { std::cout << "PASS: " << msg << std::endl; } \
+} while(0)
 
-int main(int argc, char** argv) {
-    std::string dbPath = argc > 1 ? argv[1] : "../ModularMudServer/mud.db";
-
-    SQLiteDatabase db;
-    if (!db.Connect(dbPath)) {
-        std::cerr << "Connect failed for " << dbPath << std::endl;
+int main() {
+    const char* url = std::getenv("MUD_DATABASE_URL");
+    if (!url || !*url) {
+        std::cerr << "MUD_DATABASE_URL not set; nothing to test." << std::endl;
         return 2;
     }
-    std::cout << "Connected to " << dbPath << std::endl;
 
-    // Terrain
+    PostgresDatabase db;
+    if (!db.Connect(url)) {
+        std::cerr << "Connect failed for " << url << std::endl;
+        return 2;
+    }
+    std::cout << "Connected to " << url << std::endl;
+
     CHECK(db.LoadTerrain(), "LoadTerrain returned true");
 
-    // Items
     json items = db.LoadItems("default");
-    std::cout << "Items is_object=" << items.is_object() << ", keys=" << items.size() << std::endl;
+    std::cout << "Items keys=" << items.size() << std::endl;
     CHECK(items.is_object() && items.size() >= 4, "LoadItems returns >=4 item templates");
     if (items.contains("stick")) {
         json stick = items["stick"];
@@ -36,9 +52,8 @@ int main(int argc, char** argv) {
         CHECK(stick["components"].is_object(), "stick.components is object");
     }
 
-    // Mobs
     json mobs = db.LoadMobs("default");
-    std::cout << "Mobs: keys=" << mobs.size() << std::endl;
+    std::cout << "Mobs keys=" << mobs.size() << std::endl;
     CHECK(mobs.is_object() && mobs.size() >= 5, "LoadMobs returns >=5 mob templates");
     if (mobs.contains("goblin")) {
         json goblin = mobs["goblin"];
@@ -49,41 +64,27 @@ int main(int argc, char** argv) {
         CHECK(goblin["attack_patterns"].is_array(), "goblin.attack_patterns is array");
     }
 
-    // Interactables
     json interactables = db.LoadInteractables("default");
-    std::cout << "Interactables: keys=" << interactables.size() << std::endl;
+    std::cout << "Interactables keys=" << interactables.size() << std::endl;
     CHECK(interactables.size() >= 3, "LoadInteractables returns >=3 templates");
-    if (interactables.contains("healing_shrine")) {
-        std::cout << "healing_shrine: " << interactables["healing_shrine"].dump() << std::endl;
-    }
 
-    // Skills
     json skills = db.LoadSkills("default");
-    std::cout << "Skills: " << skills.dump() << std::endl;
     CHECK(skills.contains("skill_categories"), "skills has skill_categories");
     CHECK(skills.contains("skills"), "skills has skills");
     CHECK(skills["skill_categories"].size() >= 3, "skill_categories >= 3");
     CHECK(skills["skills"].size() >= 3, "skills >= 3");
 
-    // Loot tables
     json loot = db.LoadLootTables("default");
-    std::cout << "Loot: " << loot.dump() << std::endl;
+    (void)loot;
 
-    // Dialogues
     json dialogues = db.LoadDialogues("default");
-    std::cout << "Dialogues: " << dialogues.dump() << std::endl;
     CHECK(dialogues.size() >= 2, "LoadDialogues returns >=2 entries");
 
-    // Region + rooms
     CHECK(db.RegionExists("default", "floor1"), "Region floor1 exists");
     json floorSettings;
     CHECK(db.LoadRegionFloorSettings("default", "floor1", floorSettings), "LoadRegionFloorSettings floor1");
-    std::cout << "floor1 settings: " << floorSettings.dump() << std::endl;
 
     auto roomIds = db.LoadRoomIds("default", "floor1");
-    std::cout << "floor1 room ids: ";
-    for (int r : roomIds) std::cout << r << " ";
-    std::cout << std::endl;
     CHECK(!roomIds.empty(), "floor1 has rooms");
 
     for (int rid : roomIds) {

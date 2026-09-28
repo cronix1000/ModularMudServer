@@ -3,7 +3,6 @@
 #include "PlayerData.h"
 #include "GameContext.h"
 #include "Registry.h"
-#include "SQLiteDatabase.h"
 #include "ClientComponent.h"
 #include "PlayerComponent.h"
 #include "StatComponent.h"

@@ -13,9 +13,22 @@ endif()
 
 # Find packages
 find_package(Threads REQUIRED)
-find_package(SQLite3 REQUIRED)
+find_package(PostgreSQL REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(Lua REQUIRED)
+
+# libpqxx is shipped by vcpkg but doesn't provide a CMake config. Locate the
+# library by name so we can link targets against it directly.
+find_library(PQXX_LIBRARY NAMES pqxx
+    PATHS
+        ${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib
+        ${CMAKE_PREFIX_PATH}/lib
+        /usr/lib
+        /usr/local/lib
+)
+if(NOT PQXX_LIBRARY)
+    message(FATAL_ERROR "libpqxx not found. Install with `vcpkg install libpqxx`.")
+endif()
 
 # Find sol2 (header-only). Prefer system / vcpkg install; otherwise fetch the
 # single-header release tarball (no CMake subdir, no Lua rebuild).
@@ -63,7 +76,7 @@ add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 # Include directories
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}
-    ${SQLITE3_INCLUDE_DIRS}
+    ${PostgreSQL_INCLUDE_DIRS}
     ${LUA_INCLUDE_DIR}
     ${SOL2_INCLUDE_DIR}
 )
@@ -79,7 +92,8 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Threads::Threads
-    SQLite::SQLite3
+    PostgreSQL::PostgreSQL
+    ${PQXX_LIBRARY}
     nlohmann_json::nlohmann_json
     ${LUA_LIBRARIES}
 )
@@ -104,7 +118,9 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
-# Copy data files to build directory
+# Copy data files to build directory. (Legacy JSON files are kept on disk as
+# a fallback but the running server no longer reads them — world content comes
+# from the Postgres `world.*` tables at boot.)
 set(DATA_FILES
     world_data.json
     global_terrain.json
@@ -114,7 +130,6 @@ set(DATA_FILES
     mobs.json
     skills.json
     dialogue.json
-    mud.db
 )
 
 foreach(data_file ${DATA_FILES})
@@ -140,20 +155,23 @@ install(TARGETS ${PROJECT_NAME}
 install(FILES ${DATA_FILES} DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY scripts DESTINATION share/${PROJECT_NAME} OPTIONAL)
 
-# Optional smoke test for the SQLiteDatabase world loaders.
-# Build with: cmake --build . --target test_db_loaders
-if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_db_loaders.cpp")
-    add_executable(test_db_loaders
-        "${CMAKE_SOURCE_DIR}/tests/test_db_loaders.cpp"
-        "${CMAKE_SOURCE_DIR}/SQLiteDatabase.cpp"
-        "${CMAKE_SOURCE_DIR}/DatabaseAttach.cpp"
+# Optional smoke test for the PostgresDatabase world loaders. Reads
+# MUD_DATABASE_URL at runtime.
+# Build with: cmake --build . --target test_pg_loaders
+if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_pg_loaders.cpp")
+    add_executable(test_pg_loaders
+        "${CMAKE_SOURCE_DIR}/tests/test_pg_loaders.cpp"
+        "${CMAKE_SOURCE_DIR}/PostgresDatabase.cpp"
         "${CMAKE_SOURCE_DIR}/TerrainDef.cpp"
     )
-    target_include_directories(test_db_loaders PRIVATE
+    target_include_directories(test_pg_loaders PRIVATE
         "${CMAKE_SOURCE_DIR}"
-        ${SQLite3_INCLUDE_DIRS}
+        ${PostgreSQL_INCLUDE_DIRS}
     )
-    target_link_libraries(test_db_loaders PRIVATE ${SQLite3_LIBRARIES})
+    target_link_libraries(test_pg_loaders PRIVATE
+        ${PostgreSQL_LIBRARIES}
+        ${PQXX_LIBRARY}
+    )
 endif()
 
 # Optional unit tests for the TelnetCodec (parser + outbound escape).

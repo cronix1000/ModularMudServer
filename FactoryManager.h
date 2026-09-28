@@ -1,4 +1,5 @@
 #pragma once
+#include "IDatabase.h"
 #include "ItemFactory.h"
 #include "MobFactory.h"
 #include "LootFactory.h"
@@ -6,7 +7,6 @@
 #include "PlayerFactory.h"
 #include "SkillFactory.h"
 #include "InteractableFactory.h"
-#include "SQLiteDatabase.h"
 
 class FactoryManager {
 public:
@@ -27,9 +27,9 @@ public:
     }
 
     // One function to load the entire game database.
-    // Source of truth: the world_* / player_* tables in mud.db.
+    // Source of truth: the world.* / players.* tables in MUD_DATABASE_URL.
     void LoadAllData() {
-        std::cout << "Loading Game Database from mud.db..." << std::endl;
+        std::cout << "Loading Game Database from Postgres..." << std::endl;
 
         const std::string worldId = "default";
 

@@ -5,7 +5,6 @@
 #include "EventBus.h"
 #include "WorldManager.h"
 #include "ScriptManager.h"
-#include "SQLiteDatabase.h"
 #include "TimeData.h"
 #include "FactoryManager.h"
 

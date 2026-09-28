@@ -10,7 +10,6 @@
 #include "RespawnSystem.h"
 #include "RoomFactory.h"
 #include "Registry.h"
-#include "SQLiteDatabase.h"
 
 namespace fs = std::filesystem;
 

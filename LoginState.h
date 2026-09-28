@@ -1,10 +1,10 @@
 #pragma once
 #include "GameState.h"
-#include "SQLiteDatabase.h"
 #include "ClientConnection.h"
 #include "PlayingState.h"
 #include "PlayerFactory.h"
 #include "NetworkSystem.h"
+#include "IDatabase.h"
 
 class LoginState : public GameState
 {
