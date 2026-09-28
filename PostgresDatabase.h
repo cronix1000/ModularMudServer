@@ -17,36 +17,36 @@ public:
     bool Connect(const std::string& connectionString) override;
     void Disconnect() override;
 
-    void BeginTransaction() override;
-    void EndTransaction() override;
+    void BeginTransaction();
+    void EndTransaction();
 
     bool SavePlayer(EntityID playerEnt, GameContext& ctx) override;
     bool LoadPlayer(const std::string& name, PlayerData& outData) override;
     bool PlayerExists(const std::string& name) override;
     int  CreatePlayerRow(const std::string& name,
                          const std::string& passwordHash,
-                         const std::string& salt) override;
+                         const std::string& salt);
 
     bool UpdatePassword(const std::string& name, const std::string& passwordHash, const std::string& salt) override;
     bool VerifyPassword(const std::string& name, const std::string& password) override;
 
-    bool LoadTerrain() override;
-    nlohmann::json LoadItems(const std::string& worldId) override;
-    nlohmann::json LoadMobs(const std::string& worldId) override;
-    nlohmann::json LoadInteractables(const std::string& worldId) override;
-    nlohmann::json LoadSkills(const std::string& worldId) override;
-    nlohmann::json LoadLootTables(const std::string& worldId) override;
-    nlohmann::json LoadDialogues(const std::string& worldId) override;
+    bool LoadTerrain();
+    nlohmann::json LoadItems(const std::string& worldId);
+    nlohmann::json LoadMobs(const std::string& worldId);
+    nlohmann::json LoadInteractables(const std::string& worldId);
+    nlohmann::json LoadSkills(const std::string& worldId);
+    nlohmann::json LoadLootTables(const std::string& worldId);
+    nlohmann::json LoadDialogues(const std::string& worldId);
 
-    bool RegionExists(const std::string& worldId, const std::string& regionId) override;
+    bool RegionExists(const std::string& worldId, const std::string& regionId);
     bool LoadRegionFloorSettings(const std::string& worldId,
                                  const std::string& regionId,
-                                 nlohmann::json& outSettings) override;
-    std::vector<int> LoadRoomIds(const std::string& worldId, const std::string& regionId) override;
+                                 nlohmann::json& outSettings);
+    std::vector<int> LoadRoomIds(const std::string& worldId, const std::string& regionId);
     bool LoadRoomJson(const std::string& worldId,
                       const std::string& regionId,
                       int roomId,
-                      nlohmann::json& outRoom) override;
+                      nlohmann::json& outRoom);
 
 private:
     std::unique_ptr<pqxx::connection> conn;
