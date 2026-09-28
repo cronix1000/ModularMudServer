@@ -68,6 +68,15 @@ void NetworkSyncSystem::SendLook(ClientConnection* client)
     int roomWidth = roomLayout->width;
     int roomHeight = roomLayout->height;
 
+    std::string lookupRegionId;
+    for (EntityID id : ctx.registry->view<RoomIdentityComponent>()) {
+        auto* ident = ctx.registry->GetComponent<RoomIdentityComponent>(id);
+        if (ident && ident->roomId == playerPos->roomId) {
+            lookupRegionId = ident->regionId;
+            break;
+        }
+    }
+
     // Create an overlay grid to place entities on.
     std::vector<std::vector<VisualComponent*>> entityOverlay(
         roomHeight,
@@ -130,11 +139,7 @@ void NetworkSyncSystem::SendLook(ClientConnection* client)
                 
                 // Look up terrain in global terrain map by char symbol
                 char terrainChar = static_cast<char>(terrainId);
-                if (globalTerrain.count(terrainChar)) {
-                    type = &globalTerrain[terrainChar];
-                } else if (globalTerrain.count('.')) {
-                    type = &globalTerrain['.'];
-                }
+                type = &GetTerrainFor(terrainChar, lookupRegionId.empty() ? nullptr : &lookupRegionId);
                 
                 currentColor = type->color;
                 symbol = std::string(1, type->symbol);
