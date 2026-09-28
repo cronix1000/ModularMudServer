@@ -7,7 +7,7 @@ Connect both your local machine and VPS to GitHub for push/pull and auto-deploy.
 ```
 ┌─────────────────┐         ┌──────────────┐         ┌─────────────────┐
 │  Local Machine  │ ←─push──→│    GitHub    │←─pull──→│  VPS Server     │
-│ (development)   │         │   (origin)   │         │ (<vps-host>)   │
+│ (development)   │         │   (origin)   │         │ (158.69.1.47)   │
 └─────────────────┘         └──────────────┘         └─────────────────┘
         ↑                                                    ↑
         │                                                    │
@@ -30,7 +30,7 @@ ssh-keygen -t ed25519 -C "your-email@example.com" -f ~/.ssh/github_id_ed25519
 
 SSH to your VPS first:
 ```bash
-ssh ubuntu@<vps-host>
+ssh ubuntu@158.69.1.47
 ```
 
 Then generate a key:
@@ -61,7 +61,7 @@ cat ~/.ssh/github_id_ed25519.pub
 5. Paste the public key
 6. Click **Add SSH key**
 
-Repeat for the VPS key with title `vps-<vps-host>`.
+Repeat for the VPS key with title `vps-158.69.1.47`.
 
 ## Step 3: Configure SSH Config
 
@@ -80,7 +80,7 @@ Host github.com
 
 # VPS for auto-deploy
 Host vps
-    HostName <vps-host>
+    HostName 158.69.1.47
     User ubuntu
     IdentityFile ~/.ssh/id_rsa
     AddKeysToAgent yes
@@ -155,7 +155,7 @@ git push -u origin main
 
 ```bash
 # On VPS
-ssh ubuntu@<vps-host>
+ssh ubuntu@158.69.1.47
 cd ~
 git clone git@github.com:YOUR_USERNAME/ModularMudServer.git mud_server
 cd mud_server
@@ -186,7 +186,7 @@ In your repo, go to **Settings → Secrets and variables → Actions**:
 
 | Secret | Value |
 |--------|-------|
-| `DEPLOY_HOST` | `<vps-host>` |
+| `DEPLOY_HOST` | `158.69.1.47` |
 | `DEPLOY_USER` | `ubuntu` |
 | `DEPLOY_SSH_KEY` | The entire private key from above (including `-----BEGIN...` and `-----END...`) |
 | `DEPLOY_PORT` | `22` |
@@ -257,7 +257,7 @@ ssh -i ~/.ssh/github_id_ed25519 -T git@github.com
 
 ```bash
 # Check if SSH is running on VPS
-ssh -v ubuntu@<vps-host>
+ssh -v ubuntu@158.69.1.47
 
 # Make sure VPS firewall allows port 22
 sudo ufw status  # on VPS

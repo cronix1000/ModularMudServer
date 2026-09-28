@@ -6,7 +6,7 @@ set -e
 
 GITHUB_USER="$1"
 GITHUB_EMAIL="$2"
-VPS_HOST="<vps-host>"
+VPS_HOST="158.69.1.47"
 VPS_USER="ubuntu"
 
 if [ -z "$GITHUB_USER" ] || [ -z "$GITHUB_EMAIL" ]; then
