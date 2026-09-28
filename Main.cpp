@@ -3,6 +3,7 @@
 #include "GameEngine.h"
 #include "GameContext.h"
 #include "ClientInput.h"
+#include "Platform.h"
 
 #include <thread>
 #include <iostream>
