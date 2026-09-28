@@ -57,6 +57,7 @@ EntityID RoomFactory::CreateInstancedRoom(int templateRoomId) {
         instanceId,
         identity->name + " (Instance)",
         identity->description,
+        identity->regionId,
         true,  // isInstance
         templateRoomId
     });
@@ -124,6 +125,7 @@ EntityID RoomFactory::CreateRoomInternal(const json& roomData, bool isInstance, 
     identity.roomId = roomId;
     identity.name = roomData.value("name", "Unnamed Room");
     identity.description = roomData.value("description", "");
+    identity.regionId = roomData.value("regionId", "");
     identity.isInstance = isInstance;
     identity.templateId = templateId;
     
