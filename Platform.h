@@ -1,10 +1,16 @@
 #pragma once
 
-#if defined(_WIN32) || defined(_WIN64) || defined(WIN32)
-    #define PLATFORM_WINDOWS
-#elif defined(__linux__) || defined(__unix__) || defined(__APPLE__)
-    #define PLATFORM_LINUX
-#else
+#ifndef PLATFORM_WINDOWS
+    #if defined(_WIN32) || defined(_WIN64) || defined(WIN32)
+        #define PLATFORM_WINDOWS
+    #endif
+#endif
+#ifndef PLATFORM_LINUX
+    #if defined(__linux__) || defined(__unix__) || defined(__APPLE__)
+        #define PLATFORM_LINUX
+    #endif
+#endif
+#if !defined(PLATFORM_WINDOWS) && !defined(PLATFORM_LINUX)
     #error "Unsupported platform"
 #endif
 
@@ -108,6 +114,16 @@
     #ifndef ZeroMemory
         #define ZeroMemory(dest, len) memset((dest), 0, (len))
     #endif
+#endif
+
+// TTY detection: Windows uses _isatty, POSIX uses isatty(STDIN_FILENO).
+// Both resolve to a bool "is stdin a real terminal?" check.
+#ifdef PLATFORM_WINDOWS
+    #include <io.h>
+    #define stdin_is_tty() (_isatty(_fileno(stdin)) != 0)
+#else
+    #include <unistd.h>
+    #define stdin_is_tty() (isatty(STDIN_FILENO) != 0)
 #endif
 
 #define DEFAULT_BUFLEN 1024

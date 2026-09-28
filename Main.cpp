@@ -2,12 +2,12 @@
 #include "GameEngine.h"
 #include "GameContext.h"
 #include "ClientInput.h"
+#include "Platform.h"
 
 #include <thread>
 #include <iostream>
 #include <string>
 #include <atomic>
-#include <unistd.h>
 
 #define DEFAULT_PORT "27015"
 
@@ -25,7 +25,7 @@ void ConsoleInputThread() {
 			if (!consoleRunning) {
 				break;
 			}
-			if (isatty(STDIN_FILENO)) {
+			if (stdin_is_tty()) {
 				consoleQueue.Push("quit");
 			}
 			break;
@@ -90,7 +90,7 @@ int main(void) {
 	// In detached/backgrounded contexts (CI, docker compose up -d without -t,
 	// systemd, etc.) stdin is a closed pipe, and reading EOF would push "quit"
 	// and shut the server down within seconds.
-	if (isatty(STDIN_FILENO)) {
+	if (stdin_is_tty()) {
 		std::thread consoleThread(ConsoleInputThread);
 		consoleThread.detach();
 	}
