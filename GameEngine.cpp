@@ -47,7 +47,6 @@ GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : 
         std::fprintf(stderr, "FATAL: MUD_DATABASE_URL is required (e.g. postgresql://mud_prod:...@postgres:5432/mud_prod)\n");
         std::exit(1);
     }
-    fprintf(stderr, "DEBUG: GE 0 (dbPath=%s)\n", dbPath.c_str()); fflush(stderr);
 
     fprintf(stderr, "DEBUG: GE 1\n"); fflush(stderr);
     world = new World();
