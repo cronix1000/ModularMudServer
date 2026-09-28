@@ -421,6 +421,48 @@ bool PostgresDatabase::LoadTerrain() {
         }
         tx.commit();
         printf("[Postgres] Loaded %d terrain symbols from terrains.\n", count);
+
+        pqxx::work tx2(*conn);
+        pqxx::result rr = tx2.exec(
+            "SELECT id, floor_palette_json "
+            "FROM world.world_regions "
+            "WHERE floor_palette_json IS NOT NULL "
+            "  AND floor_palette_json <> ''"
+        );
+        int regionCount = 0;
+        int tileCount = 0;
+        for (const auto& row : rr) {
+            const std::string regionId = row["id"].as<std::string>();
+            const std::string raw = row["floor_palette_json"].as<std::string>();
+            json pal;
+            try {
+                pal = json::parse(raw);
+            } catch (const std::exception& parseErr) {
+                std::fprintf(stderr,
+                    "[Postgres] Skipping invalid palette for region '%s': %s\n",
+                    regionId.c_str(), parseErr.what());
+                continue;
+            }
+            if (!pal.is_array()) continue;
+            for (const auto& tile : pal) {
+                if (!tile.is_object()) continue;
+                const std::string symTxt = tile.value("symbol", std::string{});
+                if (symTxt.empty()) continue;
+                const char symbol = symTxt[0];
+                const std::string name  = tile.value("name", std::string{"Unknown"});
+                const std::string color = tile.value("color", std::string{"&w"});
+                const bool blocksMove  = tile.value("blocks_move", 0) != 0;
+                const bool blocksSight = tile.value("blocks_sight", 0) != 0;
+                const int  moveCost    = tile.value("move_cost", 1);
+                regionTerrain[regionId][symbol] =
+                    TerrainDef(symbol, name, color, blocksMove, blocksSight, moveCost);
+                ++tileCount;
+            }
+            ++regionCount;
+        }
+        tx2.commit();
+        printf("[Postgres] Loaded region palettes: %d region(s), %d tile(s).\n",
+               regionCount, tileCount);
         return true;
     } catch (const std::exception& e) {
         std::fprintf(stderr, "[Postgres] LoadTerrain failed: %s\n", e.what());
@@ -436,8 +478,7 @@ nlohmann::json PostgresDatabase::LoadItems(const std::string& worldId) {
         pqxx::result r = tx.exec_params(
             "SELECT template_id, name, description, char, color, value, weight, "
             "       equippable, type, components_json, script_ref "
-            "FROM world.world_items WHERE world_id = $1",
-            worldId
+            "FROM world.world_items"
         );
         int count = 0;
         for (const auto& row : r) {
@@ -480,8 +521,7 @@ nlohmann::json PostgresDatabase::LoadMobs(const std::string& worldId) {
             "SELECT template_id, name, description, char, color, hp, level, ai, loot_drop, "
             "       strength, dexterity, intelligence, attack_damage, attack_speed, crit_chance, "
             "       crit_mult, attack_patterns_json, script_ref, extra_json "
-            "FROM world.world_mobs WHERE world_id = $1",
-            worldId
+            "FROM world.world_mobs"
         );
         int count = 0;
         for (const auto& row : r) {
@@ -517,8 +557,7 @@ nlohmann::json PostgresDatabase::LoadInteractables(const std::string& worldId) {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec_params(
             "SELECT template_id, name, description, char, color, components_json, script_ref "
-            "FROM world.world_interactables WHERE world_id = $1",
-            worldId
+            "FROM world.world_interactables"
         );
         int count = 0;
         for (const auto& row : r) {
@@ -556,8 +595,7 @@ nlohmann::json PostgresDatabase::LoadSkills(const std::string& worldId) {
         json categories = json::object();
         pqxx::result cats = tx.exec_params(
             "SELECT category_id, name, description, stats_json, synergy_bonus "
-            "FROM world.world_skill_categories WHERE world_id = $1",
-            worldId
+            "FROM world.world_skill_categories"
         );
         int catCount = 0;
         for (const auto& row : cats) {
@@ -574,8 +612,7 @@ nlohmann::json PostgresDatabase::LoadSkills(const std::string& worldId) {
         pqxx::result sks = tx.exec_params(
             "SELECT skill_id, category_id, name, description, type, activation, command, "
             "       cooldown, windup, costs_json, targeting, range, script_ref "
-            "FROM world.world_skills WHERE world_id = $1",
-            worldId
+            "FROM world.world_skills"
         );
         int skillCount = 0;
         for (const auto& row : sks) {
@@ -604,8 +641,7 @@ nlohmann::json PostgresDatabase::LoadLootTables(const std::string& worldId) {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec_params(
             "SELECT table_id, name, entries_json "
-            "FROM world.world_loot_tables WHERE world_id = $1",
-            worldId
+            "FROM world.world_loot_tables"
         );
         int count = 0;
         for (const auto& row : r) {
@@ -629,8 +665,7 @@ nlohmann::json PostgresDatabase::LoadDialogues(const std::string& worldId) {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec_params(
             "SELECT node_id, text, idle_json, combat_json, death_json, options_json "
-            "FROM world.world_dialogues WHERE world_id = $1",
-            worldId
+            "FROM world.world_dialogues"
         );
         int count = 0;
         for (const auto& row : r) {
@@ -671,8 +706,8 @@ bool PostgresDatabase::RegionExists(const std::string& worldId, const std::strin
     try {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec_params(
-            "SELECT 1 FROM world_regions WHERE world_id = $1 AND id = $2 LIMIT 1",
-            worldId, regionId
+            "SELECT 1 FROM world_regions WHERE id = $2 LIMIT 1",
+            regionId
         );
         tx.commit();
         return !r.empty();
@@ -720,8 +755,8 @@ std::vector<int> PostgresDatabase::LoadRoomIds(const std::string& worldId, const
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec_params(
             "SELECT room_id FROM world_rooms "
-            "WHERE world_id = $1 AND region_id = $2 ORDER BY room_id",
-            worldId, regionId
+            "WHERE region_id = $2 ORDER BY room_id",
+            regionId
         );
         for (const auto& row : r) ids.push_back(row["room_id"].as<int>());
         tx.commit();
@@ -742,20 +777,21 @@ bool PostgresDatabase::LoadRoomJson(const std::string& worldId,
         pqxx::result rs = tx.exec_params(
             "SELECT room_id, name, description, terrain, width, height, layout_json, "
             "       spawn_x, spawn_y, scripts_json, extra_json "
-            "FROM world_rooms WHERE world_id = $1 AND region_id = $2 AND room_id = $3",
-            worldId, regionId, roomId
+            "FROM world_rooms WHERE region_id = $2 AND room_id = $3",
+             regionId, roomId
         );
         if (rs.empty()) return false;
         outRoom = RowToJson(rs[0], {"world_id", "region_id", "room_id"},
                             {"layout_json", "scripts_json", "extra_json"});
         outRoom["id"] = roomId;
+        outRoom["regionId"] = regionId;
 
         json exits = json::object();
         pqxx::result er = tx.exec_params(
             "SELECT direction, to_room_id, dest_x, dest_y, is_one_way, is_portal, "
             "       portal_name, auto_trigger "
-            "FROM world_room_exits WHERE world_id = $1 AND region_id = $2 AND from_room_id = $3",
-            worldId, regionId, roomId
+            "FROM world_room_exits WHERE region_id = $2 AND from_room_id = $3",
+            regionId, roomId
         );
         for (const auto& row : er) {
             const std::string dir = row["direction"].as<std::string>();
@@ -776,8 +812,8 @@ bool PostgresDatabase::LoadRoomJson(const std::string& worldId,
         std::vector<SpawnRec> spawns;
         pqxx::result sr = tx.exec_params(
             "SELECT x, y, type, template_id, override_json, respawn_time, is_respawning "
-            "FROM world_room_spawns WHERE world_id = $1 AND region_id = $2 AND room_id = $3",
-            worldId, regionId, roomId
+            "FROM world_room_spawns WHERE region_id = $2 AND room_id = $3",
+            regionId, roomId
         );
         for (const auto& row : sr) {
             SpawnRec rec;

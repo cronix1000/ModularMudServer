@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <map>
+#include <unordered_map>
 
 struct TerrainDef {
     char symbol;
@@ -31,3 +32,14 @@ struct TerrainDef {
 };// Global declarations - ADD THESE LINES:
 extern TerrainDef VOID_TERRAIN;
 extern std::map<char, TerrainDef> globalTerrain;
+
+// Per-region terrain palettes: region_id -> symbol -> TerrainDef.
+// Looked up by NetworkSyncSystem (and any system rendering tiles for a
+// specific room) using a room's regionId. The keyset for any given region
+// need not match globalTerrain; missing symbols fall back to globalTerrain.
+extern std::unordered_map<std::string, std::map<char, TerrainDef>> regionTerrain;
+
+// Resolves a terrain symbol against the per-region palette, falling back to
+// the global palette, then to '.' (floor), then to VOID_TERRAIN. Pass
+// nullptr or empty regionId to use global only.
+const TerrainDef& GetTerrainFor(char symbol, const std::string* regionId);

@@ -37,6 +37,7 @@ struct RoomIdentityComponent {
     int roomId;
     std::string name;
     std::string description;
+    std::string regionId;
     bool isInstance = false;
     int templateId = -1;
 };
