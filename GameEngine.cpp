@@ -22,7 +22,6 @@
 #include "CleanUpSystem.h"
 #include "InventorySystem.h"
 #include "InteractionSystem.h"
-#include "CommandInterpreter.h"
 #include "MessageSystem.h"
 #include "SaveSystem.h"
 #include "RespawnSystem.h"
@@ -38,6 +37,7 @@
 #include "CommandRegistry.h"
 #include "CommandInitializer.h"
 #include "SkillSystem.h"
+#include "EntityResolver.h"
 #include <cstdlib>
 #include <set>
 
@@ -72,6 +72,7 @@ GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : 
     fprintf(stderr, "DEBUG: GE 11 (after pg db make)\n"); fflush(stderr);
     gameContext.db->Connect(dbUrl);
     fprintf(stderr, "DEBUG: GE 12 (after db Connect)\n"); fflush(stderr);
+    gameContext.entityFind = std::make_unique<EntityResolver>(gameContext.registry.get());
 
     // 3. Link the manager back to the context
 
@@ -79,8 +80,7 @@ GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : 
     fprintf(stderr, "DEBUG: GE 13 (after time)\n"); fflush(stderr);
     gameContext.factories = std::make_unique<FactoryManager>(gameContext);
     fprintf(stderr, "DEBUG: GE 14 (after FactoryManager)\n"); fflush(stderr);
-    gameContext.interpreter = std::make_unique<CommandInterpreter>(gameContext);
-    fprintf(stderr, "DEBUG: GE 15 (after CommandInterpreter)\n"); fflush(stderr);
+
     
     // Initialize new command system
     gameContext.commandRegistry = std::make_unique<CommandRegistry>(gameContext, gameContext.scripts->lua);
@@ -119,7 +119,6 @@ GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : 
     messageSytem->SubscribeToEvents();
     networkSystem->SetupListeners();
     behaviorSystem->SetupListeners();
-
 }
 
 GameEngine::~GameEngine()

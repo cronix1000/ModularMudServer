@@ -42,6 +42,7 @@ struct TimeData;
 class CommandRegistry;
 struct ClientInput;
 class SkillSystem;
+class EntityResolver;
 class GameEngine
 {
 public:

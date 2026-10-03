@@ -110,6 +110,9 @@ private:
     // A map from a component's type_index to its ComponentPool.
     std::unordered_map<std::type_index, std::unique_ptr<IComponentPool>> component_pools;
 
+    // A map for quick look up of component by name
+    std::unordered_map<std::string, EntityID> component_map;    
+
     /**
      * @brief Gets (or creates) the component pool for a given component type.
      */

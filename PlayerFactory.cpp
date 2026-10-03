@@ -40,6 +40,7 @@ EntityID PlayerFactory::LoadPlayer(std::string username, ClientConnection* conne
     // 4. Attach Components (Hydration)
     ctx.registry->AddComponent(player, ClientComponent{ connection });
     ctx.registry->AddComponent(player, PlayerComponent{ data.id, username });
+    ctx.registry->AddComponent(player, NameComponent{ username });
 
     // Stats from DB
     auto& s = data.data;

@@ -14,34 +14,49 @@ CommandRegistry::CommandRegistry(GameContext& ctx, sol::state& lua)
 CommandRegistry::~CommandRegistry() = default;
 
 void CommandRegistry::Register(const std::string& commandPath,
-							   CommandHandler handler,
+							   const CommandHandler& handler,
 							   PermissionLevel minPerm) {
-	// Split path into words
 	std::vector<std::string> path;
 	std::stringstream ss(commandPath);
 	std::string word;
-	
+
 	while (ss >> word) {
-		// Convert to lowercase
 		std::transform(word.begin(), word.end(), word.begin(), ::tolower);
 		path.push_back(word);
 	}
-	
+
 	if (!path.empty()) {
 		trie_.Insert(path, handler, minPerm);
 	}
 }
 
+void CommandRegistry::Register(const std::string& commandPath,
+							   CommandHandler&& handler,
+							   PermissionLevel minPerm) {
+	std::vector<std::string> path;
+	std::stringstream ss(commandPath);
+	std::string word;
+
+	while (ss >> word) {
+		std::transform(word.begin(), word.end(), word.begin(), ::tolower);
+		path.push_back(word);
+	}
+
+	if (!path.empty()) {
+		trie_.Insert(path, std::move(handler), minPerm);
+	}
+}
+
 void CommandRegistry::RegisterWithAliases(const std::string& primaryPath,
-										  CommandHandler handler,
+										  const CommandHandler& handler,
 										  const std::vector<std::string>& aliases,
 										  PermissionLevel minPerm) {
-	// Register primary path
 	Register(primaryPath, handler, minPerm);
-	
-	// Register aliases (pointing to same handler)
+
+	CommandHandler copy = handler;
 	for (const auto& alias : aliases) {
-		Register(alias, handler, minPerm);
+		Register(alias, copy, minPerm);
+		copy = handler;
 	}
 }
 
@@ -86,7 +101,7 @@ void CommandRegistry::RegisterLua(const std::string& commandPath,
 		return CommandResult(success, message);
 	};
 	
-	trie_.Insert(path, wrapper, minPerm);
+	trie_.Insert(path, std::move(wrapper), minPerm);
 }
 
 void CommandRegistry::Execute(ClientConnection* client, const std::string& input) {

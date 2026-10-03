@@ -185,3 +185,15 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_telnet_codec.cpp")
         "${CMAKE_SOURCE_DIR}"
     )
 endif()
+
+# Optional unit tests for EntityResolver and NameComponent::MatchesPhrase.
+# Build with: cmake --build . --target test_entity_resolver
+if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_entity_resolver.cpp")
+    add_executable(test_entity_resolver
+        "${CMAKE_SOURCE_DIR}/tests/test_entity_resolver.cpp"
+        "${CMAKE_SOURCE_DIR}/EntityResolver.cpp"
+    )
+    target_include_directories(test_entity_resolver PRIVATE
+        "${CMAKE_SOURCE_DIR}"
+    )
+endif()

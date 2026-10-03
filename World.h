@@ -24,7 +24,6 @@ public:
 	~World();
 	bool CheckIfRegionLoaded(const std::string& regionId);
 	bool LoadRegion(const std::string& regionId, GameContext& ctx);
-	bool LoadRoomFile(const std::string& path, const json& floorSettings, GameContext& ctx);
 	bool LoadRoomFromJson(const json& rData, const json& floorSettings, GameContext& ctx);
 	void ParseSpawns(const json& rData, int roomID, const json& floorSettings, GameContext& ctx);
 

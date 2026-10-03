@@ -1,5 +1,6 @@
 #pragma once
 #include "EquipmentSlot.h"
+#include <string>
 
 struct ArmourComponent {
     std::string templateID;

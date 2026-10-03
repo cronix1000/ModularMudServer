@@ -1,5 +1,8 @@
 #include "CommandTrie.h"
 #include <algorithm>
+#include <cstdio>
+#include <cstdlib>
+#include <cstdint>
 
 CommandNode* CommandNode::FindOrCreateChild(const std::string& word) {
 	auto it = children.find(word);
@@ -48,9 +51,16 @@ void CommandTrie::Insert(const std::vector<std::string>& path,
 
 CommandTrie::MatchResult CommandTrie::Match(const std::vector<std::string>& words) const {
 	MatchResult result;
-	
+
 	if (words.empty() || !root_) {
 		return result;
+	}
+
+	volatile const CommandNode* rootCheck = root_.get();
+	const uintptr_t rootAddr = reinterpret_cast<uintptr_t>(rootCheck);
+	if ((rootAddr & 0xFFFFFFFF00000000ULL) == 0xDDDDDDDD00000000ULL) {
+		fprintf(stderr, "FATAL: trie root was freed (0xDDDDDDDD). Children map corrupted.\n");
+		std::abort();
 	}
 	
 	const CommandNode* current = root_.get();

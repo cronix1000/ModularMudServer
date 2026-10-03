@@ -28,12 +28,15 @@ public:
 	
 	// C++ command registration
 	void Register(const std::string& commandPath,
-				  CommandHandler handler,
+				  const CommandHandler& handler,
 				  PermissionLevel minPerm = PermissionLevel::Guest);
-	
+	void Register(const std::string& commandPath,
+				  CommandHandler&& handler,
+				  PermissionLevel minPerm = PermissionLevel::Guest);
+
 	// Register with aliases
 	void RegisterWithAliases(const std::string& primaryPath,
-							 CommandHandler handler,
+							 const CommandHandler& handler,
 							 const std::vector<std::string>& aliases,
 							 PermissionLevel minPerm = PermissionLevel::Guest);
 	

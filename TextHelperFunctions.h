@@ -38,15 +38,26 @@ public:
                 char code = text[++i]; // Peek at the next char and skip it
                 switch (code) {
                 case 'x': result += "\033[30m"; break; // Black
+                case 'X': result += "\033[90m"; break; // Bright Black
                 case 'g': result += "\033[32m"; break; // Green
-                case 'G': result += "\033[37m"; break; // Gray
+                case 'G': result += "\033[92m"; break; // Bright Green
                 case 'b': result += "\033[34m"; break; // Blue
+                case 'B': result += "\033[94m"; break; // Bright Blue
                 case 'y': result += "\033[33m"; break; // Yellow
+                case 'Y': result += "\033[93m"; break; // Bright Yellow
                 case 'r': result += "\033[31m"; break; // Red
+                case 'R': result += "\033[91m"; break; // Bright Red
                 case 'm': result += "\033[35m"; break; // Magenta
+                case 'M': result += "\033[95m"; break; // Bright Magenta
                 case 'c': result += "\033[36m";  break; // Cyan
+                case 'C': result += "\033[96m"; break; // Bright Cyan
                 case 'w': result += "\033[0m";  break; // Reset
-                case 'd': result += "\033[29m"; break;
+                case 'W': result += "\033[97m"; break; // Bright White
+                case 'd': result += "\033[29m"; break; // Dark Gray
+                case 'D': result += "\033[90m"; break; // Dark Gray (alias)
+                case 'n': result += "\033[33m"; break; // Brown -> dark yellow
+                case 'o': result += "\033[33m"; break; // Orange -> yellow (closest basic)
+                case 'p': result += "\033[35m"; break; // Pink -> magenta (closest basic)
                 default:  result += '&'; result += code; break; // Not a code, keep it
                 }
             }

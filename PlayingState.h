@@ -3,7 +3,6 @@
 #include "GameEngine.h"
 #include "ClientConnection.h"
 #include "MoveIntentComponent.h"
-#include "CommandInterpreter.h"
 #include "CommandRegistry.h"
 #include "DirtyFlagComponents.h"
 #include "Registry.h"

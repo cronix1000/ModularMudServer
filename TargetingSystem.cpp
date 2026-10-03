@@ -8,21 +8,35 @@
 #include "PositionComponent.h"
 #include "StatComponent.h"
 #include "ClientComponent.h"
+#include "EntityResolver.h"
 
 #include <iostream>
 #include <vector>
 #include <cmath>
 
+namespace {
+    std::vector<std::string> SplitBySpace(const std::string& s) {
+        std::vector<std::string> out;
+        std::string cur;
+        for (char c : s) {
+            if (c == ' ') {
+                if (!cur.empty()) { out.push_back(cur); cur.clear(); }
+            } else {
+                cur.push_back(c);
+            }
+        }
+        if (!cur.empty()) out.push_back(cur);
+        return out;
+    }
+}
+
 void TargetingSystem::Run(float deltaTime) {
-    // Process all targeting intents
     for (EntityID sourceID : ctx.registry->view<TargetingIntentComponent>()) {
         auto* targeting = ctx.registry->GetComponent<TargetingIntentComponent>(sourceID);
         if (!targeting) continue;
 
-        // Update elapsed time for prompt expiration
         targeting->elapsedTime += deltaTime;
         if (targeting->elapsedTime > targeting->promptExpireTime) {
-            // Prompt expired
             auto* client = ctx.registry->GetComponent<ClientComponent>(sourceID);
             if (client) {
                 GameMessage msg;
@@ -34,69 +48,66 @@ void TargetingSystem::Run(float deltaTime) {
             continue;
         }
 
-        // Handle position-based targeting (AoE)
         if (targeting->isPositionTarget) {
-            // For position targeting, we don't need to resolve a specific entity
-            // Create a combat intent for the position
             CombatIntentComponent combatIntent;
             combatIntent.sourceID = sourceID;
-            combatIntent.targetID = -1; // Position target
+            combatIntent.targetID = -1;
             combatIntent.actionType = "attack";
             combatIntent.magnitude = 1.0f;
             combatIntent.damageType = "physical";
             combatIntent.attackOnce = true;
-            
+
             ctx.registry->AddComponent<CombatIntentComponent>(sourceID, combatIntent);
             ctx.registry->RemoveComponent<TargetingIntentComponent>(sourceID);
             continue;
         }
 
-        // Get source position
         auto* sourcePos = ctx.registry->GetComponent<PositionComponent>(sourceID);
         if (!sourcePos) {
             ctx.registry->RemoveComponent<TargetingIntentComponent>(sourceID);
             continue;
         }
 
-        // Find all matching targets in range
         std::vector<EntityID> matchingTargets;
-        for (EntityID targetID : ctx.registry->view<NameComponent>()) {
-            if (targetID == sourceID) continue;
 
-            auto* name = ctx.registry->GetComponent<NameComponent>(targetID);
-            auto* targetPos = ctx.registry->GetComponent<PositionComponent>(targetID);
-            auto* targetStats = ctx.registry->GetComponent<StatComponent>(targetID);
-
-            if (!name || !targetPos || !targetStats) continue;
-            if (targetStats->Health <= 0) continue;
-
-            // Check name match (case insensitive)
-            if (!name->Matches(targeting->targetName)) continue;
-
-            // Check range (simplified - same room for melee, distance check for ranged)
-            if (targeting->maxRange <= 0.0f) {
-                // Melee range - must be same room
-                if (targetPos->roomId != sourcePos->roomId) continue;
-            } else {
-                // Ranged - check distance
-                float dx = targetPos->x - sourcePos->x;
-                float dy = targetPos->y - sourcePos->y;
-                float distance = std::sqrt(dx * dx + dy * dy);
-                if (distance > targeting->maxRange) continue;
+        // If we already have stored candidates (from a prior prompt), use them.
+        if (!targeting->candidates.empty()) {
+            matchingTargets = targeting->candidates;
+        } else {
+            // First pass: query the resolver.
+            std::vector<std::string> query = targeting->queryTokens;
+            if (query.empty() && !targeting->targetName.empty()) {
+                query = SplitBySpace(targeting->targetName);
             }
-
-            // Check line of sight if required
-            if (targeting->requireLineOfSight) {
-                // TODO: Implement raycast for LoS
-                // For now, assume LoS is clear if in range
+            if (!query.empty() && ctx.entityFind) {
+                if (targeting->maxRange > 0.0f) {
+                    float r = targeting->maxRange;
+                    matchingTargets = ctx.entityFind->FindByShape(
+                        sourcePos->roomId, sourcePos->x, sourcePos->y,
+                        query,
+                        [r](int dx, int dy) {
+                            float d = std::sqrt(static_cast<float>(dx * dx + dy * dy));
+                            return d >= 1.0f && d <= r;
+                        });
+                } else {
+                    matchingTargets = ctx.entityFind->FindByShape(
+                        sourcePos->roomId, sourcePos->x, sourcePos->y,
+                        query, EntityResolver::ShapeAround());
+                }
+                // Exclude the source itself and dead mobs.
+                std::vector<EntityID> filtered;
+                filtered.reserve(matchingTargets.size());
+                for (EntityID e : matchingTargets) {
+                    if (e == sourceID) continue;
+                    auto* stats = ctx.registry->GetComponent<StatComponent>(e);
+                    if (stats && stats->Health <= 0) continue;
+                    filtered.push_back(e);
+                }
+                matchingTargets = std::move(filtered);
             }
-
-            matchingTargets.push_back(targetID);
         }
 
-        // Handle target selection
         if (matchingTargets.empty()) {
-            // No targets found
             auto* client = ctx.registry->GetComponent<ClientComponent>(sourceID);
             if (client) {
                 GameMessage msg;
@@ -105,34 +116,34 @@ void TargetingSystem::Run(float deltaTime) {
                 client->QueueGameMessage(msg);
             }
             ctx.registry->RemoveComponent<TargetingIntentComponent>(sourceID);
-        } else if (matchingTargets.size() == 1 || targeting->targetIndex == 1) {
-            // Single target or specifically selected first
+        } else if (matchingTargets.size() == 1 || targeting->targetIndex >= 1) {
             EntityID targetID = matchingTargets[0];
-            if (targeting->targetIndex > 1 && targeting->targetIndex <= matchingTargets.size()) {
+            if (targeting->targetIndex >= 2 && targeting->targetIndex <= static_cast<int>(matchingTargets.size())) {
                 targetID = matchingTargets[targeting->targetIndex - 1];
             }
 
-            // Resolve target - create skill intent for combat
             SkillIntentComponent skillIntent;
-            skillIntent.skillId = targeting->skillID; // Basic attack
+            skillIntent.skillId = targeting->skillID;
             skillIntent.targetId = targetID;
-            
+
             ctx.registry->AddComponent<SkillIntentComponent>(sourceID, skillIntent);
             ctx.registry->RemoveComponent<TargetingIntentComponent>(sourceID);
         } else {
-            // Multiple targets - send prompt if not already sent
-            if (targeting->elapsedTime <= deltaTime) { // First frame
+            // Multiple targets — prompt. On first frame, populate candidates so subsequent
+            // numeric-reply commands can use them directly.
+            targeting->candidates = matchingTargets;
+            if (targeting->elapsedTime <= deltaTime) {
                 auto* client = ctx.registry->GetComponent<ClientComponent>(sourceID);
                 if (client) {
-                    std::string prompt = "Multiple " + targeting->targetName + " found:\n";
+                    std::string prompt = "Multiple " + targeting->targetName + " found:\r\n";
                     for (size_t i = 0; i < matchingTargets.size() && i < 5; i++) {
                         auto* name = ctx.registry->GetComponent<NameComponent>(matchingTargets[i]);
                         if (name) {
-                            prompt += std::to_string(i + 1) + ". " + name->displayName + "\n";
+                            prompt += std::to_string(i + 1) + ". " + name->displayName + "\r\n";
                         }
                     }
                     prompt += "Type 'attack " + targeting->targetName + " <number>' to select.";
-                    
+
                     GameMessage msg;
                     msg.type = "targeting_prompt";
                     msg.consoleText = prompt;

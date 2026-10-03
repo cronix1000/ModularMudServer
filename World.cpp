@@ -1,6 +1,4 @@
 #include "World.h"
-#include <filesystem>
-#include <fstream>
 #include <iostream>
 #include "ItemFactory.h"
 #include "MobFactory.h"
@@ -11,34 +9,7 @@
 #include "RoomFactory.h"
 #include "Registry.h"
 
-namespace fs = std::filesystem;
-
-const fs::path REGION_DIR = "regions";
 const std::string DEFAULT_WORLD_ID = "default";
-
-namespace {
-    bool ResolveRegionDirectory(const std::string& region, fs::path& outDir) {
-        fs::path candidate = REGION_DIR / region;
-        if (fs::is_directory(candidate)) {
-            outDir = candidate;
-            return true;
-        }
-
-        fs::path current = fs::current_path();
-        while (true) {
-            candidate = current / REGION_DIR / region;
-            if (fs::is_directory(candidate)) {
-                outDir = candidate;
-                return true;
-            }
-
-            if (current == current.root_path()) break;
-            current = current.parent_path();
-        }
-
-        return false;
-    }
-}
 
 World::World()
 {
@@ -94,74 +65,10 @@ bool World::LoadRegion(const std::string& regionId, GameContext& ctx)
         return true;
     }
 
-    // Legacy fallback (deprecated): walk regions/<id>/*.json files.
-    fs::path regionDir;
-    if (!ResolveRegionDirectory(regionId, regionDir)) {
-        std::cerr << "World::LoadRegion: cannot find region '" << regionId << "' in DB or near "
-            << fs::current_path() << std::endl;
-        return false;
-    }
-
-    nlohmann::json floorSettings;
-    fs::path settingsPath = regionDir / "floor_settings.json";
-    if (fs::exists(settingsPath)) {
-        std::ifstream sFile(settingsPath);
-        try {
-            sFile >> floorSettings;
-        }
-        catch (const nlohmann::json::parse_error& e) {
-            std::cerr << "JSON Parse Error in " << settingsPath << ": " << e.what() << std::endl;
-        }
-    }
-
-    try {
-        for (const auto& entry : fs::directory_iterator(regionDir)) {
-            if (!entry.is_regular_file()) continue;
-
-            fs::path roomPath = entry.path();
-            if (roomPath.extension() != ".json" ||
-                roomPath.filename() == "floor_settings.json") continue;
-
-            LoadRoomFile(roomPath.string(), floorSettings, ctx);
-        }
-    }
-    catch (const fs::filesystem_error& e) {
-        std::cerr << "World::LoadRegion: failed to read directory '" << regionDir << "': "
-            << e.what() << std::endl;
-        return false;
-    }
-
-    loadedRegions.insert(regionId);
-    return true;
-}
-
-bool World::LoadRoomFile(const std::string& path, const json& floorSettings, GameContext& ctx)
-{
-    if (!roomFactory) {
-        roomFactory = new RoomFactory(ctx);
-    }
-
-    std::ifstream file(path);
-    if (!file.is_open()) {
-        std::cerr << "World::LoadRoomFile: Failed to open " << path << std::endl;
-        return false;
-    }
-
-    json rData;
-    try {
-        file >> rData;
-    }
-    catch (const json::parse_error& e) {
-        std::cerr << "JSON Parse Error in " << path << ": " << e.what() << std::endl;
-        return false;
-    }
-
-    if (rData.is_null()) {
-        std::cerr << "World::LoadRoomFile: " << path << " contained no data" << std::endl;
-        return false;
-    }
-
-    return LoadRoomFromJson(rData, floorSettings, ctx);
+    std::cerr << "World::LoadRegion: region '" << regionId << "' not found in database. "
+              << "The legacy on-disk regions/<id>/*.json fallback has been removed; "
+              << "create the region, rooms, and spawns in MudAdmin instead." << std::endl;
+    return false;
 }
 
 bool World::LoadRoomFromJson(const json& rData, const json& floorSettings, GameContext& ctx)

@@ -38,7 +38,6 @@ COPY --from=builder /app/*.json /mud/
 COPY --from=builder /app/*.db /mud/
 COPY --from=builder /app/*.lua /mud/
 COPY --from=builder /app/scripts/ /mud/scripts/
-COPY --from=builder /app/regions/ /mud/regions/
 
 RUN useradd -m -u 1000 mud && chown -R mud:mud /mud
 USER mud

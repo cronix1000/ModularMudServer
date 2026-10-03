@@ -4,11 +4,12 @@
 #include "MovementCommandHandler.h"
 #include "ItemCommandHandler.h"
 #include "SocialCommandHandler.h"
+#include "LookCommandHandler.h"
 
 void CommandInitializer::RegisterAllCommands(CommandRegistry& registry) {
-	// Register all command handlers
 	CombatCommandHandler::RegisterAll(registry);
 	MovementCommandHandler::RegisterAll(registry);
 	ItemCommandHandler::RegisterAll(registry);
 	SocialCommandHandler::RegisterAll(registry);
+	LookCommandHandler::RegisterAll(registry);
 }
