@@ -221,6 +221,183 @@ for (EntityID entity : registry->view<CombatIntentComponent>()) {
 3. Add to `EventContext` variant
 4. Publish with `eventBus->Publish()`
 
+## Lua scripts — the fast iteration lane
+
+### Discovery & reload
+
+- All `*.lua` files under `ModularMudServer/scripts/` are loaded at boot
+  (`ScriptManager::load_all_scripts`).
+- **Interactable scripts** (`on_use`) hot-reload on every invocation —
+  edit the file, next interaction picks it up. No restart.
+- **All other scripts** require a server restart.
+- Path convention: `scripts/{interactables,skills,mobs,quest,room,systems,regions/generators}/<name>.lua`.
+
+### Hook surface (currently wired)
+
+#### Per-entity hooks (via `ScriptComponent.scripts_path`)
+
+| Trigger key   | Entity type   | Fires from               | Lua signature                      |
+|---------------|---------------|--------------------------|------------------------------------|
+| `on_enter`    | room          | `MovementSystem`         | `(playerId, roomId)`               |
+| `on_exit`     | room          | **NOT WIRED**            | (planned)                          |
+| `pulse`       | room          | **NOT WIRED**            | (planned)                          |
+| `on_use`      | interactable  | `InteractionSystem`      | `(context)` — returns action table |
+| `on_create`   | interactable  | **NOT WIRED**            | (planned)                          |
+| `on_use`      | skill         | `SkillSystem`            | `on_execute(self, ctx)`            |
+| `on_attack`   | mob           | `CombatStateSystem`      | `(mob_id, target_id)` — resolved at spawn from `mobs[template_id].on_attack` |
+
+#### Global hooks (via `ScriptManager::execute_hook`)
+
+| Hook                  | Fires from              | Signature                        |
+|-----------------------|-------------------------|----------------------------------|
+| `on_hour_changed`     | `WorldClimateSystem`    | `(zoneId, gameHour)`             |
+| `on_weather_changed`  | `WorldClimateSystem`    | `(zoneId, oldW, newW)`           |
+| `on_season_changed`   | `WorldClimateSystem`    | `(zoneId, newSeason)`            |
+
+#### EventBus bridges (via `ScriptEventBridge`)
+
+| Event name   | Payload                                            | Source |
+|--------------|---------------------------------------------------|--------|
+| `RoomEntered`| `{entity_id, room_id}`                            | `MovementSystem` |
+| `CombatHit`  | `{attacker_id, victim_id}`                        | `CombatSystem` |
+| `XpGain`     | `{player_id, amount, source}`                     | `ScriptManager::GrantExperience` |
+| `LevelUp`    | `{player_id, new_level}`                          | `ScriptManager::GrantExperience` |
+| `QuestAccept`| `{player_id, quest_id}`                           | `ScriptManager::AcceptQuest` |
+| `QuestObjectiveProgress` | `{player_id, quest_id, objective_id, count}` | `ScriptManager::ProgressQuest` |
+| `QuestComplete` | `{player_id, quest_id}`                        | `ScriptManager::CompleteQuest` |
+
+### The bridge gap (the `meta` problem)
+
+Lua scripts receive trigger context only. They cannot read entity
+metadata from the Postgres row today — `entity.meta` doesn't exist.
+**Fix in Layer 2**: expose `components_json` parsed value to Lua via
+`get_meta(entity_id)`. Until that ships, scripts must hardcode values
+or read them via a different binding.
+
+### Hooks that exist but aren't bridged (silent dead code)
+
+If you write a script with these, nothing will fire:
+
+- `World.GiveExperience(playerId, amount)` — referenced in `quiz.lua`
+- `World.MessageLog(msg)` — referenced in `quiz.lua`
+- `World.SpawnItemAtEntity(template, npcId)` — referenced in `quiz.lua`
+- `add_known_recipe(uid, recipe_id)` — referenced in `feats.lua`
+- `get_progression(uid)` — referenced in `feats.lua`
+
+The current bindings available from Lua are:
+
+- `World_GrantExperience(player_id, amount[, source])` — increments XP and
+  fires `XpGain` (and `LevelUp` if a threshold is crossed). Source is
+  any string, e.g. `"craft:healing_potion"` or `"quest:newbie_move"`.
+- `World_AcceptQuest(player_id, quest_id)` / `World_ProgressQuest(...)` /
+  `World_CompleteQuest(...)` / `World_IsQuestActive(...)` — quest state
+  is stored in `player_players.data` (round-trips with `PlayerVariablesComponent.stringVars`).
+
+### Hooks that are entirely absent (must be added by a coder)
+
+For most game features you'll need to add the hook yourself first.
+Common gaps by layer:
+
+- **Layer 1 (done)**: `XpGain`, `LevelUp`, `QuestAccept`,
+  `QuestObjectiveProgress`, `QuestComplete`, `on_attack` mob hook.
+- **Layer 2**: `on_player_death`, `on_mob_death`, `on_kill`, `on_login`,
+  `on_logout`, `on_pickup`, `on_drop`, `on_equip`, `on_unequip`.
+- **Layer 3**: `on_say`, `on_emote`, `on_chat` (needs chat bridge),
+  `on_buy`, `on_sell` (needs shop system).
+
+### Adding a new hook (the 5-step)
+
+1. Add the `EventType` enum value in `EventBus.h`.
+2. Define the event data struct and add it to the `EventContext` variant.
+3. Add a `Publish` call from the relevant system (`*.cpp`).
+4. Add the bridge in `ScriptEventBridge.h` if you want Lua to see it.
+5. (If needed) Add a Lua binding in `ScriptManager::init` using
+   `lua.set_function("World_X", ...)` and a corresponding method.
+
+### Recipe runtime
+
+Recipes are loaded from `world_recipes` at startup into
+`FactoryManager.recipes`. Each recipe defines inputs, outputs, skill id,
+station type, XP gain, and craft time. When a skill returns
+`actionType = "craft"` from Lua, `SkillSystem` produces a
+`CombatIntentComponent{actionType="craft", skillID, magnitude}` which
+`CombatSystem::ProcessCraft` consumes: it looks up the recipe by skill,
+validates inputs in the player's inventory, consumes them, spawns the
+outputs (also into the inventory), and grants XP via
+`ScriptManager::GrantExperience` if `experience_gain > 0`.
+
+### Hot-reload caveat
+
+The `subskills.lua` table is cached. Editing a skill script in
+`scripts/skills/` requires a server restart for it to take effect.
+Editing an interactable script does not.
+
+### ECS vs data
+
+The C++ side is an ECS. Components are how you ship new behavior.
+Components are not how you ship new entity kinds — those go in Postgres.
+
+## Layer 3 — new tables and runtimes
+
+### Room light + one-way exits
+
+- `world_rooms.light INT DEFAULT 0` (0 = dark, 10 = bright). Loaded by
+  `PostgresDatabase::LoadRoomJson` into `outRoom["light"]`.
+- `world_room_exits.is_one_way BOOLEAN` is now parsed into
+  `RoomExit::isOneWay`. **No automatic return exit** is created — the
+  admin must declare a second one-way exit on the destination room if
+  they want one.
+
+### Factions
+
+- Tables: `world.world_factions`, `world.world_faction_relations`,
+  `players.player_faction_standing`.
+- C++ side: `FactionFactory` (in `FactoryManager.factions`).
+- Per-player standing lives in the dedicated table (queryable for
+  reports). Reads via `FactionFactory::GetStanding`; writes via
+  `SetStanding` / `AdjustStanding`.
+- Lua bindings: `World_GetFactionStanding(player_id, faction_id)`,
+  `World_AdjustFactionStanding(player_id, faction_id, delta)`.
+- Events: `EventType::FactionChange` bridged to Lua `FactionChange`
+  hook with `{player_id, faction_id, old_standing, new_standing}`.
+
+### Shops / economy
+
+- Tables: `world.world_shop_keeper`, `world.world_shop_inventory`;
+  `players.player_players.gold`, `bank_balance`.
+- C++ side: `ShopFactory` (in `FactoryManager.shops`). Buys/sells
+  use the inventory to compute price (item base value × markup or
+  markdown, with `price_override` taking precedence).
+- Player gold lives in `players.player_players.gold` (typed column,
+  also mirrored to `PlayerVariablesComponent.intVars["gold"]` on
+  load/save). Bank uses `bank_balance`.
+- Lua bindings: `World_GetGold(player_id[, slot])`,
+  `World_AddGold(player_id, amount[, slot])`,
+  `World_QuoteBuyPrice`, `World_QuoteSellPrice`,
+  `World_ShopBuy`, `World_ShopSell`.
+- Shop transactions validate inventory space, gold balance, and
+  stock counters. On success the InventoryComponent gets
+  `InventoryChangedComponent` for sync.
+
+### Mail / Boards (loaders only)
+
+- Tables: `players.player_mail`, `world.world_board`,
+  `players.player_board_post`.
+- Loaders: `PostgresDatabase::LoadBoards`, `LoadMailFor(player_id,
+  folder)`. Runtime *sending* and *posting* are not yet implemented —
+  coder task for a future session.
+
+### Classes / Races
+
+- Tables: `world.world_classes`, `world.world_races`;
+  `players.player_players.class_id`, `race_id`, `level`.
+- Loaders: `PostgresDatabase::LoadClasses`, `LoadRaces`.
+- `PlayerData` gains `gold`, `bankBalance`, `classId`, `raceId`,
+  `level` fields, populated by `LoadPlayer`. `PlayerFactory::LoadPlayer`
+  hydrates them into `PlayerVariablesComponent` (`intVars["gold"|"bank_balance"|"level"]`,
+  `stringVars["class_id"|"race_id"]`). Persist on next save.
+- Race/class bonus application at level-up is a future coder task.
+
 ## Important Warnings
 
 - No test framework configured - test manually

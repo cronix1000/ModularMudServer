@@ -88,7 +88,7 @@ CMAKE_MODULE_LINKER_FLAGS_RELWITHDEBINFO:STRING=/debug /INCREMENTAL
 CMAKE_MT:FILEPATH=CMAKE_MT-NOTFOUND
 
 //No help, variable specified on the command line.
-CMAKE_PREFIX_PATH:UNINITIALIZED=C:/Users/idang/source/repos/cronix1000/MUD/vcpkg_installed/x64-windows
+CMAKE_PREFIX_PATH:UNINITIALIZED=C:/Users/idang/source/repos/cronix1000/MUD/ModularMudServer/vcpkg_installed/x64-windows
 
 //Value Computed by CMake
 CMAKE_PROJECT_DESCRIPTION:STATIC=

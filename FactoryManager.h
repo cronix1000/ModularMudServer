@@ -7,6 +7,9 @@
 #include "PlayerFactory.h"
 #include "SkillFactory.h"
 #include "InteractableFactory.h"
+#include "RecipeFactory.h"
+#include "FactionFactory.h"
+#include "ShopFactory.h"
 
 class FactoryManager {
 public:
@@ -21,9 +24,12 @@ public:
     PlayerFactory player;
     SkillFactory skills;
     InteractableFactory interactables;
+    RecipeFactory recipes;
+    FactionFactory factions;
+    ShopFactory shops;
 
     FactoryManager(GameContext& g)
-        : ctx(g), items(g), mobs(g), loot(), dialogue(g), player(g), skills(g), interactables(g) {
+        : ctx(g), items(g), mobs(g), loot(), dialogue(g), player(g), skills(g), interactables(g), recipes(g), factions(g), shops(g) {
     }
 
     // One function to load the entire game database.
@@ -46,6 +52,9 @@ public:
         skills.LoadSkillsFromJson(ctx.db->LoadSkills(worldId));
         loot.LoadLootTablesFromJson(ctx.db->LoadLootTables(worldId));
         dialogue.LoadDialogueAndVoicesFromJson(ctx.db->LoadDialogues(worldId));
+        recipes.LoadRecipesFromJson(ctx.db->LoadRecipes(worldId));
+        factions.LoadFactionsFromJson(ctx.db->LoadFactions(worldId));
+        shops.LoadShopsFromJson(ctx.db->LoadShopKeepers(worldId));
 
         std::cout << "Database Loaded Successfully." << std::endl;
     }

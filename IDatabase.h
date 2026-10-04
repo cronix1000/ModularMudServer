@@ -43,12 +43,27 @@ public:
     virtual nlohmann::json LoadSkills(const std::string& worldId) = 0;
     virtual nlohmann::json LoadLootTables(const std::string& worldId) = 0;
     virtual nlohmann::json LoadDialogues(const std::string& worldId) = 0;
+    virtual nlohmann::json LoadRecipes(const std::string& worldId) = 0;
+    virtual nlohmann::json LoadFactions(const std::string& worldId) = 0;
+    virtual nlohmann::json LoadClasses(const std::string& worldId) = 0;
+    virtual nlohmann::json LoadRaces(const std::string& worldId) = 0;
+    virtual nlohmann::json LoadShopKeepers(const std::string& worldId) = 0;
+    virtual nlohmann::json LoadBoards(const std::string& worldId) = 0;
+    virtual nlohmann::json LoadMailFor(int playerID, const std::string& folder = "inbox") = 0;
+
+    virtual int GetFactionStanding(int playerID, const std::string& factionId) = 0;
+    virtual bool SetFactionStanding(int playerID, const std::string& factionId, int value) = 0;
 
     // Region / room loading
     virtual bool RegionExists(const std::string& worldId, const std::string& regionId) = 0;
     virtual bool LoadRegionFloorSettings(const std::string& worldId,
                                          const std::string& regionId,
                                          nlohmann::json& outSettings) = 0;
+    virtual std::vector<int> LoadZoneIds(const std::string& worldId, const std::string& regionId) = 0;
+    virtual bool LoadZoneJson(const std::string& worldId,
+                              const std::string& regionId,
+                              int zoneId,
+                              nlohmann::json& outZone) = 0;
     virtual std::vector<int> LoadRoomIds(const std::string& worldId, const std::string& regionId) = 0;
     virtual bool LoadRoomJson(const std::string& worldId,
                               const std::string& regionId,

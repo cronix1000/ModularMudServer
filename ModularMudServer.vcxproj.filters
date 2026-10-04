@@ -216,6 +216,18 @@
     <ClCompile Include="MobFactory.cpp">
       <Filter>Source Files\Factories</Filter>
     </ClCompile>
+    <ClCompile Include="RecipeFactory.cpp">
+      <Filter>Source Files\Factories</Filter>
+    </ClCompile>
+    <ClCompile Include="FactionFactory.cpp">
+      <Filter>Source Files\Factories</Filter>
+    </ClCompile>
+    <ClCompile Include="ShopFactory.cpp">
+      <Filter>Source Files\Factories</Filter>
+    </ClCompile>
+    <ClCompile Include="MetaRegistry.cpp">
+      <Filter>Source Files\Factories</Filter>
+    </ClCompile>
     <ClCompile Include="CombatStateSystem.cpp">
       <Filter>Source Files\System</Filter>
     </ClCompile>
@@ -627,6 +639,21 @@
       <Filter>Header Files\Component</Filter>
     </ClInclude>
     <ClInclude Include="MobFactory.h">
+      <Filter>Header Files\Factory</Filter>
+    </ClInclude>
+    <ClInclude Include="RecipeFactory.h">
+      <Filter>Header Files\Factory</Filter>
+    </ClInclude>
+    <ClInclude Include="FactionFactory.h">
+      <Filter>Header Files\Factory</Filter>
+    </ClInclude>
+    <ClInclude Include="ShopFactory.h">
+      <Filter>Header Files\Factory</Filter>
+    </ClInclude>
+    <ClInclude Include="MetaRegistry.h">
+      <Filter>Header Files\Factory</Filter>
+    </ClInclude>
+    <ClInclude Include="MetaComponent.h">
       <Filter>Header Files\Factory</Filter>
     </ClInclude>
     <ClInclude Include="MobAttackComponent.h">

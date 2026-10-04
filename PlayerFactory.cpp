@@ -75,6 +75,27 @@ EntityID PlayerFactory::LoadPlayer(std::string username, ClientConnection* conne
             }
         }
     }
+
+    playerVars.intVars["gold"] = data.gold;
+    playerVars.intVars["bank_balance"] = data.bankBalance;
+    playerVars.intVars["level"] = data.level;
+    if (!data.classId.empty()) playerVars.stringVars["class_id"] = data.classId;
+    if (!data.raceId.empty())  playerVars.stringVars["race_id"]  = data.raceId;
+
+    ctx.registry->AddComponent(player, playerVars);
+    if (s.contains("variables")) {
+        auto& varsJson = s["variables"];
+        if (varsJson.contains("intVars")) {
+            for (auto& [key, value] : varsJson["intVars"].items()) {
+                playerVars.intVars[key] = value.get<int>();
+            }
+        }
+        if (varsJson.contains("stringVars")) {
+            for (auto& [key, value] : varsJson["stringVars"].items()) {
+                playerVars.stringVars[key] = value.get<std::string>();
+            }
+        }
+    }
     ctx.registry->AddComponent(player, playerVars);
 
     // Add Player Permissions

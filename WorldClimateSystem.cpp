@@ -539,36 +539,34 @@ void WorldClimateSystem::AdvanceSeason(ZoneClimateComponent& climate) {
                                static_cast<int>(newSeason));
 }
 
-void WorldClimateSystem::BroadcastWeatherChange(const std::string& zoneId, 
-                                                 WeatherCondition oldWeather, 
+void WorldClimateSystem::BroadcastWeatherChange(const std::string& zoneId,
+                                                 WeatherCondition oldWeather,
                                                  WeatherCondition newWeather) {
     std::string msg = GenerateWeatherTransitionMessage(oldWeather, newWeather);
-    
-    // Send to all players in zone
+    if (msg.empty()) return;
+
     for (EntityID entity : ctx.registry->view<ClientComponent>()) {
         auto* client = ctx.registry->GetComponent<ClientComponent>(entity);
-        auto* pos = ctx.registry->GetComponent<PositionComponent>(entity);
         auto* region = ctx.registry->GetComponent<RegionComponent>(entity);
-        
-        if (client && pos && region && region->region == zoneId) {
-            // TODO: Send message via client->SendMessage or similar
+
+        if (client && client->client && region && region->region == zoneId) {
+            client->client->QueueMessage(msg);
         }
     }
 }
 
-void WorldClimateSystem::BroadcastTimePhaseChange(const std::string& zoneId, 
-                                                   TimePhase oldPhase, 
+void WorldClimateSystem::BroadcastTimePhaseChange(const std::string& zoneId,
+                                                   TimePhase oldPhase,
                                                    TimePhase newPhase) {
     std::string msg = GenerateTimePhaseMessage(newPhase);
-    
-    // Send to all players in zone
+    if (msg.empty()) return;
+
     for (EntityID entity : ctx.registry->view<ClientComponent>()) {
         auto* client = ctx.registry->GetComponent<ClientComponent>(entity);
-        auto* pos = ctx.registry->GetComponent<PositionComponent>(entity);
         auto* region = ctx.registry->GetComponent<RegionComponent>(entity);
-        
-        if (client && pos && region && region->region == zoneId) {
-            // TODO: Send message via client->SendMessage or similar
+
+        if (client && client->client && region && region->region == zoneId) {
+            client->client->QueueMessage(msg);
         }
     }
 }

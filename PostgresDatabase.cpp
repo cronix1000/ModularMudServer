@@ -19,6 +19,7 @@
 #include "TerrainDef.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -205,17 +206,25 @@ bool PostgresDatabase::SavePlayer(EntityID playerEnt, GameContext& ctx) {
         };
     }
 
+    int gold = 0;
+    int bank = 0;
+    if (vars) {
+        gold = vars->intVars.count("gold") ? vars->intVars["gold"] : 0;
+        bank = vars->intVars.count("bank_balance") ? vars->intVars["bank_balance"] : 0;
+    }
+
     if (!conn) return false;
     try {
         pqxx::work tx(*conn);
         std::string dataStr = playerData.dump();
         tx.exec_params(
             "UPDATE player_players "
-            "SET data = $1::jsonb, room_id = $2, region_id = $3 "
-            "WHERE id = $4",
+            "SET data = $1::jsonb, room_id = $2, region_id = $3, gold = $4, bank_balance = $5 "
+            "WHERE id = $6",
             dataStr,
             pos->roomId,
             region->region,
+            gold, bank,
             playerComp->accountID
         );
         tx.commit();
@@ -309,7 +318,8 @@ bool PostgresDatabase::LoadPlayer(const std::string& name, PlayerData& outData) 
     try {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec_params(
-            "SELECT id, region_id, room_id, permission, data "
+            "SELECT id, region_id, room_id, permission, data, gold, bank_balance, "
+            "       class_id, race_id, level "
             "FROM player_players WHERE name = $1",
             name
         );
@@ -320,6 +330,11 @@ bool PostgresDatabase::LoadPlayer(const std::string& name, PlayerData& outData) 
         outData.room_id = r[0]["room_id"].as<int>();
         outData.permission = r[0]["permission"].as<int>();
         outData.name = name;
+        outData.gold = r[0]["gold"].as<int>();
+        outData.bankBalance = r[0]["bank_balance"].as<int>();
+        if (!r[0]["class_id"].is_null()) outData.classId = r[0]["class_id"].as<std::string>();
+        if (!r[0]["race_id"].is_null())  outData.raceId  = r[0]["race_id"].as<std::string>();
+        outData.level = r[0]["level"].as<int>();
         outData.data = json::parse(r[0]["data"].as<std::string>());
 
         pqxx::result items = tx.exec_params(
@@ -697,12 +712,236 @@ nlohmann::json PostgresDatabase::LoadDialogues(const std::string& worldId) {
     return out;
 }
 
+nlohmann::json PostgresDatabase::LoadRecipes(const std::string& worldId) {
+    json out = json::object();
+    if (!conn) return out;
+    try {
+        pqxx::work tx(*conn);
+        pqxx::result r = tx.exec(
+            "SELECT recipe_id, name, description, skill_id, required_skill_level, "
+            "       station_type, outputs_json, inputs_json, craft_time_seconds, "
+            "       experience_gain, script_ref, is_auto_learned "
+            "FROM world.world_recipes"
+        );
+        int count = 0;
+        for (const auto& row : r) {
+            std::string key = row["recipe_id"].as<std::string>();
+            json obj = RowToJson(row, {"recipe_id"}, {"outputs_json", "inputs_json"});
+            out[key] = obj;
+            ++count;
+        }
+        tx.commit();
+        printf("[Postgres] Loaded %d recipes from world_recipes.\n", count);
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[Postgres] LoadRecipes failed: %s\n", e.what());
+    }
+    return out;
+}
+
+nlohmann::json PostgresDatabase::LoadFactions(const std::string& worldId) {
+    json out = json::object();
+    if (!conn) return out;
+    try {
+        pqxx::work tx(*conn);
+        pqxx::result fr = tx.exec(
+            "SELECT faction_id, name, description, ideology FROM world.world_factions"
+        );
+        json factions = json::object();
+        for (const auto& row : fr) {
+            std::string key = row["faction_id"].as<std::string>();
+            factions[key] = RowToJson(row, {"faction_id"});
+        }
+        pqxx::result rr = tx.exec(
+            "SELECT faction_id, other_faction_id, base_standing FROM world.world_faction_relations"
+        );
+        for (const auto& row : rr) {
+            std::string f = row["faction_id"].as<std::string>();
+            std::string o = row["other_faction_id"].as<std::string>();
+            int s = row["base_standing"].as<int>();
+            if (factions.contains(f) && factions[f].is_object()) {
+                factions[f]["relations"][o] = s;
+            }
+        }
+        out["factions"] = factions;
+        tx.commit();
+        printf("[Postgres] Loaded %zu factions.\n", factions.size());
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[Postgres] LoadFactions failed: %s\n", e.what());
+    }
+    return out;
+}
+
+nlohmann::json PostgresDatabase::LoadClasses(const std::string& worldId) {
+    json out = json::object();
+    if (!conn) return out;
+    try {
+        pqxx::work tx(*conn);
+        pqxx::result r = tx.exec(
+            "SELECT class_id, name, description, primary_stat, hp_per_level, mp_per_level "
+            "FROM world.world_classes"
+        );
+        json classes = json::object();
+        for (const auto& row : r) {
+            std::string key = row["class_id"].as<std::string>();
+            classes[key] = RowToJson(row, {"class_id"});
+        }
+        out["classes"] = classes;
+        tx.commit();
+        printf("[Postgres] Loaded %zu classes.\n", classes.size());
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[Postgres] LoadClasses failed: %s\n", e.what());
+    }
+    return out;
+}
+
+nlohmann::json PostgresDatabase::LoadRaces(const std::string& worldId) {
+    json out = json::object();
+    if (!conn) return out;
+    try {
+        pqxx::work tx(*conn);
+        pqxx::result r = tx.exec(
+            "SELECT race_id, name, description, str_bonus, dex_bonus, int_bonus, "
+            "       con_bonus, wis_bonus, cha_bonus "
+            "FROM world.world_races"
+        );
+        json races = json::object();
+        for (const auto& row : r) {
+            std::string key = row["race_id"].as<std::string>();
+            races[key] = RowToJson(row, {"race_id"});
+        }
+        out["races"] = races;
+        tx.commit();
+        printf("[Postgres] Loaded %zu races.\n", races.size());
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[Postgres] LoadRaces failed: %s\n", e.what());
+    }
+    return out;
+}
+
+nlohmann::json PostgresDatabase::LoadShopKeepers(const std::string& worldId) {
+    json out = json::object();
+    if (!conn) return out;
+    try {
+        pqxx::work tx(*conn);
+        pqxx::result kr = tx.exec(
+            "SELECT keeper_id, mob_id, markup, markdown, open_hour, close_hour, shop_type "
+            "FROM world.world_shop_keeper"
+        );
+        json keepers = json::object();
+        for (const auto& row : kr) {
+            std::string key = row["keeper_id"].as<std::string>();
+            keepers[key] = RowToJson(row, {"keeper_id"});
+        }
+        pqxx::result ir = tx.exec(
+            "SELECT keeper_id, template_id, max_stock, restock_seconds, current_stock, price_override "
+            "FROM world.world_shop_inventory"
+        );
+        for (const auto& row : ir) {
+            std::string k = row["keeper_id"].as<std::string>();
+            std::string t = row["template_id"].as<std::string>();
+            if (keepers.contains(k) && keepers[k].is_object()) {
+                keepers[k]["inventory"][t] = RowToJson(row, {"keeper_id", "template_id"});
+            }
+        }
+        out["shops"] = keepers;
+        tx.commit();
+        printf("[Postgres] Loaded %zu shop keepers.\n", keepers.size());
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[Postgres] LoadShopKeepers failed: %s\n", e.what());
+    }
+    return out;
+}
+
+nlohmann::json PostgresDatabase::LoadBoards(const std::string& worldId) {
+    json out = json::object();
+    if (!conn) return out;
+    try {
+        pqxx::work tx(*conn);
+        pqxx::result r = tx.exec(
+            "SELECT board_id, region_id, name, description, max_posts, read_perm, write_perm "
+            "FROM world.world_board"
+        );
+        json boards = json::object();
+        for (const auto& row : r) {
+            std::string key = row["board_id"].as<std::string>();
+            boards[key] = RowToJson(row, {"board_id"});
+        }
+        out["boards"] = boards;
+        tx.commit();
+        printf("[Postgres] Loaded %zu boards.\n", boards.size());
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[Postgres] LoadBoards failed: %s\n", e.what());
+    }
+    return out;
+}
+
+nlohmann::json PostgresDatabase::LoadMailFor(int playerID, const std::string& folder) {
+    json out = json::array();
+    if (!conn) return out;
+    try {
+        pqxx::work tx(*conn);
+        pqxx::result r = tx.exec_params(
+            "SELECT mail_id, from_player_id, to_player_id, subject, body, sent_at, read_at, folder "
+            "FROM players.player_mail WHERE to_player_id = $1 AND folder = $2 "
+            "ORDER BY sent_at DESC LIMIT 200",
+            playerID, folder
+        );
+        for (const auto& row : r) {
+            out.push_back(RowToJson(row, {}));
+        }
+        tx.commit();
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[Postgres] LoadMailFor failed: %s\n", e.what());
+    }
+    return out;
+}
+
+int PostgresDatabase::GetFactionStanding(int playerID, const std::string& factionId) {
+    if (!conn) return 0;
+    try {
+        pqxx::work tx(*conn);
+        auto r = tx.exec_params(
+            "SELECT standing FROM players.player_faction_standing "
+            "WHERE player_id = $1 AND faction_id = $2",
+            playerID, factionId
+        );
+        tx.commit();
+        if (r.empty()) return 0;
+        return r[0]["standing"].as<int>();
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[Postgres] GetFactionStanding failed: %s\n", e.what());
+        return 0;
+    }
+}
+
+bool PostgresDatabase::SetFactionStanding(int playerID, const std::string& factionId, int value) {
+    if (!conn) return false;
+    try {
+        pqxx::work tx(*conn);
+        tx.exec_params(
+            "INSERT INTO players.player_faction_standing "
+            "(player_id, faction_id, standing, updated_at) VALUES ($1, $2, $3, $4) "
+            "ON CONFLICT (player_id, faction_id) DO UPDATE SET standing = $3, updated_at = $4",
+            playerID, factionId, value,
+            (long long)std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count()
+        );
+        tx.commit();
+        return true;
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[Postgres] SetFactionStanding failed: %s\n", e.what());
+        return false;
+    }
+}
+
 // ============================================================================
 // Region / room loading
 // ============================================================================
 
 bool PostgresDatabase::RegionExists(const std::string& worldId, const std::string& regionId) {
-    if (!conn) return false;
+    std::fprintf(stderr, "[Postgres] RegionExists conn=%p world='%s' region='%s'\n",
+        conn.get(), worldId.c_str(), regionId.c_str());
+    if (!conn) { std::fprintf(stderr, "[Postgres] RegionExists: conn is null\n"); return false; }
     try {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec_params(
@@ -748,6 +987,56 @@ bool PostgresDatabase::LoadRegionFloorSettings(const std::string& worldId,
     }
 }
 
+std::vector<int> PostgresDatabase::LoadZoneIds(const std::string& worldId, const std::string& regionId) {
+    std::vector<int> ids;
+    if (!conn) return ids;
+    try {
+        pqxx::work tx(*conn);
+        pqxx::result r = tx.exec_params(
+            "SELECT zone_id FROM world_zones "
+            "WHERE region_id = $1 ORDER BY zone_id",
+            regionId
+        );
+        for (const auto& row : r) ids.push_back(row["zone_id"].as<int>());
+        tx.commit();
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[Postgres] LoadZoneIds failed: %s\n", e.what());
+    }
+    return ids;
+}
+
+bool PostgresDatabase::LoadZoneJson(const std::string& worldId,
+                                    const std::string& regionId,
+                                    int zoneId,
+                                    json& outZone) {
+    outZone = json::object();
+    if (!conn) return false;
+    try {
+        pqxx::work tx(*conn);
+        pqxx::result rs = tx.exec_params(
+            "SELECT region_id, zone_id, name, description, rules_json, zone_script_ref, is_active "
+            "FROM world_zones WHERE region_id = $1 AND zone_id = $2",
+            regionId, zoneId
+        );
+        if (rs.empty()) return false;
+        outZone = RowToJson(rs[0], {"region_id", "zone_id"},
+                            {"rules_json"});
+        outZone["regionId"] = regionId;
+        outZone["zoneId"] = zoneId;
+        if (outZone.contains("zone_script_ref") && outZone["zone_script_ref"].is_string()) {
+            const std::string ref = outZone["zone_script_ref"].get<std::string>();
+            outZone["isInstanceSource"] = !ref.empty();
+        } else {
+            outZone["isInstanceSource"] = false;
+        }
+        tx.commit();
+        return true;
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[Postgres] LoadZoneJson failed: %s\n", e.what());
+        return false;
+    }
+}
+
 std::vector<int> PostgresDatabase::LoadRoomIds(const std::string& worldId, const std::string& regionId) {
     std::vector<int> ids;
     if (!conn) return ids;
@@ -776,7 +1065,7 @@ bool PostgresDatabase::LoadRoomJson(const std::string& worldId,
         pqxx::work tx(*conn);
         pqxx::result rs = tx.exec_params(
             "SELECT room_id, name, description, terrain, width, height, layout_json, "
-            "       spawn_x, spawn_y, scripts_json, extra_json "
+            "       spawn_x, spawn_y, scripts_json, extra_json, zone_id "
             "FROM world_rooms WHERE region_id = $1 AND room_id = $2",
             regionId, roomId
         );
@@ -785,6 +1074,25 @@ bool PostgresDatabase::LoadRoomJson(const std::string& worldId,
                             {"layout_json", "scripts_json", "extra_json"});
         outRoom["id"] = roomId;
         outRoom["regionId"] = regionId;
+
+        int roomZoneId = 0;
+        std::string roomZoneName;
+        try {
+            if (!rs[0]["zone_id"].is_null()) {
+                roomZoneId = rs[0]["zone_id"].as<int>();
+            }
+        } catch (...) {}
+        if (roomZoneId > 0) {
+            pqxx::result zr = tx.exec_params(
+                "SELECT name FROM world_zones WHERE region_id = $1 AND zone_id = $2",
+                regionId, roomZoneId
+            );
+            if (!zr.empty() && !zr[0]["name"].is_null()) {
+                roomZoneName = zr[0]["name"].as<std::string>();
+            }
+        }
+        outRoom["zoneId"] = roomZoneId;
+        outRoom["zoneName"] = roomZoneName;
 
         json exits = json::object();
         pqxx::result er = tx.exec_params(
@@ -799,6 +1107,7 @@ bool PostgresDatabase::LoadRoomJson(const std::string& worldId,
             exitObj["target_room"] = row["to_room_id"].as<int>();
             exitObj["dest_x"] = row["dest_x"].as<int>();
             exitObj["dest_y"] = row["dest_y"].as<int>();
+            exitObj["is_one_way"] = row["is_one_way"].as<bool>();
             exitObj["is_portal"] = row["is_portal"].as<bool>();
             if (!row["portal_name"].is_null()) {
                 exitObj["portal_name"] = row["portal_name"].as<std::string>();

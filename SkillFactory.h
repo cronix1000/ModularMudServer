@@ -43,6 +43,7 @@ class SkillFactory {
 public:
     GameContext& ctx;
     std::map<std::string, int> skillLookup;
+    std::map<int, std::string> skillKeyByEntity;
     std::map<std::string, SkillCategory> categories;
 
     SkillFactory(GameContext& g) : ctx(g) {}
@@ -55,6 +56,11 @@ public:
             return skillLookup[key];
         }
         return -1;
+    }
+
+    std::string GetSkillKey(int entityID) const {
+        auto it = skillKeyByEntity.find(entityID);
+        return (it != skillKeyByEntity.end()) ? it->second : "";
     }
 
 private:

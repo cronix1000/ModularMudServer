@@ -190,6 +190,10 @@
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MenuManager.cpp" />
     <ClCompile Include="MobFactory.cpp" />
+    <ClCompile Include="RecipeFactory.cpp" />
+    <ClCompile Include="FactionFactory.cpp" />
+    <ClCompile Include="ShopFactory.cpp" />
+    <ClCompile Include="MetaRegistry.cpp" />
     <ClCompile Include="MovementSystem.cpp" />
     <ClCompile Include="NetworkSyncSystem.cpp" />
     <ClCompile Include="NetworkSystem.cpp" />
@@ -297,6 +301,11 @@
     <ClInclude Include="MenuManager.h" />
     <ClInclude Include="MobComponent.h" />
     <ClInclude Include="MobFactory.h" />
+    <ClInclude Include="RecipeFactory.h" />
+    <ClInclude Include="FactionFactory.h" />
+    <ClInclude Include="ShopFactory.h" />
+    <ClInclude Include="MetaRegistry.h" />
+    <ClInclude Include="MetaComponent.h" />
     <ClInclude Include="MoveIntentComponent.h" />
     <ClInclude Include="MovementSystem.h" />
     <ClInclude Include="NameComponent.h" />

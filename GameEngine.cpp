@@ -56,6 +56,7 @@ GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : 
     gameContext.eventBus = std::make_unique<EventBus>();
     fprintf(stderr, "DEBUG: GE 4 (after EventBus)\n"); fflush(stderr);
     gameContext.scripts = std::make_unique<ScriptManager>(*gameContext.registry);
+    gameContext.scripts->gameContext = &gameContext;
     fprintf(stderr, "DEBUG: GE 5 (after ScriptManager)\n"); fflush(stderr);
     gameContext.worldManager = std::make_unique<WorldManager>(world, gameContext.registry.get());
     fprintf(stderr, "DEBUG: GE 6 (after WorldManager)\n"); fflush(stderr);

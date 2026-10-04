@@ -13,6 +13,7 @@ struct RoomExit {
     int destX = -1;
     int destY = -1;
     bool isPortal = false;
+    bool isOneWay = false;
     std::string portalName;
     bool autoTrigger = true;
 };
@@ -40,6 +41,8 @@ struct RoomIdentityComponent {
     std::string regionId;
     bool isInstance = false;
     int templateId = -1;
+    int zoneId = 0;
+    std::string zoneName;
 };
 
 struct RoomLayoutComponent {

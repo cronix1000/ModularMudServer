@@ -3,12 +3,49 @@
 #include "Component.h"
 #include "ClientConnection.h"
 #include "InteractableContext.h"
-#include "SkillContext.h"      
+#include "SkillContext.h"
+#include "EventBus.h"
+#include "PlayerVariablesComponent.h"
+#include "ClientComponent.h"
+#include "GameContext.h"
+#include "MetaComponent.h"
+#include "FactionFactory.h"
+#include "ShopFactory.h"
+#include "FactoryManager.h"
 #include <iostream>
 #include <filesystem>
+#include <map>
+#include <nlohmann/json.hpp>
 #include "sol/sol.hpp"
 
 namespace fs = std::filesystem;
+
+sol::table JsonToLua(sol::state& lua, const nlohmann::json& j) {
+	sol::table tbl = lua.create_table();
+	if (!j.is_object()) {
+		return tbl;
+	}
+	for (auto it = j.begin(); it != j.end(); ++it) {
+		const std::string& key = it.key();
+		const nlohmann::json& val = it.value();
+		if (val.is_string()) {
+			tbl[key] = val.get<std::string>();
+		} else if (val.is_boolean()) {
+			tbl[key] = val.get<bool>();
+		} else if (val.is_number_integer()) {
+			tbl[key] = val.get<int>();
+		} else if (val.is_number_float()) {
+			tbl[key] = val.get<double>();
+		} else if (val.is_null()) {
+			tbl[key] = sol::nil;
+		} else if (val.is_object()) {
+			tbl[key] = JsonToLua(lua, val);
+		} else {
+			tbl[key] = sol::nil;
+		}
+	}
+	return tbl;
+}
 
 
 ScriptManager::ScriptManager(Registry& r) : registry(r) {
@@ -24,7 +61,7 @@ ScriptManager::ScriptManager(Registry& r) : registry(r) {
 	lua.new_usertype<SkillContext>("SkillContext",
 		"source", &SkillContext::sourceID,
 		"target", &SkillContext::targetID,
-		"skillID", &SkillContext::skillID,   
+		"skillID", &SkillContext::skillID,
 		"mastery", &SkillContext::masteryLevel,
 		"power", &SkillContext::basePower
 	);
@@ -64,6 +101,272 @@ void ScriptManager::init() {
 	lua.set_function("get_stats", [this](int entity_id) -> StatComponent* {
 		return registry.GetComponent<StatComponent>(entity_id);
 		});
+
+	lua.set_function("World_GrantExperience", [this](int player_id, int amount, sol::optional<std::string> source) {
+		std::string src = source.value_or(std::string("unknown"));
+		GrantExperience(player_id, amount, src);
+		});
+
+	lua.set_function("World_AcceptQuest", [this](int player_id, const std::string& quest_id) {
+		AcceptQuest(player_id, quest_id);
+		});
+
+	lua.set_function("World_ProgressQuest", [this](int player_id, const std::string& quest_id, const std::string& objective_id, int delta) {
+		ProgressQuest(player_id, quest_id, objective_id, delta);
+		});
+
+	lua.set_function("World_CompleteQuest", [this](int player_id, const std::string& quest_id) {
+		CompleteQuest(player_id, quest_id);
+		});
+
+	lua.set_function("World_IsQuestActive", [this](int player_id, const std::string& quest_id) -> bool {
+		return IsQuestActive(player_id, quest_id);
+		});
+
+	lua.set_function("get_meta", [this](int entity_id) -> sol::table {
+		return JsonToLua(lua, GetMetaForLua(entity_id));
+		});
+
+	lua.set_function("World_GetFactionStanding", [this](int player_id, const std::string& faction_id) -> int {
+		return GetFactionStanding(player_id, faction_id);
+		});
+
+	lua.set_function("World_AdjustFactionStanding", [this](int player_id, const std::string& faction_id, int delta) -> int {
+		return AdjustFactionStanding(player_id, faction_id, delta);
+		});
+
+	lua.set_function("World_GetGold", [this](int player_id, sol::optional<std::string> slot) -> int {
+		return GetGold(player_id, slot.value_or(std::string("")));
+		});
+
+	lua.set_function("World_AddGold", [this](int player_id, int amount, sol::optional<std::string> slot) -> int {
+		return AddGold(player_id, amount, slot.value_or(std::string("")));
+		});
+
+	lua.set_function("World_QuoteBuyPrice", [this](const std::string& keeper_id, const std::string& template_id) -> int {
+		return QuoteBuyPrice(keeper_id, template_id);
+		});
+
+	lua.set_function("World_QuoteSellPrice", [this](const std::string& keeper_id, const std::string& template_id) -> int {
+		return QuoteSellPrice(keeper_id, template_id);
+		});
+
+	lua.set_function("World_ShopBuy", [this](int player_id, const std::string& keeper_id, const std::string& template_id, int qty) -> bool {
+		return ShopBuy(player_id, keeper_id, template_id, qty);
+		});
+
+	lua.set_function("World_ShopSell", [this](int player_id, const std::string& keeper_id, const std::string& template_id, int qty) -> bool {
+		return ShopSell(player_id, keeper_id, template_id, qty);
+		});
+}
+
+void ScriptManager::GrantExperience(int playerID, int amount, const std::string& source) {
+	if (amount <= 0) return;
+
+	auto* vars = registry.GetComponent<PlayerVariablesComponent>(playerID);
+	if (!vars) {
+		registry.AddComponent<PlayerVariablesComponent>(playerID);
+		vars = registry.GetComponent<PlayerVariablesComponent>(playerID);
+		if (!vars) return;
+	}
+
+	int currentXp = vars->intVars["xp"];
+	int currentLevel = vars->intVars["level"];
+	if (currentLevel <= 0) currentLevel = 1;
+
+	int newXp = currentXp + amount;
+
+	auto xpForLevel = [](int level) -> int {
+		return 100 * level;
+	};
+
+	int newLevel = currentLevel;
+	while (newLevel < 100 && newXp >= xpForLevel(newLevel)) {
+		newXp -= xpForLevel(newLevel);
+		++newLevel;
+	}
+
+	vars->intVars["xp"] = newXp;
+	vars->intVars["level"] = newLevel;
+
+	if (gameContext && gameContext->eventBus) {
+		EventContext ctx;
+		ctx.data = XpGainEventData{ playerID, amount, source };
+		gameContext->eventBus->Publish(EventType::XpGain, ctx);
+
+		if (newLevel > currentLevel) {
+			EventContext lvlCtx;
+			lvlCtx.data = LevelUpEventData{ playerID, newLevel };
+			gameContext->eventBus->Publish(EventType::LevelUp, lvlCtx);
+		}
+	}
+}
+
+namespace {
+
+struct QuestProgress {
+	std::map<std::string, int> jsonObjective;
+};
+
+bool ParseQuestProgress(const std::string& jsonStr, QuestProgress& out) {
+	if (jsonStr.empty()) return true;
+	try {
+		auto j = nlohmann::json::parse(jsonStr);
+		if (j.contains("objectives") && j["objectives"].is_object()) {
+			for (auto& [k, v] : j["objectives"].items()) {
+				out.jsonObjective[k] = v.get<int>();
+			}
+		}
+		return true;
+	} catch (...) {
+		return false;
+	}
+}
+
+std::string SerializeQuestProgress(const QuestProgress& qp) {
+	nlohmann::json j;
+	j["objectives"] = nlohmann::json::object();
+	for (auto& [k, v] : qp.jsonObjective) {
+		j["objectives"][k] = v;
+	}
+	return j.dump();
+}
+
+PlayerVariablesComponent* GetOrCreateVars(Registry& registry, int playerID) {
+	auto* vars = registry.GetComponent<PlayerVariablesComponent>(playerID);
+	if (!vars) {
+		registry.AddComponent<PlayerVariablesComponent>(playerID);
+		vars = registry.GetComponent<PlayerVariablesComponent>(playerID);
+	}
+	return vars;
+}
+
+}
+
+void ScriptManager::AcceptQuest(int playerID, const std::string& questId) {
+	if (questId.empty()) return;
+	auto* vars = GetOrCreateVars(registry, playerID);
+	if (!vars) return;
+
+	auto it = vars->stringVars.find(questId);
+	if (it != vars->stringVars.end()) return;
+
+	QuestProgress qp;
+	vars->stringVars[questId] = SerializeQuestProgress(qp);
+
+	if (gameContext && gameContext->eventBus) {
+		EventContext ctx;
+		ctx.data = QuestEventData{ playerID, questId, "", 0 };
+		gameContext->eventBus->Publish(EventType::QuestAccept, ctx);
+	}
+}
+
+void ScriptManager::ProgressQuest(int playerID, const std::string& questId, const std::string& objectiveId, int delta) {
+	if (questId.empty() || objectiveId.empty() || delta <= 0) return;
+	auto* vars = registry.GetComponent<PlayerVariablesComponent>(playerID);
+	if (!vars) return;
+
+	auto it = vars->stringVars.find(questId);
+	if (it == vars->stringVars.end()) return;
+
+	QuestProgress qp;
+	if (!ParseQuestProgress(it->second, qp)) return;
+	qp.jsonObjective[objectiveId] += delta;
+	it->second = SerializeQuestProgress(qp);
+
+	if (gameContext && gameContext->eventBus) {
+		EventContext ctx;
+		ctx.data = QuestEventData{ playerID, questId, objectiveId, qp.jsonObjective[objectiveId] };
+		gameContext->eventBus->Publish(EventType::QuestObjectiveProgress, ctx);
+	}
+}
+
+void ScriptManager::CompleteQuest(int playerID, const std::string& questId) {
+	if (questId.empty()) return;
+	auto* vars = GetOrCreateVars(registry, playerID);
+	if (!vars) return;
+
+	auto it = vars->stringVars.find(questId);
+	if (it != vars->stringVars.end() && it->second == "__completed__") return;
+
+	QuestProgress qp;
+	vars->stringVars[questId] = "__completed__";
+
+	if (gameContext && gameContext->eventBus) {
+		EventContext ctx;
+		ctx.data = QuestEventData{ playerID, questId, "", 0 };
+		gameContext->eventBus->Publish(EventType::QuestComplete, ctx);
+	}
+}
+
+bool ScriptManager::IsQuestActive(int playerID, const std::string& questId) const {
+	auto* vars = registry.GetComponent<PlayerVariablesComponent>(playerID);
+	if (!vars) return false;
+	auto it = vars->stringVars.find(questId);
+	if (it == vars->stringVars.end()) return false;
+	return it->second != "__completed__";
+}
+
+bool ScriptManager::IsQuestCompleted(int playerID, const std::string& questId) const {
+	auto* vars = registry.GetComponent<PlayerVariablesComponent>(playerID);
+	if (!vars) return false;
+	auto it = vars->stringVars.find(questId);
+	if (it == vars->stringVars.end()) return false;
+	return it->second == "__completed__";
+}
+
+namespace {
+
+}
+
+nlohmann::json ScriptManager::GetMetaForLua(int entityID) const {
+	auto* meta = registry.GetComponent<MetaComponent>(entityID);
+	if (!meta) return nlohmann::json::object();
+	return meta->meta;
+}
+
+int ScriptManager::GetFactionStanding(int playerID, const std::string& factionId) {
+	if (!gameContext || !gameContext->factories) return 0;
+	return gameContext->factories->factions.GetStanding(playerID, factionId);
+}
+
+int ScriptManager::AdjustFactionStanding(int playerID, const std::string& factionId, int delta) {
+	if (!gameContext || !gameContext->factories) return 0;
+	return gameContext->factories->factions.AdjustStanding(playerID, factionId, delta);
+}
+
+int ScriptManager::GetGold(int playerID, const std::string& slot) {
+	if (!gameContext || !gameContext->factories) return 0;
+	return gameContext->factories->shops.GetPlayerGold(playerID, slot);
+}
+
+int ScriptManager::AddGold(int playerID, int amount, const std::string& slot) {
+	if (!gameContext || !gameContext->factories) return GetGold(playerID, slot);
+	std::string key = slot.empty() ? "gold" : slot;
+	int current = gameContext->factories->shops.GetPlayerGold(playerID, key);
+	int next = std::max<int>(0, current + amount);
+	gameContext->factories->shops.SetGold(playerID, next, key);
+	return next;
+}
+
+int ScriptManager::QuoteBuyPrice(const std::string& keeperId, const std::string& templateId) const {
+	if (!gameContext || !gameContext->factories) return -1;
+	return gameContext->factories->shops.QuoteBuyPrice(keeperId, templateId);
+}
+
+int ScriptManager::QuoteSellPrice(const std::string& keeperId, const std::string& templateId) const {
+	if (!gameContext || !gameContext->factories) return -1;
+	return gameContext->factories->shops.QuoteSellPrice(keeperId, templateId);
+}
+
+bool ScriptManager::ShopBuy(int playerID, const std::string& keeperId, const std::string& templateId, int qty) {
+	if (!gameContext || !gameContext->factories) return false;
+	return gameContext->factories->shops.Buy(playerID, keeperId, templateId, qty);
+}
+
+bool ScriptManager::ShopSell(int playerID, const std::string& keeperId, const std::string& templateId, int qty) {
+	if (!gameContext || !gameContext->factories) return false;
+	return gameContext->factories->shops.Sell(playerID, keeperId, templateId, qty);
 }
 
 template<typename... Args>

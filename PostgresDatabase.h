@@ -37,11 +37,26 @@ public:
     nlohmann::json LoadSkills(const std::string& worldId) override;
     nlohmann::json LoadLootTables(const std::string& worldId) override;
     nlohmann::json LoadDialogues(const std::string& worldId) override;
+    nlohmann::json LoadRecipes(const std::string& worldId) override;
+    nlohmann::json LoadFactions(const std::string& worldId) override;
+    nlohmann::json LoadClasses(const std::string& worldId) override;
+    nlohmann::json LoadRaces(const std::string& worldId) override;
+    nlohmann::json LoadShopKeepers(const std::string& worldId) override;
+    nlohmann::json LoadBoards(const std::string& worldId) override;
+    nlohmann::json LoadMailFor(int playerID, const std::string& folder = "inbox") override;
+
+    int GetFactionStanding(int playerID, const std::string& factionId) override;
+    bool SetFactionStanding(int playerID, const std::string& factionId, int value) override;
 
     bool RegionExists(const std::string& worldId, const std::string& regionId) override;
     bool LoadRegionFloorSettings(const std::string& worldId,
                                  const std::string& regionId,
                                  nlohmann::json& outSettings) override;
+    std::vector<int> LoadZoneIds(const std::string& worldId, const std::string& regionId) override;
+    bool LoadZoneJson(const std::string& worldId,
+                      const std::string& regionId,
+                      int zoneId,
+                      nlohmann::json& outZone) override;
     std::vector<int> LoadRoomIds(const std::string& worldId, const std::string& regionId) override;
     bool LoadRoomJson(const std::string& worldId,
                       const std::string& regionId,

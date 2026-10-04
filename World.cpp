@@ -8,6 +8,7 @@
 #include "RespawnSystem.h"
 #include "RoomFactory.h"
 #include "Registry.h"
+#include "ZoneComponents.h"
 
 const std::string DEFAULT_WORLD_ID = "default";
 
@@ -51,11 +52,45 @@ bool World::LoadRegion(const std::string& regionId, GameContext& ctx)
         nlohmann::json floorSettings;
         ctx.db->LoadRegionFloorSettings(DEFAULT_WORLD_ID, regionId, floorSettings);
 
+        // Load zones first; rooms in procedural zones will be skipped here and
+        // generated lazily by ZoneEntrySystem on first player entry.
+        std::set<int> proceduralZoneIds;
+        std::vector<int> zoneIds = ctx.db->LoadZoneIds(DEFAULT_WORLD_ID, regionId);
+        for (int zid : zoneIds) {
+            nlohmann::json zData;
+            if (!ctx.db->LoadZoneJson(DEFAULT_WORLD_ID, regionId, zid, zData)) {
+                std::cerr << "World::LoadRegion: failed to load zone " << zid
+                          << " for region " << regionId << std::endl;
+                continue;
+            }
+            if (zData.value("isInstanceSource", false)) {
+                proceduralZoneIds.insert(zid);
+            }
+            EntityID zEnt = ctx.registry->CreateEntity();
+            ZoneIdentityComponent zc;
+            zc.regionId = zData.value("regionId", regionId);
+            zc.zoneId = zid;
+            zc.name = zData.value("name", std::string{});
+            zc.description = zData.value("description", std::string{});
+            if (zData.contains("rules_json") && zData["rules_json"].is_object()) {
+                zc.rules = zData["rules_json"];
+            } else if (zData.contains("rules") && zData["rules"].is_object()) {
+                zc.rules = zData["rules"];
+            }
+            zc.zoneScriptRef = zData.value("zone_script_ref", std::string{});
+            zc.isInstanceSource = zData.value("isInstanceSource", false);
+            ctx.registry->AddComponent<ZoneIdentityComponent>(zEnt, zc);
+        }
+
         std::vector<int> roomIds = ctx.db->LoadRoomIds(DEFAULT_WORLD_ID, regionId);
         for (int roomId : roomIds) {
             nlohmann::json rData;
             if (!ctx.db->LoadRoomJson(DEFAULT_WORLD_ID, regionId, roomId, rData)) {
                 std::cerr << "World::LoadRegion: failed to load room " << roomId << " for region " << regionId << std::endl;
+                continue;
+            }
+            int rzid = rData.value("zoneId", 0);
+            if (rzid != 0 && proceduralZoneIds.count(rzid)) {
                 continue;
             }
             LoadRoomFromJson(rData, floorSettings, ctx);

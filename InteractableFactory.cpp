@@ -1,5 +1,7 @@
 #include "InteractableFactory.h"
 #include "GameContext.h"
+#include "MetaComponent.h"
+#include "MetaRegistry.h"
 
 void InteractableFactory::LoadInteractableTemplatesFromJSON(const std::string& path) {
     std::ifstream file(path);
@@ -82,6 +84,12 @@ int InteractableFactory::CreateInteractable(std::string templateID, json overrid
     }
 
     AttachComponents(id, finalComponents, overrides);
+
+    if (finalComponents.contains("meta") && finalComponents["meta"].is_object()) {
+        json meta = finalComponents["meta"];
+        MetaRegistry::ApplyDefaults("interactable", meta);
+        ctx.registry->AddComponent<MetaComponent>(id, MetaComponent{ meta });
+    }
 
     return id;
 }

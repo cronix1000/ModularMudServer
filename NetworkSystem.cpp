@@ -28,7 +28,10 @@ void NetworkSystem::SetupListeners()
 				{"num",   data.RoomID},
 				{"name",  roomIdentity->name},
 				{"desc",  roomIdentity->description},
-				{"terrain", "city"}
+				{"terrain", "city"},
+				{"region", roomIdentity->regionId},
+				{"zone",   roomIdentity->zoneId},
+				{"zoneName", roomIdentity->zoneName}
 			};
 
 			GameMessage msg;

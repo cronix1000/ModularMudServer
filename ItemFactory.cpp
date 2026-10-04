@@ -5,6 +5,8 @@
 #include "EquipmentSlot.h"
 #include "SkillFactory.h"
 #include "FactoryManager.h"
+#include "MetaComponent.h"
+#include "MetaRegistry.h"
 #include <fstream>
 
 void ItemFactory::LoadItemTemplatesFromJSON(const std::string& path) {
@@ -84,6 +86,9 @@ void ItemFactory::LoadSingleItemFromJSON(const std::string& key, const json& j) 
     }
 
     tpl.extra = j.value("extra", json::object());
+    if (j.contains("components") && j["components"].is_object() && j["components"].contains("meta")) {
+        tpl.extra["meta"] = j["components"]["meta"];
+    }
 
     itemTemplates[key] = tpl;
 }
@@ -137,6 +142,12 @@ int ItemFactory::CreateItem(std::string templateID, json overrides, int x, int y
     }
 
     AttachTypeComponents(id, tpl, overrides);
+
+    if (tpl.extra.is_object() && tpl.extra.contains("meta") && tpl.extra["meta"].is_object()) {
+        json meta = tpl.extra["meta"];
+        MetaRegistry::ApplyDefaults("item", meta);
+        ctx.registry->AddComponent<MetaComponent>(id, MetaComponent{ meta });
+    }
 
     return id;
 }

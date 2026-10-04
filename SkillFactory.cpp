@@ -116,4 +116,5 @@ void SkillFactory::CreateSkillEntity(const SkillTemplate& tpl) {
     }
 
     skillLookup[tpl.id] = id;
+    skillKeyByEntity[id] = tpl.id;
 }

@@ -7,6 +7,8 @@
 #include <iostream>
 #include "Registry.h"
 #include "TextHelperFunctions.h"
+#include "MetaComponent.h"
+#include "MetaRegistry.h"
 
 using EntityID = int;
 
@@ -59,7 +61,9 @@ EntityID RoomFactory::CreateInstancedRoom(int templateRoomId) {
         identity->description,
         identity->regionId,
         true,  // isInstance
-        templateRoomId
+        templateRoomId,
+        identity->zoneId,
+        identity->zoneName
     });
     
     // Copy layout
@@ -128,6 +132,8 @@ EntityID RoomFactory::CreateRoomInternal(const json& roomData, bool isInstance, 
     identity.regionId = roomData.value("regionId", "");
     identity.isInstance = isInstance;
     identity.templateId = templateId;
+    identity.zoneId = roomData.value("zoneId", 0);
+    identity.zoneName = roomData.value("zoneName", "");
     
     ctx.registry->AddComponent<RoomIdentityComponent>(roomEntity, identity);
     
@@ -185,10 +191,23 @@ EntityID RoomFactory::CreateRoomInternal(const json& roomData, bool isInstance, 
         }
         ctx.registry->AddComponent<ScriptComponent>(roomEntity, scripts);
     }
-    
+
+    // 6. Add MetaComponent if meta present
+    if (roomData.contains("meta") && roomData["meta"].is_object()) {
+        json meta = roomData["meta"];
+        MetaRegistry::ApplyDefaults("room", meta);
+        ctx.registry->AddComponent<MetaComponent>(roomEntity, MetaComponent{ meta });
+    } else if (roomData.contains("scripts") && roomData["scripts"].is_object()
+               && roomData["scripts"].contains("meta")
+               && roomData["scripts"]["meta"].is_object()) {
+        json meta = roomData["scripts"]["meta"];
+        MetaRegistry::ApplyDefaults("room", meta);
+        ctx.registry->AddComponent<MetaComponent>(roomEntity, MetaComponent{ meta });
+    }
+
     // Register in lookup
     roomIdToEntity[roomId] = roomEntity;
-    
+
     return roomEntity;
 }
 
@@ -256,6 +275,7 @@ void RoomFactory::ParseExits(RoomExitsComponent& exits, const json& exitsData) {
             exit.destX = exitValue.value("dest_x", -1);
             exit.destY = exitValue.value("dest_y", -1);
             exit.isPortal = exitValue.value("is_portal", false);
+            exit.isOneWay = exitValue.value("is_one_way", false);
             exit.portalName = exitValue.value("portal_name", "");
             exit.autoTrigger = exitValue.value("auto_trigger", true);
         }
@@ -265,6 +285,7 @@ void RoomFactory::ParseExits(RoomExitsComponent& exits, const json& exitsData) {
             exit.destX = -1;
             exit.destY = -1;
             exit.isPortal = false;
+            exit.isOneWay = false;
             exit.autoTrigger = true;
         }
         

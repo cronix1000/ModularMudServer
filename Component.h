@@ -59,3 +59,4 @@
 #include "ChestComponent.h"
 #include "InteractableComponent.h"
 #include "InteractableIntentComponent.h"
+#include "MetaComponent.h"

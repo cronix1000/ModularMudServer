@@ -6,6 +6,9 @@
 #include "StatComponent.h"
 #include "MobAttackComponent.h"
 #include "BehaviourComponent.h"
+#include "ScriptManager.h"
+#include "MetaComponent.h"
+#include "MetaRegistry.h"
 #include <fstream>
 
 void MobFactory::LoadMobTemplatesFromJSON(const std::string& path) {
@@ -85,6 +88,9 @@ void MobFactory::LoadSingleMobFromJSON(const std::string& key, const json& j) {
         if (comps.contains("faction")) {
             tpl.extra["faction"] = comps["faction"];
         }
+        if (comps.contains("meta")) {
+            tpl.extra["meta"] = comps["meta"];
+        }
     }
 
     tpl.script = j.value("script", "");
@@ -144,7 +150,20 @@ int MobFactory::CreateMob(std::string templateID, json overrides, int x, int y, 
     mobAttack.criticalChance = tpl.criticalChance;
     mobAttack.criticalMultiplier = tpl.criticalMultiplier;
     mobAttack.attackPatterns = tpl.attackPatterns;
-    mobAttack.hasLuaHook = false;
+
+    if (!tpl.script.empty() && ctx.scripts) {
+        sol::protected_function func = ctx.scripts->lua["mobs"][templateID]["on_attack"];
+        if (func.valid()) {
+            mobAttack.luaAttackFunc = func;
+            mobAttack.hasLuaHook = true;
+        } else {
+            std::cerr << "[MobFactory] Mob '" << templateID
+                      << "' declares script_ref '" << tpl.script
+                      << "' but no 'on_attack' function found in mobs[\""
+                      << templateID << "\"]." << std::endl;
+        }
+    }
+
     ctx.registry->AddComponent<MobAttackComponent>(id, mobAttack);
 
     ctx.registry->AddComponent<MobComponent>(id, { tpl.aiType });
@@ -169,6 +188,17 @@ int MobFactory::CreateMob(std::string templateID, json overrides, int x, int y, 
 
     if (roomID != -1) {
         ctx.registry->AddComponent<PositionComponent>(id, { x, y, roomID });
+    }
+
+    json meta = tpl.extra.value("meta", json::object());
+    if (overrides.contains("meta") && overrides["meta"].is_object()) {
+        for (auto& [k, v] : overrides["meta"].items()) {
+            meta[k] = v;
+        }
+    }
+    MetaRegistry::ApplyDefaults("mob", meta);
+    if (!meta.empty()) {
+        ctx.registry->AddComponent<MetaComponent>(id, MetaComponent{ meta });
     }
 
     return id;

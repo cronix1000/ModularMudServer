@@ -16,12 +16,14 @@ struct PlayerData {
     std::string name;
     std::string region;
     int room_id = 0;
-    int x, y;
+    int x = 0, y = 0;
+    int gold = 0;
+    int bankBalance = 0;
+    std::string classId;
+    std::string raceId;
+    int level = 1;
     std::vector<SavedItemData> items;
     json data;
-
-
-
 
     PlayerData() = default;
 };

@@ -10,7 +10,13 @@ enum class EventType {
     EntityMoved,
     PlayerJoined,
     CombatHit,
-    ItemEquipped
+    ItemEquipped,
+    XpGain,
+    LevelUp,
+    QuestAccept,
+    QuestObjectiveProgress,
+    QuestComplete,
+    FactionChange
 };
 #include <variant>
 #include <queue>
@@ -48,8 +54,33 @@ struct PlayerLoggedInData {
     int permissionLevel;
 };
 
+struct XpGainEventData {
+    int playerID;
+    int amount;
+    std::string source;
+};
+
+struct LevelUpEventData {
+    int playerID;
+    int newLevel;
+};
+
+struct QuestEventData {
+    int playerID;
+    std::string questId;
+    std::string objectiveId;
+    int count;
+};
+
+struct FactionChangeEventData {
+    int playerID;
+    std::string factionId;
+    int oldStanding;
+    int newStanding;
+};
+
 struct EventContext {
-    std::variant<std::monostate, RoomEventData, CombatEventData, ChatEventData, PlayerEventData, ItemEquippedEventData, PlayerLoggedInData> data;
+    std::variant<std::monostate, RoomEventData, CombatEventData, ChatEventData, PlayerEventData, ItemEquippedEventData, PlayerLoggedInData, XpGainEventData, LevelUpEventData, QuestEventData, FactionChangeEventData> data;
 };
 
 class EventBus {
