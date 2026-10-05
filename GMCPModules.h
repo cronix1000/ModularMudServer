@@ -16,6 +16,8 @@ inline constexpr const char* Char_Status = "Char.Status";
 inline constexpr const char* Char_MaxStats = "Char.MaxStats";
 inline constexpr const char* Char_Affects = "Char.Affects";
 
+inline constexpr const char* Entity_Inspect = "Entity.Inspect";
+
 inline constexpr const char* Room_Info = "Room.Info";
 inline constexpr const char* Room_Map = "Room.Map";
 inline constexpr const char* Room_Exits = "Room.Exits";

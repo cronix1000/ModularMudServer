@@ -344,9 +344,11 @@ Components are not how you ship new entity kinds — those go in Postgres.
 - `world_rooms.light INT DEFAULT 0` (0 = dark, 10 = bright). Loaded by
   `PostgresDatabase::LoadRoomJson` into `outRoom["light"]`.
 - `world_room_exits.is_one_way BOOLEAN` is now parsed into
-  `RoomExit::isOneWay`. **No automatic return exit** is created — the
-  admin must declare a second one-way exit on the destination room if
-  they want one.
+  `RoomExit::isOneWay`. The admin's `+ Add exit` flow auto-creates a
+  return exit in the opposite direction on the destination room when the
+  new exit is not one-way, landing at the source room's spawn point
+  (overridable in the target's Exits tab). The C++ loader itself does
+  not auto-create return exits at boot — it reads what the admin wrote.
 
 ### Factions
 

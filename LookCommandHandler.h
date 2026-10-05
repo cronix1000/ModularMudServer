@@ -16,4 +16,6 @@ private:
     static CommandResult HandleLook(ClientConnection* client,
                                     const std::vector<std::string>& params,
                                     GameContext& ctx);
+
+    static CommandResult HandleExamine(ClientConnection* client, const std::vector<std::string>& params, GameContext& ctx);
 };
