@@ -177,18 +177,22 @@ EntityID RoomFactory::CreateRoomInternal(const json& roomData, bool isInstance, 
     }
     
     // 5. Add ScriptComponent if scripts present
-    if (roomData.contains("scripts")) {
+    auto pickScriptRef = [&](const std::string& key) -> std::string {
+        if (roomData.contains("scripts") && roomData["scripts"].is_object() && roomData["scripts"].contains(key))
+            return roomData["scripts"][key].is_string() ? roomData["scripts"][key].get<std::string>() : std::string{};
+        if (roomData.contains(key))
+            return roomData[key].is_string() ? roomData[key].get<std::string>() : std::string{};
+        return std::string{};
+    };
+    std::string onEnter = pickScriptRef("on_enter");
+    std::string onExit = pickScriptRef("on_exit");
+    std::string onPulse = pickScriptRef("on_pulse");
+    if (onPulse.empty()) onPulse = pickScriptRef("pulse");
+    if (!onEnter.empty() || !onExit.empty() || !onPulse.empty()) {
         ScriptComponent scripts;
-        auto& sData = roomData["scripts"];
-        if (sData.contains("on_enter")) {
-            scripts.scripts_path["on_enter"] = sData["on_enter"];
-        }
-        if (sData.contains("on_exit")) {
-            scripts.scripts_path["on_exit"] = sData["on_exit"];
-        }
-        if (sData.contains("on_pulse") || sData.contains("pulse")) {
-            scripts.scripts_path["pulse"] = sData.value("on_pulse", sData.value("pulse", ""));
-        }
+        if (!onEnter.empty()) scripts.scripts_path["on_enter"] = onEnter;
+        if (!onExit.empty()) scripts.scripts_path["on_exit"] = onExit;
+        if (!onPulse.empty()) scripts.scripts_path["pulse"] = onPulse;
         ctx.registry->AddComponent<ScriptComponent>(roomEntity, scripts);
     }
 

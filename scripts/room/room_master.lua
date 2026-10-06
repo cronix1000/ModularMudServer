@@ -1,0 +1,1 @@
+dofile("scripts/room/room_one.lua")

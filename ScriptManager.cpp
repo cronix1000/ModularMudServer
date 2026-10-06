@@ -30,17 +30,23 @@ sol::table JsonToLua(sol::state& lua, const nlohmann::json& j) {
 		const nlohmann::json& val = it.value();
 		if (val.is_string()) {
 			tbl[key] = val.get<std::string>();
-		} else if (val.is_boolean()) {
+		}
+		else if (val.is_boolean()) {
 			tbl[key] = val.get<bool>();
-		} else if (val.is_number_integer()) {
+		}
+		else if (val.is_number_integer()) {
 			tbl[key] = val.get<int>();
-		} else if (val.is_number_float()) {
+		}
+		else if (val.is_number_float()) {
 			tbl[key] = val.get<double>();
-		} else if (val.is_null()) {
+		}
+		else if (val.is_null()) {
 			tbl[key] = sol::nil;
-		} else if (val.is_object()) {
+		}
+		else if (val.is_object()) {
 			tbl[key] = JsonToLua(lua, val);
-		} else {
+		}
+		else {
 			tbl[key] = sol::nil;
 		}
 	}
@@ -84,7 +90,9 @@ void ScriptManager::init() {
 	load_script("scripts/skills/skills_master.lua");
 
 	lua.set_function("send_to_char", [this](int player_id, const std::string& message) {
+		fprintf(stderr, "[DEBUG:send_to_char] called player_id=%d msg='%s'\n", player_id, message.c_str()); fflush(stderr);
 		auto* player = GetPlayer(player_id);
+		fprintf(stderr, "[DEBUG:send_to_char] GetPlayer(%d) -> %s\n", player_id, player ? "valid" : "nullptr"); fflush(stderr);
 		if (player) {
 			player->QueueMessage(message);
 		}
@@ -178,7 +186,7 @@ void ScriptManager::GrantExperience(int playerID, int amount, const std::string&
 
 	auto xpForLevel = [](int level) -> int {
 		return 100 * level;
-	};
+		};
 
 	int newLevel = currentLevel;
 	while (newLevel < 100 && newXp >= xpForLevel(newLevel)) {
@@ -204,42 +212,43 @@ void ScriptManager::GrantExperience(int playerID, int amount, const std::string&
 
 namespace {
 
-struct QuestProgress {
-	std::map<std::string, int> jsonObjective;
-};
+	struct QuestProgress {
+		std::map<std::string, int> jsonObjective;
+	};
 
-bool ParseQuestProgress(const std::string& jsonStr, QuestProgress& out) {
-	if (jsonStr.empty()) return true;
-	try {
-		auto j = nlohmann::json::parse(jsonStr);
-		if (j.contains("objectives") && j["objectives"].is_object()) {
-			for (auto& [k, v] : j["objectives"].items()) {
-				out.jsonObjective[k] = v.get<int>();
+	bool ParseQuestProgress(const std::string& jsonStr, QuestProgress& out) {
+		if (jsonStr.empty()) return true;
+		try {
+			auto j = nlohmann::json::parse(jsonStr);
+			if (j.contains("objectives") && j["objectives"].is_object()) {
+				for (auto& [k, v] : j["objectives"].items()) {
+					out.jsonObjective[k] = v.get<int>();
+				}
 			}
+			return true;
 		}
-		return true;
-	} catch (...) {
-		return false;
+		catch (...) {
+			return false;
+		}
 	}
-}
 
-std::string SerializeQuestProgress(const QuestProgress& qp) {
-	nlohmann::json j;
-	j["objectives"] = nlohmann::json::object();
-	for (auto& [k, v] : qp.jsonObjective) {
-		j["objectives"][k] = v;
+	std::string SerializeQuestProgress(const QuestProgress& qp) {
+		nlohmann::json j;
+		j["objectives"] = nlohmann::json::object();
+		for (auto& [k, v] : qp.jsonObjective) {
+			j["objectives"][k] = v;
+		}
+		return j.dump();
 	}
-	return j.dump();
-}
 
-PlayerVariablesComponent* GetOrCreateVars(Registry& registry, int playerID) {
-	auto* vars = registry.GetComponent<PlayerVariablesComponent>(playerID);
-	if (!vars) {
-		registry.AddComponent<PlayerVariablesComponent>(playerID);
-		vars = registry.GetComponent<PlayerVariablesComponent>(playerID);
+	PlayerVariablesComponent* GetOrCreateVars(Registry& registry, int playerID) {
+		auto* vars = registry.GetComponent<PlayerVariablesComponent>(playerID);
+		if (!vars) {
+			registry.AddComponent<PlayerVariablesComponent>(playerID);
+			vars = registry.GetComponent<PlayerVariablesComponent>(playerID);
+		}
+		return vars;
 	}
-	return vars;
-}
 
 }
 
@@ -410,7 +419,7 @@ SkillResult ScriptManager::ExecuteSkillScript(const std::string& scriptPath, con
 	// 4. Execute with Context
 	// Get the skill table to pass as 'self' parameter
 	sol::table skillTable = lua["skills"][scriptPath];
-	
+
 	// Convert C++ SkillContext to Lua table
 	sol::table ctxTable = lua.create_table();
 	ctxTable["sourceID"] = ctx.sourceID;
@@ -419,27 +428,27 @@ SkillResult ScriptManager::ExecuteSkillScript(const std::string& scriptPath, con
 	ctxTable["masteryLevel"] = ctx.masteryLevel;
 	ctxTable["basePower"] = ctx.basePower;
 
-	
+
 	auto result = func(skillTable, ctxTable);
 
 	// 5. Debug & Unpack Result
 	std::cerr << "[DEBUG] Result valid: " << result.valid() << std::endl;
 	std::cerr << "[DEBUG] Return count: " << result.return_count() << std::endl;
-	
+
 	if (!result.valid()) {
 		sol::error err = result;
 		std::cerr << "[LUA ERROR] Skill execution failed: " << err.what() << std::endl;
 		return SkillResult{ false };
 	}
-	
+
 	if (result.return_count() > 0) {
 		sol::object firstReturn = result[0];
 		std::cerr << "[DEBUG] First return type (int): " << static_cast<int>(firstReturn.get_type()) << std::endl;
 		std::cerr << "[DEBUG] Is table: " << firstReturn.is<sol::table>() << std::endl;
-		
+
 		if (firstReturn.is<sol::table>()) {
 			sol::table tbl = firstReturn;
-			
+
 			// Debug: print all keys in the table
 			std::cerr << "[DEBUG] Table keys:" << std::endl;
 			for (auto& pair : tbl) {
@@ -447,14 +456,14 @@ SkillResult ScriptManager::ExecuteSkillScript(const std::string& scriptPath, con
 					std::cerr << "  - " << pair.first.as<std::string>() << std::endl;
 				}
 			}
-			
+
 			SkillResult res;
 			res.success = tbl.get_or("success", false);
 			res.actionType = tbl.get_or<std::string>("actionType", "none");
 			res.magnitude = tbl.get_or<float>("magnitude", 0.0);
 			res.damageType = tbl.get_or<std::string>("damageType", "physical");
 			res.dataString = tbl.get_or<std::string>("dataString", "attacked");
-			
+
 			sol::object tagsObj = tbl["addedTags"];
 			if (tagsObj.is<sol::table>()) {
 				sol::table tagsTbl = tagsObj;
@@ -492,12 +501,12 @@ void ScriptManager::load_all_scripts(const std::string& root_path) {
 			return;
 		}
 
-		for (const auto& entry : fs::recursive_directory_iterator(root_path)) {
-			if (entry.is_regular_file() && entry.path().extension() == ".lua") {
-				std::string path = entry.path().string();
-				std::cout << "Loading script: " << path << std::endl;
-				load_script(path);
-			}
+		std::string path = root_path + "/master_file.lua";
+		std::cout << "Loading script: " << path << std::endl;
+		if(fs::exists(path)) {
+			load_script(path);
+		} else {
+			std::cerr << "Script not found: " << path << std::endl;
 		}
 	}
 	catch (const std::exception& e) {
@@ -539,17 +548,17 @@ InteractableResult ScriptManager::ExecuteInteractableScript(const std::string& s
 		res.actionType = tbl.get_or<std::string>("actionType", "none");
 		res.message = tbl.get_or<std::string>("message", "");
 		res.roomMessage = tbl.get_or<std::string>("roomMessage", "");
-		
+
 		// Teleport data
 		res.targetRoomID = tbl.get_or("targetRoomID", -1);
 		res.targetX = tbl.get_or("targetX", -1);
 		res.targetY = tbl.get_or("targetY", -1);
-		
+
 		// Item spawning
 		res.spawnItemID = tbl.get_or<std::string>("spawnItemID", "");
 		res.spawnX = tbl.get_or("spawnX", -1);
 		res.spawnY = tbl.get_or("spawnY", -1);
-		
+
 		// Event triggering
 		res.eventName = tbl.get_or<std::string>("eventName", "");
 		res.newState = tbl.get_or<std::string>("newState", "");

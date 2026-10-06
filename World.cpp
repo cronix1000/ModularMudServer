@@ -40,8 +40,11 @@ bool World::CheckIfRegionLoaded(const std::string& regionId)
 
 bool World::LoadRegion(const std::string& regionId, GameContext& ctx)
 {
-    if (CheckIfRegionLoaded(regionId))
+    fprintf(stderr, "[DEBUG:World] LoadRegion('%s') called\n", regionId.c_str()); fflush(stderr);
+    if (CheckIfRegionLoaded(regionId)) {
+        fprintf(stderr, "[DEBUG:World] LoadRegion('%s') already loaded, skipping\n", regionId.c_str()); fflush(stderr);
         return true;
+    }
 
     if (!roomFactory) {
         roomFactory = new RoomFactory(ctx);
@@ -83,14 +86,19 @@ bool World::LoadRegion(const std::string& regionId, GameContext& ctx)
         }
 
         std::vector<int> roomIds = ctx.db->LoadRoomIds(DEFAULT_WORLD_ID, regionId);
+        fprintf(stderr, "[DEBUG:World] LoadRegion('%s') got %zu roomIds from DB\n", regionId.c_str(), roomIds.size()); fflush(stderr);
         for (int roomId : roomIds) {
             nlohmann::json rData;
             if (!ctx.db->LoadRoomJson(DEFAULT_WORLD_ID, regionId, roomId, rData)) {
+                std::fprintf(stderr, "[DEBUG:World] failed to load room %d for region %s\n", roomId, regionId.c_str());
                 std::cerr << "World::LoadRegion: failed to load room " << roomId << " for region " << regionId << std::endl;
                 continue;
             }
+            fprintf(stderr, "[DEBUG:World] roomId=%d loaded. zoneId=%d. Has 'scripts' key: %d\n",
+                    roomId, rData.value("zoneId", 0), (int)rData.contains("scripts")); fflush(stderr);
             int rzid = rData.value("zoneId", 0);
             if (rzid != 0 && proceduralZoneIds.count(rzid)) {
+                fprintf(stderr, "[DEBUG:World] roomId=%d SKIPPED (procedural zone)\n", roomId); fflush(stderr);
                 continue;
             }
             LoadRoomFromJson(rData, floorSettings, ctx);

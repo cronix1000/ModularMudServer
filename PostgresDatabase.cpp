@@ -1183,7 +1183,6 @@ bool PostgresDatabase::LoadRoomJson(const std::string& worldId,
                 outRoom["spawn_legend"] = legend;
             }
         }
-
         tx.commit();
         return true;
     } catch (const std::exception& e) {

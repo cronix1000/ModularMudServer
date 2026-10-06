@@ -66,11 +66,19 @@ void MovementSystem::MovementSystemRun() {
 				}
 				
 				if (roomEntity != 0) {
-					if (auto* script = ctx.registry->GetComponent<ScriptComponent>(roomEntity)) {
+						if (auto* script = ctx.registry->GetComponent<ScriptComponent>(roomEntity)) {
+							fprintf(stderr, "[DEBUG:MovementSystem] roomEntity=%d player=%d has ScriptComponent. scripts_path keys:", roomEntity, entityId);
+							for (const auto& kv : script->scripts_path) fprintf(stderr, " [%s]=[%s]", kv.first.c_str(), kv.second.c_str());
+							fprintf(stderr, "\n"); fflush(stderr);
 						auto it = script->scripts_path.find("on_enter");
 						if (it != script->scripts_path.end()) {
+							fprintf(stderr, "[DEBUG:MovementSystem] resolving on_enter -> '%s'\n", it->second.c_str()); fflush(stderr);
 							ctx.scripts->execute_hook(it->second, entityId, posComponent->roomId);
+						} else {
+							fprintf(stderr, "[DEBUG:MovementSystem] NO on_enter key on roomEntity=%d\n", roomEntity); fflush(stderr);
 						}
+					} else {
+						fprintf(stderr, "[DEBUG:MovementSystem] roomEntity=%d has NO ScriptComponent\n", roomEntity); fflush(stderr);
 					}
 				}
 			} else { // Failed move

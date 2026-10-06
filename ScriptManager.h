@@ -57,10 +57,16 @@ public:
 
 	template<typename... Args>
 	void execute_hook(const std::string& func_name, Args&&... args) {
+		fprintf(stderr, "[DEBUG:execute_hook] ENTER name='%s'\n", func_name.c_str()); fflush(stderr);
 		if (func_name.empty()) return;
+
+		sol::object obj = lua[func_name];
+		fprintf(stderr, "[DEBUG:execute_hook] lua['%s'] type=%d valid=%d\n",
+			func_name.c_str(), (int)obj.get_type(), obj.valid() ? 1 : 0); fflush(stderr);
 
 		sol::protected_function func = lua[func_name];
 		if (!func.valid()) {
+			fprintf(stderr, "[DEBUG:execute_hook] '%s' is not a valid Lua global\n", func_name.c_str()); fflush(stderr);
 			return;
 		}
 
@@ -69,6 +75,8 @@ public:
 		if (!result.valid()) {
 			sol::error err = result;
 			std::cerr << "Lua Hook Error [" << func_name << "]: " << err.what() << std::endl;
+		} else {
+			fprintf(stderr, "[DEBUG:execute_hook] '%s' returned valid\n", func_name.c_str()); fflush(stderr);
 		}
 	}
 

@@ -1,0 +1,6 @@
+dofile("scripts/interactables/interactables_master.lua")
+dofile("scripts/skills/skills_master.lua")
+dofile("scripts/mobs/mobs_master.lua")
+dofile("scripts/quest/quests_master.lua")
+dofile("scripts/regions/regions_master.lua")
+dofile("scripts/room/room_master.lua")
