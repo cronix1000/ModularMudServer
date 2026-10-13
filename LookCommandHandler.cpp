@@ -14,11 +14,13 @@
 #include "ClientComponent.h"
 #include "EntityResolver.h"
 #include "GMCPModules.h"
-
+#include "InteractionOverrideComponent.h"
 #include "ItemComponent.h"
 #include "WeaponComponent.h"
 #include "ArmourComponent.h"
+#include "InteractionMessage.h"
 #include "StatModifierComponent.h"
+#include "TextHelperFunctions.h"
 
 #include <nlohmann/json.hpp>
 
@@ -138,6 +140,18 @@ namespace {
         if (!name) return "";
         if (desc && desc->hidden) return "";
 
+        std::unordered_map<std::string, std::string> tokens{
+            {"name", name->displayName},
+        };
+        auto resolved = InteractionMessage::Resolve(r, entity, "look", tokens);
+        if (resolved) {
+            std::ostringstream rOut;
+            rOut << name->displayName << "\r\n";
+            rOut << resolved->message << "\r\n";
+            rOut << AppendStateLines(entity, r);
+            return rOut.str();
+        }
+
         std::ostringstream out;
         out << name->displayName << "\r\n";
         if (desc && !desc->description.empty()) {
@@ -247,11 +261,22 @@ namespace {
             kind = "armour";
             txt << "  Defense: " << armour->defense << "\r\n";
             txt << "  Magic defense: " << armour->magicDefense << "\r\n";
-            txt << "  Slot: " << static_cast<int>(armour->slot) << "\r\n";
             txt << "  Type: " << armour->type << "\r\n";
+            if (item && !item->allowedSlots.empty()) {
+                txt << "  Slots: ";
+                for (size_t i = 0; i < item->allowedSlots.size(); ++i) {
+                    if (i > 0) txt << ", ";
+                    txt << TextHelperFunctions::SlotToString(item->allowedSlots[i]);
+                }
+                txt << "\r\n";
+                stats["slot"] = static_cast<int>(item->allowedSlots.front());
+                stats["allowedSlots"] = nlohmann::json::array();
+                for (EquipmentSlot s : item->allowedSlots) {
+                    stats["allowedSlots"].push_back(static_cast<int>(s));
+                }
+            }
             stats["defense"] = armour->defense;
             stats["magicDefense"] = armour->magicDefense;
-            stats["slot"] = static_cast<int>(armour->slot);
             stats["type"] = armour->type;
         }
 
@@ -353,6 +378,7 @@ namespace {
         return fallback;
     }
 }
+
 
 void LookCommandHandler::RegisterAll(CommandRegistry& registry) {
     registry.RegisterWithAliases("look", HandleLook, {"l"}, PermissionLevel::Player);

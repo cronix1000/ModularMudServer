@@ -1,6 +1,7 @@
 #pragma once
 #include "EventBus.h"
 #include "ScriptManager.h"
+#include "EquipmentSlotInfo.h"
 class ScriptEventBridge
 {
 	EventBus* bus;
@@ -84,6 +85,38 @@ public:
             luaTable["new_standing"] = data.newStanding;
 
             scripts->dispatch_event("FactionChange", luaTable);
+            });
+
+        bus->Subscribe(EventType::ItemEquipped, [this](const EventContext& ctx) {
+            auto data = std::get<ItemEquippedEventData>(ctx.data);
+
+            sol::table luaTable = scripts->lua.create_table();
+            luaTable["player_id"] = data.player;
+            luaTable["item_id"] = data.itemId;
+
+            scripts->dispatch_event("ItemEquipped", luaTable);
+            });
+
+        bus->Subscribe(EventType::ItemUnequipped, [this](const EventContext& ctx) {
+            auto data = std::get<ItemUnequippedEventData>(ctx.data);
+
+            sol::table luaTable = scripts->lua.create_table();
+            luaTable["player_id"] = data.player;
+            luaTable["item_id"] = data.itemId;
+            luaTable["slot"] = EquipmentSlotInfo::SlotToString(data.slot);
+
+            scripts->dispatch_event("ItemUnequipped", luaTable);
+            });
+
+        bus->Subscribe(EventType::ItemDropped, [this](const EventContext& ctx) {
+            auto data = std::get<ItemDroppedEventData>(ctx.data);
+
+            sol::table luaTable = scripts->lua.create_table();
+            luaTable["player_id"] = data.player;
+            luaTable["item_id"] = data.itemId;
+            luaTable["room_id"] = data.roomId;
+
+            scripts->dispatch_event("ItemDropped", luaTable);
             });
     }
     ~ScriptEventBridge() = default;

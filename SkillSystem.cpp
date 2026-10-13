@@ -92,7 +92,7 @@ void SkillSystem::ExecuteScriptAndDispatch(int entityID, int skillID, int target
         int power = 0;
         auto* equipment = ctx.registry->GetComponent<EquipmentComponent>(entityID);
         if (equipment) {
-            int weaponID = equipment->slots[EquipmentSlot::mainArm];
+            int weaponID = equipment->slots[EquipmentSlot::MainArm];
             auto* weapon = ctx.registry->GetComponent<WeaponComponent>(weaponID);
             if (weapon) {
                 power = weapon->maxDamage;

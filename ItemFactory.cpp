@@ -3,10 +3,13 @@
 #include "Component.h"
 #include "TextHelperFunctions.h"
 #include "EquipmentSlot.h"
+#include "EquipmentSlotInfo.h"
 #include "SkillFactory.h"
 #include "FactoryManager.h"
 #include "MetaComponent.h"
 #include "MetaRegistry.h"
+#include "InteractionOverrideComponent.h"
+#include "ScriptComponent.h"
 #include <fstream>
 
 void ItemFactory::LoadItemTemplatesFromJSON(const std::string& path) {
@@ -61,18 +64,44 @@ void ItemFactory::LoadSingleItemFromJSON(const std::string& key, const json& j) 
             tpl.maxDamage = weapon.value("maxDamage", 2);
             tpl.damageType = weapon.value("damageType", "blunt");
             tpl.primarySkill = weapon.value("defaultSkill", "");
+            tpl.twoHanded = weapon.value("twoHanded", false);
         }
 
         if (comps.contains("armour")) {
             const json& armor = comps["armour"];
             tpl.itemType = "armour";
             tpl.defense = armor.value("defense", 0);
-            tpl.slot = armor.value("slot", "torso");
         }
 
         if (comps.contains("scripts")) {
             const json& scripts = comps["scripts"];
             tpl.script = scripts.value("on_hit_proc", "");
+            if (scripts.contains("on_equip") && scripts["on_equip"].is_string()) {
+                tpl.itemScripts["on_equip"] = scripts["on_equip"].get<std::string>();
+            }
+            if (scripts.contains("on_unequip") && scripts["on_unequip"].is_string()) {
+                tpl.itemScripts["on_unequip"] = scripts["on_unequip"].get<std::string>();
+            }
+            if (scripts.contains("on_drop") && scripts["on_drop"].is_string()) {
+                tpl.itemScripts["on_drop"] = scripts["on_drop"].get<std::string>();
+            }
+        }
+
+        if (comps.contains("allowed_slots") && comps["allowed_slots"].is_array()) {
+            for (const auto& s : comps["allowed_slots"]) {
+                if (s.is_string()) {
+                    EquipmentSlot parsed = EquipmentSlotInfo::ParseSlotString(s.get<std::string>());
+                    if (parsed != EquipmentSlot::Default) {
+                        tpl.allowedSlots.push_back(parsed);
+                    }
+                }
+            }
+        }
+
+        if (tpl.itemType == "armour" && tpl.allowedSlots.empty()) {
+            std::cerr << "[Warning] Item '" << key << "' has armour components with no allowed_slots. "
+                      << "Defaulting to [Chest]. Add 'components.allowed_slots' to items.json." << std::endl;
+            tpl.allowedSlots.push_back(EquipmentSlot::Chest);
         }
     }
 
@@ -82,6 +111,9 @@ void ItemFactory::LoadSingleItemFromJSON(const std::string& key, const json& j) 
             for (const auto& skill : comps["passive_skills"]) {
                 tpl.extraSkills.push_back(skill.get<std::string>());
             }
+        }
+        if (comps.contains("messages") && comps["messages"].is_object()) {
+            tpl.messages = comps["messages"];
         }
     }
 
@@ -136,6 +168,8 @@ int ItemFactory::CreateItem(std::string templateID, json overrides, int x, int y
         }
     }
 
+    itemComp.allowedSlots = tpl.allowedSlots;
+
     ctx.registry->AddComponent<ItemComponent>(id, itemComp);
     if (roomID != -1) {
         ctx.registry->AddComponent<PositionComponent>(id, { x, y, roomID });
@@ -149,6 +183,32 @@ int ItemFactory::CreateItem(std::string templateID, json overrides, int x, int y
         ctx.registry->AddComponent<MetaComponent>(id, MetaComponent{ meta });
     }
 
+    json messagesJson;
+    if (overrides.contains("messages") && overrides["messages"].is_object()) {
+        messagesJson = overrides["messages"];
+    } else if (tpl.messages.is_object()) {
+        messagesJson = tpl.messages;
+    }
+    if (messagesJson.is_object()) {
+        InteractionOverrideComponent ioc;
+        for (auto& [k, v] : messagesJson.items()) {
+            if (v.is_array()) {
+                for (auto& m : v) {
+                    if (m.is_string()) ioc.overrides[k].push_back(m.get<std::string>());
+                }
+            }
+        }
+        if (!ioc.overrides.empty()) {
+            ctx.registry->AddComponent<InteractionOverrideComponent>(id, ioc);
+        }
+    }
+
+    if (!tpl.itemScripts.empty()) {
+        ScriptComponent sc;
+        sc.scripts_path = tpl.itemScripts;
+        ctx.registry->AddComponent<ScriptComponent>(id, sc);
+    }
+
     return id;
 }
 
@@ -158,14 +218,12 @@ void ItemFactory::AttachTypeComponents(int id, const ItemTemplate& tpl, const js
         wc.minDamage = overrides.value("minDamage", tpl.minDamage);
         wc.maxDamage = overrides.value("maxDamage", tpl.maxDamage);
         wc.damageType = overrides.value("damageType", tpl.damageType);
+        wc.twoHanded = overrides.value("twoHanded", tpl.twoHanded);
         ctx.registry->AddComponent<WeaponComponent>(id, wc);
     }
     else if (tpl.itemType == "armour") {
         ArmourComponent ac;
         ac.defense = overrides.value("defense", tpl.defense);
-        std::string slot = overrides.value("slot", tpl.slot);
-        EquipmentSlot eqSlot = TextHelperFunctions::StringToSlot(slot);
-        ac.slot = eqSlot;
         ctx.registry->AddComponent<ArmourComponent>(id, ac);
     }
 }

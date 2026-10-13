@@ -162,7 +162,7 @@ void CombatStateSystem::Run(float deltaTime) {
             auto* stats = ctx.registry->GetComponent<StatComponent>(entityID);
             
             if (equipment && stats) {
-                int weaponID = equipment->slots[EquipmentSlot::mainArm];
+                int weaponID = equipment->slots[EquipmentSlot::MainArm];
                 if (weaponID > 0) {
                     auto* weapon = ctx.registry->GetComponent<WeaponComponent>(weaponID);
                     if (weapon) {
@@ -179,7 +179,7 @@ void CombatStateSystem::Run(float deltaTime) {
             // Find primary skill from weapon
             int primarySkillID = -1;
             if (equipment) {
-                int weaponID = equipment->slots[EquipmentSlot::mainArm];
+                int weaponID = equipment->slots[EquipmentSlot::MainArm];
                 if (weaponID > 0) {
                     auto* itemComp = ctx.registry->GetComponent<ItemComponent>(weaponID);
                     if (itemComp) {

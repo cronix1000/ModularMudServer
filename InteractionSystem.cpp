@@ -1,6 +1,6 @@
 #include "InteractionSystem.h"
-#include "GameContext.h"     
-#include "Registry.h"      
+#include "GameContext.h"
+#include "Registry.h"
 #include "Component.h"
 #include "InteractableIntentComponent.h"
 #include "InteractableContext.h"
@@ -9,6 +9,26 @@
 #include "ScriptManager.h"
 #include "FactoryManager.h"
 #include "WorldManager.h"
+#include "DropItemIntentComponent.h"
+#include "EquipItemIntentComponent.h"
+#include "ScriptComponent.h"
+#include "ItemScriptContext.h"
+#include "ItemScriptResult.h"
+#include "EquipmentComponent.h"
+#include "InventoryComponent.h"
+#include "PositionComponent.h"
+#include "EventBus.h"
+#include <algorithm>
+
+RoomRulesComponent* FindRoomRulesComponent(Registry& registry, int roomId) {
+	for (EntityID e : registry.view<RoomIdentityComponent>()) {
+		auto* id = registry.GetComponent<RoomIdentityComponent>(e);
+		if (id && id->roomId == roomId) {
+			return registry.GetComponent<RoomRulesComponent>(e);
+		}
+	}
+	return nullptr;
+}
 
 InteractionSystem::~InteractionSystem() {}
 
@@ -20,7 +40,7 @@ void InteractionSystem::run() {
 
 		InventoryComponent* inventory = ctx.registry->GetComponent<InventoryComponent>(entity);
 		ClientComponent* client = ctx.registry->GetComponent<ClientComponent>(entity);
-		
+
 		// Ensure the entity has the necessary components.
 		if (!inventory || !client) {
 			ctx.registry->RemoveComponent<PickupItemIntentComponent>(entity);
@@ -47,6 +67,111 @@ void InteractionSystem::run() {
 		ctx.registry->RemoveComponent<PickupItemIntentComponent>(entity);
 	}
 
+	// Handle drop item intents
+	for (EntityID entity : ctx.registry->view<DropItemIntentComponent>()) {
+		auto* intent = ctx.registry->GetComponent<DropItemIntentComponent>(entity);
+		if (!intent) {
+			ctx.registry->RemoveComponent<DropItemIntentComponent>(entity);
+			continue;
+		}
+
+		PositionComponent* playerPos = ctx.registry->GetComponent<PositionComponent>(entity);
+		ClientComponent* client = ctx.registry->GetComponent<ClientComponent>(entity);
+		if (!playerPos || !client) {
+			ctx.registry->RemoveComponent<DropItemIntentComponent>(entity);
+			continue;
+		}
+
+		RoomRulesComponent* roomRules = FindRoomRulesComponent(*ctx.registry, playerPos->roomId);
+		if (roomRules && !roomRules->allowDrop) {
+			client->client->QueueMessage("You can't drop anything here.");
+			ctx.registry->RemoveComponent<DropItemIntentComponent>(entity);
+			continue;
+		}
+		if (roomRules && roomRules->maxItemsOnGround >= 0) {
+			int count = 0;
+			for (EntityID e : ctx.registry->view<PositionComponent>()) {
+				auto* p2 = ctx.registry->GetComponent<PositionComponent>(e);
+				if (p2 && p2->roomId == playerPos->roomId) count++;
+			}
+			if (count >= roomRules->maxItemsOnGround) {
+				client->client->QueueMessage("There's no room to drop that here.");
+				ctx.registry->RemoveComponent<DropItemIntentComponent>(entity);
+				continue;
+			}
+		}
+
+		// Remove from inventory if present.
+		auto* inv = ctx.registry->GetComponent<InventoryComponent>(entity);
+		if (inv) {
+			auto it = std::find(inv->items.begin(), inv->items.end(), intent->itemID);
+			if (it != inv->items.end()) inv->items.erase(it);
+		}
+		// Defensive: also clear any equipment slot holding this item.
+		// Unequip intent should have already run, but order is not guaranteed.
+		auto* equip = ctx.registry->GetComponent<EquipmentComponent>(entity);
+		if (equip) {
+			for (auto it = equip->slots.begin(); it != equip->slots.end();) {
+				if (it->second == intent->itemID) it = equip->slots.erase(it);
+				else ++it;
+			}
+		}
+
+		// Place item on the ground at the player's tile.
+		if (ctx.registry->HasComponent<PositionComponent>(intent->itemID)) {
+			auto* itemPos = ctx.registry->GetComponent<PositionComponent>(intent->itemID);
+			if (itemPos) {
+				itemPos->x = playerPos->x;
+				itemPos->y = playerPos->y;
+				itemPos->roomId = playerPos->roomId;
+			}
+		} else {
+			ctx.registry->AddComponent<PositionComponent>(intent->itemID,
+				PositionComponent{ playerPos->x, playerPos->y, playerPos->roomId });
+		}
+
+		// Lua hook: per-item on_drop script (cancellable).
+		bool cancel = false;
+		if (ctx.scripts) {
+			auto* scriptComp = ctx.registry->GetComponent<ScriptComponent>(intent->itemID);
+			if (scriptComp) {
+				auto it = scriptComp->scripts_path.find("on_drop");
+				if (it != scriptComp->scripts_path.end() && !it->second.empty()) {
+					ItemScriptContext isctx;	
+					isctx.userID = entity;
+					isctx.itemID = intent->itemID;
+					isctx.roomID = playerPos->roomId;
+					isctx.x = playerPos->x;
+					isctx.y = playerPos->y;
+					auto* itemC = ctx.registry->GetComponent<ItemComponent>(intent->itemID);
+					if (itemC) isctx.itemTemplateID = itemC->templateName;
+					ItemScriptResult res = ctx.scripts->ExecuteItemScript(it->second, "on_execute", isctx);
+					if (!res.message.empty()) {
+						client->client->QueueMessage(res.message);
+					}
+					if (res.cancelDrop) cancel = true;
+				}
+			}
+		}
+
+		if (cancel) {
+			// Revert: remove the ground position, push back to inventory.
+			ctx.registry->RemoveComponent<PositionComponent>(intent->itemID);
+			if (inv) inv->items.push_back(intent->itemID);
+			ctx.registry->RemoveComponent<DropItemIntentComponent>(entity);
+			continue;
+		}
+
+		EventContext evt;
+		evt.data = ItemDroppedEventData{ entity, intent->itemID, playerPos->roomId };
+		ctx.eventBus->Publish(EventType::ItemDropped, evt);
+
+		ctx.registry->AddComponent<InventoryChangedComponent>(entity);
+		ctx.registry->AddComponent<PlayerDirtyComponent>(entity);
+
+		ctx.registry->RemoveComponent<DropItemIntentComponent>(entity);
+	}
+
 	// Handle interactable intents
 	for (EntityID entity : ctx.registry->view<InteractableIntentComponent>()) {
 		auto* intent = ctx.registry->GetComponent<InteractableIntentComponent>(entity);
@@ -56,27 +181,30 @@ void InteractionSystem::run() {
 		if (!client) {
 			ctx.registry->RemoveComponent<InteractableIntentComponent>(entity);
 			continue;
-		}
+		}  
 
-		// Use ScriptManager to handle the interaction
-		auto* scriptComp = ctx.registry->GetComponent<ScriptComponent>(intent->interactableID);
-		auto* posComp = ctx.registry->GetComponent<PositionComponent>(intent->interactableID);
-		
-		if (!scriptComp || !posComp) {
+		auto* inter = ctx.registry->GetComponent<InteractableComponent>(intent->interactEntityId);
+		auto* scriptComp = ctx.registry->GetComponent<ScriptComponent>(intent->interactEntityId);
+		auto* posComp = ctx.registry->GetComponent<PositionComponent>(intent->interactEntityId);
+		if (!inter || !posComp) {
 			client->client->QueueMessage("You cannot interact with that.");
 			ctx.registry->RemoveComponent<InteractableIntentComponent>(entity);
 			continue;
 		}
-
-		std::string scriptPath = scriptComp->scripts_path["on_use"];
-		if (scriptPath.empty()) {
+		if (!scriptComp) {
 			client->client->QueueMessage("That object is not interactive.");
 			ctx.registry->RemoveComponent<InteractableIntentComponent>(entity);
 			continue;
 		}
+		std::string scriptPath = scriptComp->scripts_path["on_use"];
+		if (scriptPath.empty()) {
+			client->client->QueueMessage("That object is not interactive.");
+			ctx.registry->RemoveComponent<InteractableIntentComponent>(entity);	
+			continue;
+		}
 
 		InteractableContext context{
-			intent->interactableID, entity, posComp->roomId, posComp->x, posComp->y, intent->action, intent->parameters
+			intent->interactEntityId, entity, posComp->roomId, posComp->x, posComp->y, intent->action, intent->parameters
 		};
 
 		auto result = ctx.scripts->ExecuteInteractableScript(scriptPath, "on_use", context);

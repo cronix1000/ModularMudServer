@@ -16,18 +16,26 @@ public:
 
 private:
     static CommandResult HandlePickup(ClientConnection* client,
-                                      const std::vector<std::string>& params,
-                                      GameContext& ctx);
+        const std::vector<std::string>& params,
+        GameContext& ctx);
 
     static CommandResult HandleDrop(ClientConnection* client,
-                                    const std::vector<std::string>& params,
-                                    GameContext& ctx);
+        const std::vector<std::string>& params,
+        GameContext& ctx);
 
     static CommandResult HandleEquip(ClientConnection* client,
-                                     const std::vector<std::string>& params,
-                                     GameContext& ctx);
+        const std::vector<std::string>& params,
+        GameContext& ctx);
 
     static CommandResult HandleInventory(ClientConnection* client,
-                                         const std::vector<std::string>& params,
-                                         GameContext& ctx);
+        const std::vector<std::string>& params,
+        GameContext& ctx);
+
+    static CommandResult HandleEquipment(ClientConnection* client,
+        const std::vector<std::string>& params,
+        GameContext& ctx);
+    
+    static CommandResult HandleUnequip(ClientConnection* client,
+        const std::vector<std::string>& params,
+        GameContext& ctx);
 };

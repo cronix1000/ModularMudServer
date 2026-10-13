@@ -42,6 +42,26 @@ When adding a new world_* table or column:
 - Map `*_json` columns: object-typed values are merged into the parent JSON; array-typed values get the `_json` suffix stripped.
 - Component-style columns (e.g. `world_items.components_json`) need explicit wrapping under `components` in the loader — see `LoadItems()` for the pattern.
 
+### Interaction overrides
+
+Any entity (item, mob, interactable) can carry an `InteractionOverrideComponent` (one field: `std::unordered_map<std::string, std::vector<std::string>> overrides`). JSON shape: `components.messages: { "<action>": ["msg1", "msg2", ...] }`.
+
+Action keys: `look`, `inspect`, `equip`, `unequip`, `drop`, `use`. Free-form.
+
+Tokens: `{name}`, `{slot}`, `{charges}`, `{wielder}`, `{level}`. Unknown tokens left literal.
+
+Pool-pick: deterministic per-(entity, action, tick). Same item re-equipped at a later tick yields a different message.
+
+Resolution lives in `InteractionMessage.h` (`InteractionMessage::Resolve`). Systems call it at the render point: `MessageSystem` for equip/unequip/drop events, `LookCommandHandler::RenderEntity` for `look`. Falls through to the system's default message on `nullopt`.
+
+### Item slot ownership
+
+Item slot lives on `ItemComponent::allowedSlots` (single source of truth).
+JSON shape: `components.allowed_slots: ["ring1", "ring2", ...]` at top level under `components`.
+Weapons do not carry a slot field — they flow through `intent->slot` with `MainArm` as the default in `InventorySystem::Run`.
+`ArmourComponent` no longer carries a slot field; it only holds `defense`, `magicDefense`, `type`, `templateID`.
+Items missing `components.allowed_slots` log a one-time warning at load and default to `[Chest]` for `armour` items so existing content keeps working — content authors should add the explicit list.
+
 ### No Test Framework
 **Note**: This project currently has no unit tests beyond the DB-loader smoke test. The gitignore references test frameworks but none are configured. To add tests, use Catch2 or GoogleTest.
 
@@ -245,6 +265,9 @@ for (EntityID entity : registry->view<CombatIntentComponent>()) {
 | `on_create`   | interactable  | **NOT WIRED**            | (planned)                          |
 | `on_use`      | skill         | `SkillSystem`            | `on_execute(self, ctx)`            |
 | `on_attack`   | mob           | `CombatStateSystem`      | `(mob_id, target_id)` — resolved at spawn from `mobs[template_id].on_attack` |
+| `on_equip`    | item          | `InventorySystem::Run`   | `(ctx)` — `on_execute(ctx)` returning `{success, cancelEquip, cancelUnequip, cancelDrop, message, roomMessage}` |
+| `on_unequip`  | item          | `InventorySystem::Run`   | same return shape; `cancelUnequip=true` reverts the slot |
+| `on_drop`     | item          | `InteractionSystem::run` | same return shape; `cancelDrop=true` reverts to inventory |
 
 #### Global hooks (via `ScriptManager::execute_hook`)
 
@@ -260,6 +283,9 @@ for (EntityID entity : registry->view<CombatIntentComponent>()) {
 |--------------|---------------------------------------------------|--------|
 | `RoomEntered`| `{entity_id, room_id}`                            | `MovementSystem` |
 | `CombatHit`  | `{attacker_id, victim_id}`                        | `CombatSystem` |
+| `ItemEquipped` | `{player_id, item_id, slot}`                   | `InventorySystem::Run` |
+| `ItemUnequipped` | `{player_id, item_id, slot}`                 | `InventorySystem::Run` |
+| `ItemDropped` | `{player_id, item_id, room_id}`                 | `InteractionSystem::run` |
 | `XpGain`     | `{player_id, amount, source}`                     | `ScriptManager::GrantExperience` |
 | `LevelUp`    | `{player_id, new_level}`                          | `ScriptManager::GrantExperience` |
 | `QuestAccept`| `{player_id, quest_id}`                           | `ScriptManager::AcceptQuest` |

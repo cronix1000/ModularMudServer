@@ -5,6 +5,7 @@
 #include "ItemCommandHandler.h"
 #include "SocialCommandHandler.h"
 #include "LookCommandHandler.h"
+#include "InteractCommandHandler.h"
 
 void CommandInitializer::RegisterAllCommands(CommandRegistry& registry) {
 	CombatCommandHandler::RegisterAll(registry);
@@ -12,4 +13,5 @@ void CommandInitializer::RegisterAllCommands(CommandRegistry& registry) {
 	ItemCommandHandler::RegisterAll(registry);
 	SocialCommandHandler::RegisterAll(registry);
 	LookCommandHandler::RegisterAll(registry);
+	InteractCommandHandler::RegisterAll(registry);
 }

@@ -76,3 +76,9 @@ struct RoomSpawnComponent {
     int spawnX = 0;
     int spawnY = 0;
 };
+
+struct RoomRulesComponent {
+    bool allowDrop = true;
+    bool allowPickup = true;
+    int maxItemsOnGround = -1;
+};

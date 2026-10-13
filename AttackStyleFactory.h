@@ -12,6 +12,8 @@
 #include "NameComponent.h"
 #include "DescriptionComponent.h"
 #include "TextHelperFunctions.h"
+#include "EquipmentSlotInfo.h"
+#include "InteractionOverrideComponent.h"
 #include "Registry.h"
 
 using json = nlohmann::json;
@@ -54,23 +56,18 @@ public:
         if (it == attackStyleTemplates.end()) return -1;
 
         const auto& tpl = it->second;
-        int id = ctx.registry.CreateEntity();
+        int id = ctx.registry->CreateEntity();
 
         // 1. Basic Components (Copying data from template)
-        ctx.registry.AddComponent<NameComponent>(id, NameComponent(tpl.name));
-        ctx.registry.AddComponent<DescriptionComponent>(id, DescriptionComponent{ tpl.description });
-        ctx.registry.AddComponent<VisualComponent>(id, VisualComponent{ tpl.symbol, tpl.color });
+        ctx.registry->AddComponent<NameComponent>(id, NameComponent(tpl.name));
+        ctx.registry->AddComponent<DescriptionComponent>(id, DescriptionComponent{ tpl.description });
+        ctx.registry->AddComponent<VisualComponent>(id, VisualComponent{ tpl.symbol, tpl.color });
 
         // Item Component stores the "Template Link" + instance data
-        ctx.registry.AddComponent<ItemComponent>(id, ItemComponent{
-            templateID,
-            tpl.weight,
-            tpl.value,
-            tpl.gettable,
-            tpl.equippable,
-            -1,
-            {}
-            });
+        ItemComponent itemCmp;
+        itemCmp.templateName = templateID;
+        itemCmp.allowedSlots.clear();
+        ctx.registry->AddComponent<ItemComponent>(id, itemCmp);
 
         // 2. INJECTION: Check "extra" JSON and push data into components
         // This is where we avoid future lookups.
@@ -87,8 +84,9 @@ public:
             weapon.dexScaling = w.value("dexScaling", 0.0f);
             weapon.intScaling = w.value("intScaling", 0.0f);
             weapon.damageType = w.value("damageType", "blunt");
+            weapon.twoHanded = w.value("twoHanded", false);
 
-            ctx.registry.AddComponent<WeaponComponent>(id, weapon);
+            ctx.registry->AddComponent<WeaponComponent>(id, weapon);
         }
 
         if (tpl.extra.contains("armour")) {
@@ -99,14 +97,51 @@ public:
             // WE COPY THE NUMBERS HERE
             armour.defense = a.value("defense", 0);
             armour.magicDefense = a.value("magicDefense", 0);
-            armour.slot = TextHelperFunctions::StringToSlot(a.value("slot", "torso"));
 
-            ctx.registry.AddComponent<ArmourComponent>(id, armour);
+            ctx.registry->AddComponent<ArmourComponent>(id, armour);
+        }
+
+        // Item-level scripts (on_equip / on_unequip / on_drop)
+        if (tpl.extra.contains("scripts") && tpl.extra["scripts"].is_object()) {
+            const json& scripts = tpl.extra["scripts"];
+            bool hasAny = false;
+            ScriptComponent sc;
+            if (scripts.contains("on_equip") && scripts["on_equip"].is_string()) {
+                sc.scripts_path["on_equip"] = scripts["on_equip"].get<std::string>();
+                hasAny = true;
+            }
+            if (scripts.contains("on_unequip") && scripts["on_unequip"].is_string()) {
+                sc.scripts_path["on_unequip"] = scripts["on_unequip"].get<std::string>();
+                hasAny = true;
+            }
+            if (scripts.contains("on_drop") && scripts["on_drop"].is_string()) {
+                sc.scripts_path["on_drop"] = scripts["on_drop"].get<std::string>();
+                hasAny = true;
+            }
+            if (hasAny) {
+                ctx.registry->AddComponent<ScriptComponent>(id, sc);
+            }
         }
 
         // 3. Position logic
         if (roomId != -1) {
-            ctx.registry.AddComponent<PositionComponent>(id, PositionComponent{ x, y, roomId });
+            ctx.registry->AddComponent<PositionComponent>(id, PositionComponent{ x, y, roomId });
+        }
+
+        // 4. Interaction override messages from tpl.extra.messages
+        if (tpl.extra.contains("messages") && tpl.extra["messages"].is_object()) {
+            const json& messagesJson = tpl.extra["messages"];
+            InteractionOverrideComponent ioc;
+            for (auto it = messagesJson.begin(); it != messagesJson.end(); ++it) {
+                if (it.value().is_array()) {
+                    for (auto& m : it.value()) {
+                        if (m.is_string()) ioc.overrides[it.key()].push_back(m.get<std::string>());
+                    }
+                }
+            }
+            if (!ioc.overrides.empty()) {
+                ctx.registry->AddComponent<InteractionOverrideComponent>(id, ioc);
+            }
         }
 
         return id;

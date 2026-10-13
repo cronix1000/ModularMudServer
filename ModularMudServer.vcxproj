@@ -155,6 +155,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AbilityCommandHanlder.cpp" />
     <ClCompile Include="AmbientAISystem.cpp" />
     <ClCompile Include="AttackIntentComponent.h" />
     <ClCompile Include="BehaviorSystem.cpp" />
@@ -162,6 +163,8 @@
     <ClCompile Include="GameContext.cpp" />
     <ClCompile Include="GMCPHandler.cpp" />
     <ClCompile Include="InteractableFactory.cpp" />
+    <ClCompile Include="InteractCommandHandler.cpp" />
+    <ClCompile Include="InteractionMessage.cpp" />
     <ClCompile Include="ItemFactory.cpp" />
     <ClCompile Include="MessageSystem.cpp" />
     <ClCompile Include="CleanUpSystem.cpp" />
@@ -183,6 +186,7 @@
     <ClCompile Include="DirtyFlagComponents.h" />
     <ClCompile Include="Entity.cpp" />
     <ClCompile Include="EntityResolver.cpp" />
+    <ClCompile Include="EquipmentSlotInfo.cpp" />
     <ClCompile Include="GameEngine.cpp" />
     <ClCompile Include="GameState.cpp" />
     <ClCompile Include="InteractionSystem.cpp" />
@@ -208,6 +212,7 @@
     <ClCompile Include="SkillDefintionComponent.h" />
     <ClCompile Include="SkillSystem.cpp" />
     <ClCompile Include="TargetingSystem.cpp" />
+    <ClCompile Include="TargetingUtils.cpp" />
     <ClCompile Include="TelnetCodec.cpp" />
     <ClCompile Include="TerrainDef.cpp" />
     <ClCompile Include="TextHelperFunctions.h" />
@@ -218,6 +223,7 @@
     <ClCompile Include="WorldManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AbilityCommandHanlder.h" />
     <ClInclude Include="AfflictionComponent.h" />
     <ClInclude Include="AmbientAIComponent.h" />
     <ClInclude Include="AmbientAISystem.h" />
@@ -230,17 +236,25 @@
     <ClInclude Include="BodyComponent.h" />
     <ClInclude Include="BusyComponent.h" />
     <ClInclude Include="CharCreatorState.h" />
+    <ClInclude Include="ChestComponent.h" />
     <ClInclude Include="ClientInput.h" />
     <ClInclude Include="CombatStateComponent.h" />
     <ClInclude Include="CombatStateSystem.h" />
     <ClInclude Include="ContainerComponent.h" />
     <ClInclude Include="CoolDownDefinitionComponent.h" />
+    <ClInclude Include="CraftingStation.h" />
     <ClInclude Include="CraftIntentComponent.h" />
     <ClInclude Include="DamageScalingComponent.h" />
     <ClInclude Include="DeadTag.h" />
+    <ClInclude Include="DoorComponent.h" />
     <ClInclude Include="GMPCHandler.h" />
     <ClInclude Include="GMPCModules.h" />
     <ClInclude Include="InteractableFactory.h" />
+    <ClInclude Include="InteractableIntentComponent.h" />
+    <ClInclude Include="InteractCommandHandler.h" />
+    <ClInclude Include="InteractionMessage.h" />
+    <ClInclude Include="InteractionOverrideComponent.h" />
+    <ClInclude Include="LeverComponent.h" />
     <ClInclude Include="MenuCommandHandler.h" />
     <ClInclude Include="MessageComponent.h" />
     <ClInclude Include="MessageSystem.h" />
@@ -258,7 +272,9 @@
     <ClInclude Include="CombatCommandHandler.h" />
     <ClInclude Include="MovementCommandHandler.h" />
     <ClInclude Include="ItemCommandHandler.h" />
+    <ClInclude Include="PortalComponent.h" />
     <ClInclude Include="PostgresDatabase.h" />
+    <ClInclude Include="ShrineComponent.h" />
     <ClInclude Include="SocialCommandHandler.h" />
     <ClInclude Include="CommandInitializer.h" />
     <ClInclude Include="Component.h" />
@@ -268,6 +284,7 @@
     <ClInclude Include="EquipItemIntentComponent.h" />
     <ClInclude Include="EquipmentComponent.h" />
     <ClInclude Include="EquipmentSlot.h" />
+    <ClInclude Include="EquipmentSlotInfo.h" />
     <ClInclude Include="MenuType.h" />
     <ClInclude Include="PasswordResetState.h" />
     <ClInclude Include="picosha2.h" />
@@ -347,6 +364,7 @@
     <ClInclude Include="StatModifierComponent.h" />
     <ClInclude Include="TargetingIntentComponent.h" />
     <ClInclude Include="TargetingSystem.h" />
+    <ClInclude Include="TargetingUtils.h" />
     <ClInclude Include="TelnetCodec.h" />
     <ClInclude Include="TerrainDef.h" />
     <ClInclude Include="ThreadSafeQueue.h" />

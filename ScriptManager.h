@@ -17,6 +17,8 @@ struct ClientComponent;
 class ScriptManager;
 struct InteractableContext;
 struct SkillContext;
+struct ItemScriptContext;
+struct ItemScriptResult;
 struct GameContext;
 #include <nlohmann/json.hpp>
 
@@ -96,6 +98,7 @@ public:
 
 	SkillResult ExecuteSkillScript(const std::string& scriptPath, const SkillContext& ctx);
 	InteractableResult ExecuteInteractableScript(const std::string& scriptPath, const std::string& functionName, const InteractableContext& context);
+	ItemScriptResult ExecuteItemScript(const std::string& scriptPath, const std::string& functionName, const ItemScriptContext& context);
 	ClientConnection* GetPlayer(int player_id);
 	template<typename ...Args>
 	void BroadcastEvent(const std::string& eventName, Args && ...args);

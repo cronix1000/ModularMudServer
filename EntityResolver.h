@@ -18,6 +18,7 @@ public:
 
     // More a helper functions for admins looking for an item
     std::vector<EntityID> FindInGlobal(int roomId, const std::vector<std::string> queryTokens) const;
+    std::vector<EntityID> FindInEquipment(EntityID invenotoryOwner, const std::vector<std::string>& queryTokens) const;
 
     static Shape ShapeAtTile();
     static Shape ShapeAround();

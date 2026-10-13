@@ -89,14 +89,18 @@ EntityID RoomFactory::CreateInstancedRoom(int templateRoomId) {
         });
     }
     
-    // Copy scripts if present
+// Copy scripts if present
     if (scripts) {
         ctx.registry->AddComponent<ScriptComponent>(instanceEntity, *scripts);
     }
-    
-    // Register in lookup
+
+    if (auto* templateRules = ctx.registry->GetComponent<RoomRulesComponent>(templateEntity)) {
+        ctx.registry->AddComponent<RoomRulesComponent>(instanceEntity, *templateRules);
+    }
+
+// Register in lookup
     roomIdToEntity[instanceId] = instanceEntity;
-    
+
     return instanceEntity;
 }
 
@@ -197,7 +201,7 @@ EntityID RoomFactory::CreateRoomInternal(const json& roomData, bool isInstance, 
     }
 
     // 6. Add MetaComponent if meta present
-    if (roomData.contains("meta") && roomData["meta"].is_object()) {
+if (roomData.contains("meta") && roomData["meta"].is_object()) {
         json meta = roomData["meta"];
         MetaRegistry::ApplyDefaults("room", meta);
         ctx.registry->AddComponent<MetaComponent>(roomEntity, MetaComponent{ meta });
@@ -209,10 +213,19 @@ EntityID RoomFactory::CreateRoomInternal(const json& roomData, bool isInstance, 
         ctx.registry->AddComponent<MetaComponent>(roomEntity, MetaComponent{ meta });
     }
 
+    if (roomData.contains("rules") && roomData["rules"].is_object()) {
+        const json& rules = roomData["rules"];
+        RoomRulesComponent rr;
+        rr.allowDrop = rules.value("allowDrop", true);
+        rr.allowPickup = rules.value("allowPickup", true);
+        rr.maxItemsOnGround = rules.value("maxItemsOnGround", -1);
+        ctx.registry->AddComponent<RoomRulesComponent>(roomEntity, rr);
+    }
+
     // Register in lookup
     roomIdToEntity[roomId] = roomEntity;
 
-    return roomEntity;
+return roomEntity;
 }
 
 void RoomFactory::ParseLayout(RoomLayoutComponent& layout, const json& layoutData, const json& roomData) {

@@ -2,6 +2,7 @@
 #include <string>
 #include <regex>
 #include "EquipmentSlot.h"
+#include "EquipmentSlotInfo.h"
 #include "Direction.h"
 #include <map>
  class TextHelperFunctions {
@@ -93,34 +94,12 @@ public:
     }
 
 static std::string SlotToString(EquipmentSlot slot) {
-    switch (slot) {
-    case EquipmentSlot::mainArm: return "Main Hand";
-    case EquipmentSlot::offHand:  return "Off Hand";
-    case EquipmentSlot::chest:   return "Chest";
-        case EquipmentSlot::helmet:    return "Head";
-        case EquipmentSlot::bracers:    return "Bracers";
-        case EquipmentSlot::leggings:    return "Leggings";
-    default: return "General";
-    }
+    return EquipmentSlotInfo::SlotToString(slot);
 }
 
 
 static EquipmentSlot StringToSlot(std::string slot) {
-
-    ToLower(slot);
-        if (slot == "main hand" || slot == "main") {
-            return EquipmentSlot::mainArm;
-        }if (slot == "off hand" || slot == "off") {
-            return EquipmentSlot::offHand;
-        }if (slot == "chest") {
-            return EquipmentSlot::chest;
-        }if (slot == "helmet") {
-            return EquipmentSlot::helmet;
-        }if (slot == "bracers") {
-            return EquipmentSlot::bracers;
-        }if (slot == "leggings") {
-            return EquipmentSlot::leggings;
-        }
+    return EquipmentSlotInfo::ParseSlotString(slot);
 }
 
 

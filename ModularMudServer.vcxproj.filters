@@ -72,7 +72,7 @@
     <ClCompile Include="EntityResolver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="SQLiteDatabase.cpp">
+    <ClCompile Include="EquipmentSlotInfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DirtyFlagComponents.h">
@@ -85,9 +85,6 @@
       <Filter>Header Files\Core</Filter>
     </ClCompile>
     <ClCompile Include="ClientConnection.cpp">
-      <Filter>Source Files\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="CommandInterpreter.cpp">
       <Filter>Source Files\Core</Filter>
     </ClCompile>
     <ClCompile Include="GameEngine.cpp">
@@ -168,6 +165,9 @@
     <ClCompile Include="InteractableFactory.cpp">
       <Filter>Source Files\Factories</Filter>
     </ClCompile>
+    <ClCompile Include="InteractionMessage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="ItemFactory.cpp">
       <Filter>Source Files\Factories</Filter>
     </ClCompile>
@@ -243,16 +243,22 @@
     <ClCompile Include="TelnetCodec.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DatabaseAttach.cpp">
+    <ClCompile Include="AbilityCommandHanlder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="InteractCommandHandler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PostgresDatabase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TargetingUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MainMenuState.h">
       <Filter>Header Files\GameStates</Filter>
-    </ClInclude>
-    <ClInclude Include="SQLiteDatabase.h">
-      <Filter>Header Files\Database</Filter>
     </ClInclude>
     <ClInclude Include="PlayingState.h">
       <Filter>Header Files\GameStates</Filter>
@@ -329,16 +335,10 @@
     <ClInclude Include="EntityResolver.h">
       <Filter>Header Files\Data</Filter>
     </ClInclude>
-    <ClInclude Include="LookCommandHandler.h">
-      <Filter>Header Files\Commands</Filter>
-    </ClInclude>
     <ClInclude Include="GameState.h">
       <Filter>Header Files\GameStates</Filter>
     </ClInclude>
     <ClInclude Include="ClientConnection.h">
-      <Filter>Header Files\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="CommandInterpreter.h">
       <Filter>Header Files\Core</Filter>
     </ClInclude>
     <ClInclude Include="Direction.h">
@@ -393,6 +393,9 @@
       <Filter>Header Files\Component</Filter>
     </ClInclude>
     <ClInclude Include="EquipmentComponent.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="EquipmentSlotInfo.h">
       <Filter>Header Files\Component</Filter>
     </ClInclude>
     <ClInclude Include="IDatabase.h">
@@ -494,9 +497,6 @@
     <ClInclude Include="StatModifier.h">
       <Filter>Header Files\Component</Filter>
     </ClInclude>
-    <ClInclude Include="MenuState.h">
-      <Filter>Header Files\GameStates</Filter>
-    </ClInclude>
     <ClInclude Include="MenuType.h">
       <Filter>Header Files\Data</Filter>
     </ClInclude>
@@ -509,7 +509,7 @@
     <ClInclude Include="RegionComponent.h">
       <Filter>Header Files\Component</Filter>
     </ClInclude>
-    <ClInclude Include="InteractableFactory.h">
+    <ClInclude Include="InteractionMessage.h">
       <Filter>Header Files\Factory</Filter>
     </ClInclude>
     <ClInclude Include="ScheduledEventComponent.h">
@@ -680,6 +680,51 @@
     <ClInclude Include="TelnetCodec.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="AbilityCommandHanlder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="InteractableFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="InteractCommandHandler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MenuCommandHandler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PostgresDatabase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LookCommandHandler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TargetingUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="InteractableIntentComponent.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="InteractionOverrideComponent.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="CraftingStation.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="ChestComponent.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="PortalComponent.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="DoorComponent.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="LeverComponent.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="ShrineComponent.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="global_terrain.json">
@@ -702,5 +747,8 @@
       <Filter>Data</Filter>
     </None>
     <None Include="mud.db" />
+    <None Include=".env" />
+    <None Include="mud.players.db" />
+    <None Include="mud.world.db" />
   </ItemGroup>
 </Project>

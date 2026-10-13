@@ -16,6 +16,7 @@
 #include "World.h"
 #include "PermissionComponent.h"
 #include "PlayerVariablesComponent.h"
+#include "EquipmentSlotInfo.h"
 #include "EventBus.h"
 #include "RegionComponent.h"
 #include "CommandTrie.h"
@@ -140,8 +141,19 @@ EntityID PlayerFactory::LoadPlayer(std::string username, ClientConnection* conne
         EntityID item = ctx.factories->items.CreateItem(itemData.templateId);
         // Apply saved state (equipped, durability, etc)
         if (itemData.state.value("equipped", false)) {
-            EquipmentSlot slot = (EquipmentSlot)itemData.state["slot"];
-            equip->slots[slot] = item;
+            EquipmentSlot slot = EquipmentSlot::Default;
+            int32_t rawSlot = itemData.state.value("slot", static_cast<int32_t>(EquipmentSlot::Default));
+            if (rawSlot >= 0 && rawSlot <= static_cast<int32_t>(EquipmentSlot::Default)) {
+                slot = static_cast<EquipmentSlot>(rawSlot);
+            }
+            if (slot == EquipmentSlot::Default && itemData.state.contains("slot_string")) {
+                slot = EquipmentSlotInfo::ParseSlotString(itemData.state["slot_string"].get<std::string>());
+            }
+            if (slot == EquipmentSlot::Default) {
+                inv->items.push_back(item);
+            } else {
+                equip->slots[slot] = item;
+            }
         }
         else {
             inv->items.push_back(item);

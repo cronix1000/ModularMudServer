@@ -12,6 +12,8 @@
 #include "FactionFactory.h"
 #include "ShopFactory.h"
 #include "FactoryManager.h"
+#include "ItemScriptContext.h"
+#include "ItemScriptResult.h"
 #include <iostream>
 #include <filesystem>
 #include <map>
@@ -80,6 +82,16 @@ ScriptManager::ScriptManager(Registry& r) : registry(r) {
 		"y", &InteractableContext::y,
 		"action", &InteractableContext::action,
 		"parameters", &InteractableContext::parameters
+	);
+
+	lua.new_usertype<ItemScriptContext>("ItemScriptContext",
+		"userID", &ItemScriptContext::userID,
+		"itemID", &ItemScriptContext::itemID,
+		"slot", &ItemScriptContext::slot,
+		"itemTemplateID", &ItemScriptContext::itemTemplateID,
+		"roomID", &ItemScriptContext::roomID,
+		"x", &ItemScriptContext::x,
+		"y", &ItemScriptContext::y
 	);
 
 	//init();
@@ -584,4 +596,42 @@ InteractableResult ScriptManager::ExecuteInteractableScript(const std::string& s
 ClientConnection* ScriptManager::GetPlayer(int player_id) {
 	auto* comp = registry.GetComponent<ClientComponent>(player_id);
 	return comp ? comp->client : nullptr;
+}
+
+ItemScriptResult ScriptManager::ExecuteItemScript(const std::string& scriptPath, const std::string& functionName, const ItemScriptContext& context) {
+	sol::load_result script = lua.load_file(scriptPath);
+	if (!script.valid()) {
+		sol::error err = script;
+		std::cerr << "[LUA ERROR] Item script load failed: " << scriptPath << " : " << err.what() << std::endl;
+		return ItemScriptResult{ false };
+	}
+
+	sol::protected_function_result scriptBody = script();
+	if (!scriptBody.valid()) {
+		sol::error err = scriptBody;
+		std::cerr << "[LUA ERROR] Item script exec failed: " << scriptPath << " : " << err.what() << std::endl;
+		return ItemScriptResult{ false };
+	}
+
+	sol::protected_function func = lua[functionName];
+	if (!func.valid()) {
+		std::cerr << "[LUA ERROR] No '" << functionName << "' in " << scriptPath << std::endl;
+		return ItemScriptResult{ false };
+	}
+
+	auto result = func(context);
+
+	if (result.valid() && result.return_count() > 0 && result[0].is<sol::table>()) {
+		sol::table tbl = result[0];
+		ItemScriptResult res;
+		res.success = tbl.get_or("success", true);
+		res.cancelEquip = tbl.get_or("cancelEquip", false);
+		res.cancelUnequip = tbl.get_or("cancelUnequip", false);
+		res.cancelDrop = tbl.get_or("cancelDrop", false);
+		res.message = tbl.get_or<std::string>("message", "");
+		res.roomMessage = tbl.get_or<std::string>("roomMessage", "");
+		return res;
+	}
+
+	return ItemScriptResult{ false };
 }

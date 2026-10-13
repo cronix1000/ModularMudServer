@@ -6,6 +6,8 @@
 #include <cctype>
 #include <cstdlib>
 #include <set>
+#include "EquipmentComponent.h"
+#include "ItemComponent.h"
 
 namespace {
     const std::set<std::string> kStopWords = {"a", "the", "an", "of"};
@@ -109,8 +111,30 @@ std::vector<EntityID> EntityResolver::ScanInShape(int roomId, int centerX, int c
     return results;
 }
 
+
+
 std::vector<EntityID> EntityResolver::FindInGlobal(int roomId, const std::vector<std::string> queryTokens) const {
     (void)roomId;
     (void)queryTokens;
     return {};
+}
+
+std::vector<EntityID> EntityResolver::FindInEquipment(EntityID inventoryOwner, const std::vector<std::string>& queryTokens) const
+{
+    if (!registry_) return {};
+    std::vector<std::string> q = Normalize(queryTokens);
+    if (q.empty()) return {};
+    std::vector<EntityID> results;
+        auto* equipment = registry_->GetComponent<EquipmentComponent>(inventoryOwner);
+        if (!equipment) return {};
+        for (auto slot : equipment->slots) {
+                //Get ItemName
+        auto* name = registry_->GetComponent<NameComponent>(slot.second);
+
+        if (!name) continue;
+        if (name->MatchesPhrase(q)) {
+              results.push_back(slot.second);
+        }       
+    }
+    return results;
 }

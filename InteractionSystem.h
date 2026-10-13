@@ -1,8 +1,11 @@
 #pragma once
 #include "InteractableContext.h"
+#include "RoomComponents.h"
 
 struct GameContext;
 class Registry;
+
+RoomRulesComponent* FindRoomRulesComponent(Registry& registry, int roomId);
 
 class InteractionSystem
 {

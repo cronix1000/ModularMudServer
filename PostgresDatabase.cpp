@@ -12,6 +12,7 @@
 #include "PlayerComponent.h"
 #include "InventoryComponent.h"
 #include "EquipmentComponent.h"
+#include "EquipmentSlotInfo.h"
 #include "ItemComponent.h"
 #include "BodyComponent.h"
 #include "RegionComponent.h"
@@ -279,12 +280,15 @@ void PostgresDatabase::SaveInventory(EntityID playerEnt, GameContext& ctx) {
     auto inv = ctx.registry->GetComponent<InventoryComponent>(playerEnt);
     auto equip = ctx.registry->GetComponent<EquipmentComponent>(playerEnt);
 
-    auto saveItem = [this, &ctx, playerComp](pqxx::work& tx, int itemEnt, bool isEquipped, int slotID) {
+    auto saveItem = [this, &ctx, playerComp](pqxx::work& tx, int itemEnt, bool isEquipped, int32_t slotID) {
         auto item = ctx.registry->GetComponent<ItemComponent>(itemEnt);
         if (!item) return;
         json state;
         state["equipped"] = isEquipped;
         state["slot"] = slotID;
+        if (slotID >= 0 && slotID <= static_cast<int32_t>(EquipmentSlot::Default)) {
+            state["slot_string"] = EquipmentSlotInfo::SlotToString(static_cast<EquipmentSlot>(slotID));
+        }
         const std::string stateStr = state.dump();
         tx.exec_params(
             "INSERT INTO player_items (owner_id, template_id, item_state) "
@@ -304,7 +308,7 @@ void PostgresDatabase::SaveInventory(EntityID playerEnt, GameContext& ctx) {
         }
         if (equip) {
             for (const auto& slotPair : equip->slots) {
-                saveItem(*activeTx, slotPair.second, true, static_cast<int>(slotPair.first));
+                saveItem(*activeTx, slotPair.second, true, static_cast<int32_t>(slotPair.first));
             }
         }
     } catch (const std::exception& e) {
@@ -504,7 +508,7 @@ nlohmann::json PostgresDatabase::LoadItems(const std::string& worldId) {
                 obj["equippable"] = obj["equippable"].get<int>() != 0;
             }
             static const std::vector<std::string> componentKeys = {
-                "weapon", "armour", "scripts", "passive_skills", "armor"
+                "weapon", "armour", "scripts", "passive_skills", "armor", "messages"
             };
             json componentsObj = json::object();
             bool hasComponents = false;
@@ -554,6 +558,18 @@ nlohmann::json PostgresDatabase::LoadMobs(const std::string& worldId) {
             if (obj.contains("crit_mult") && !obj.contains("critical_multiplier")) {
                 obj["critical_multiplier"] = obj["crit_mult"]; obj.erase("crit_mult");
             }
+            if (obj.contains("extra_json") && obj["extra_json"].is_string()) {
+                const std::string rawExtra = obj["extra_json"].get<std::string>();
+                if (!rawExtra.empty()) {
+                    try {
+                        json extra = json::parse(rawExtra);
+                        if (extra.is_object() && extra.contains("messages")) {
+                            obj["messages"] = extra["messages"];
+                        }
+                    } catch (...) {}
+                }
+                obj.erase("extra_json");
+            }
             out[key] = obj;
             ++count;
         }
@@ -580,7 +596,8 @@ nlohmann::json PostgresDatabase::LoadInteractables(const std::string& worldId) {
             json obj = RowToJson(row, {"template_id"}, {"components_json"});
             if (obj.contains("script_ref")) obj["script"] = obj["script_ref"];
             static const std::vector<std::string> knownTypes = {
-                "portal", "chest", "door", "lever", "healing", "inventory", "loot"
+                "portal", "chest", "door", "lever", "healing", "inventory", "loot",
+                "messages", "meta", "crafting"
             };
             json componentsObj = json::object();
             for (const auto& k : knownTypes) {
@@ -1074,6 +1091,18 @@ bool PostgresDatabase::LoadRoomJson(const std::string& worldId,
                             {"layout_json", "scripts_json", "extra_json"});
         outRoom["id"] = roomId;
         outRoom["regionId"] = regionId;
+
+        if (!rs[0]["extra_json"].is_null()) {
+            const std::string rawExtra = rs[0]["extra_json"].as<std::string>();
+            if (!rawExtra.empty()) {
+                try {
+                    json extra = json::parse(rawExtra);
+                    if (extra.is_object() && extra.contains("rules")) {
+                        outRoom["rules"] = extra["rules"];
+                    }
+                } catch (...) {}
+            }
+        }
 
         int roomZoneId = 0;
         std::string roomZoneName;

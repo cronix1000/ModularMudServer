@@ -1,8 +1,8 @@
 #pragma once
-#include <map>
+#include <unordered_map>
 #include <string>
 #include "EquipmentSlot.h"
 
 struct EquipmentComponent {
-	std::map<EquipmentSlot, int> slots;
+	std::unordered_map<EquipmentSlot, int> slots;
 };

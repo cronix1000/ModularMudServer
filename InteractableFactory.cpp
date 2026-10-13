@@ -1,7 +1,9 @@
 #include "InteractableFactory.h"
+#include "CraftingStation.h"
 #include "GameContext.h"
 #include "MetaComponent.h"
 #include "MetaRegistry.h"
+#include "InteractionOverrideComponent.h"
 
 void InteractableFactory::LoadInteractableTemplatesFromJSON(const std::string& path) {
     std::ifstream file(path);
@@ -85,10 +87,31 @@ int InteractableFactory::CreateInteractable(std::string templateID, json overrid
 
     AttachComponents(id, finalComponents, overrides);
 
+    if (!ctx.registry->HasComponent<InteractableComponent>(id)) {
+        InteractableComponent marker;
+        marker.interaction_type = "generic";
+        ctx.registry->AddComponent<InteractableComponent>(id, marker);
+    }
+
     if (finalComponents.contains("meta") && finalComponents["meta"].is_object()) {
         json meta = finalComponents["meta"];
         MetaRegistry::ApplyDefaults("interactable", meta);
         ctx.registry->AddComponent<MetaComponent>(id, MetaComponent{ meta });
+    }
+
+    if (finalComponents.contains("messages") && finalComponents["messages"].is_object()) {
+        const json& messagesJson = finalComponents["messages"];
+        InteractionOverrideComponent ioc;
+        for (auto it = messagesJson.begin(); it != messagesJson.end(); ++it) {
+            if (it.value().is_array()) {
+                for (auto& m : it.value()) {
+                    if (m.is_string()) ioc.overrides[it.key()].push_back(m.get<std::string>());
+                }
+            }
+        }
+        if (!ioc.overrides.empty()) {
+            ctx.registry->AddComponent<InteractionOverrideComponent>(id, ioc);
+        }
     }
 
     return id;
@@ -96,6 +119,7 @@ int InteractableFactory::CreateInteractable(std::string templateID, json overrid
 
 void InteractableFactory::AttachComponents(int id, const json& components, json overrides) {
     for (auto& [compName, compData] : components.items()) {
+        if (compName == "meta" || compName == "messages") continue;
         if (compName == "portal") {
             PortalComponent portal;
             portal.destination_room = compData.value("destination_room", -1);
@@ -104,6 +128,12 @@ void InteractableFactory::AttachComponents(int id, const json& components, json 
             portal.is_locked = compData.value("is_locked", false);
             portal.key_id = compData.value("key_id", -1);
             ctx.registry->AddComponent<PortalComponent>(id, portal);
+            InteractableComponent marker;
+            marker.interaction_type = "portal";
+            if (compData.contains("max_uses")) {
+                marker.uses_remaining = compData.value("max_uses", -1);
+            }
+            ctx.registry->AddComponent<InteractableComponent>(id, marker);
         }
         else if (compName == "chest") {
             ChestComponent chest;
@@ -114,6 +144,10 @@ void InteractableFactory::AttachComponents(int id, const json& components, json 
             chest.max_uses = compData.value("max_uses", 1);
             chest.uses_remaining = chest.max_uses;
             ctx.registry->AddComponent<ChestComponent>(id, chest);
+            InteractableComponent marker;
+            marker.interaction_type = "chest";
+            marker.uses_remaining = compData.value("max_uses", 1);
+            ctx.registry->AddComponent<InteractableComponent>(id, marker);
         }
         else if (compName == "door") {
             DoorComponent door;
@@ -126,6 +160,9 @@ void InteractableFactory::AttachComponents(int id, const json& components, json 
             door.open_message = compData.value("open_message", "The door creaks open.");
             door.close_message = compData.value("close_message", "The door slams shut.");
             ctx.registry->AddComponent<DoorComponent>(id, door);
+            InteractableComponent marker;
+            marker.interaction_type = "door";
+            ctx.registry->AddComponent<InteractableComponent>(id, marker);
         }
         else if (compName == "lever") {
             LeverComponent lever;
@@ -136,6 +173,11 @@ void InteractableFactory::AttachComponents(int id, const json& components, json 
             lever.can_be_reset = compData.value("can_be_reset", true);
             lever.uses_remaining = compData.value("uses_remaining", -1);
             ctx.registry->AddComponent<LeverComponent>(id, lever);
+            InteractableComponent marker;
+            marker.interaction_type = "lever";
+            marker.cooldown_seconds = compData.value("cooldown", 0);
+            marker.uses_remaining = compData.value("uses_remaining", -1);
+            ctx.registry->AddComponent<InteractableComponent>(id, marker);
         }
         else if (compName == "healing") {
             ShrineComponent shrine;
@@ -146,6 +188,11 @@ void InteractableFactory::AttachComponents(int id, const json& components, json 
             shrine.blessing_type = compData.value("blessing_type", "health");
             shrine.prayer_message = compData.value("prayer_message", "You feel blessed by divine energy.");
             ctx.registry->AddComponent<ShrineComponent>(id, shrine);
+            InteractableComponent marker;
+            marker.interaction_type = "healing";
+            marker.cooldown_seconds = compData.value("cooldown", 300);
+            marker.uses_remaining = compData.value("max_uses_per_player", -1);
+            ctx.registry->AddComponent<InteractableComponent>(id, marker);
         }
         else if (compName == "inventory") {
             InteractableComponent interactable;
@@ -160,6 +207,18 @@ void InteractableFactory::AttachComponents(int id, const json& components, json 
             interactable.custom_data["loot_table"] = compData.value("table", "");
             interactable.int_data["max_uses"] = compData.value("max_uses", 1);
             ctx.registry->AddComponent<InteractableComponent>(id, interactable);
+        }
+        else if (compName == "crafting") {
+            CraftingStationComponent station;
+            station.heat = compData.value("heat", 0);
+            station.isOccupied = false;
+            ctx.registry->AddComponent<CraftingStationComponent>(id, station);
+
+            InteractableComponent marker;
+            marker.interaction_type = "crafting";
+            marker.cooldown_seconds = compData.value("cooldown", 0);
+            marker.uses_remaining = compData.value("max_uses", -1);
+            ctx.registry->AddComponent<InteractableComponent>(id, marker);
         }
         else {
             InteractableComponent interactable;

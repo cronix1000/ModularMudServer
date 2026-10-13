@@ -19,10 +19,6 @@ private:
                                       const std::vector<std::string>& params,
                                       GameContext& ctx);
 
-    static CommandResult HandleCast(ClientConnection* client,
-                                    const std::vector<std::string>& params,
-                                    GameContext& ctx);
-
     static CommandResult HandleKill(ClientConnection* client,
                                     const std::vector<std::string>& params,
                                     GameContext& ctx);

@@ -1,11 +1,9 @@
 #pragma once
-#include "EquipmentSlot.h"
 #include <string>
 
 struct ArmourComponent {
     std::string templateID;
-        int defense = 0;       
-        int magicDefense = 0;  // Resistance to spells
-        EquipmentSlot slot = EquipmentSlot::Default; 
-        std::string type = "cloth"; // "plate", "leather", "cloth"
+    int defense = 0;
+    int magicDefense = 0;
+    std::string type = "cloth";
 };

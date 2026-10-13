@@ -3,6 +3,7 @@
 #include <map>
 #include <functional>
 #include <string>
+#include "EquipmentSlot.h"
 
 enum class EventType {
     None = 0,
@@ -11,6 +12,8 @@ enum class EventType {
     PlayerJoined,
     CombatHit,
     ItemEquipped,
+    ItemUnequipped,
+    ItemDropped,
     XpGain,
     LevelUp,
     QuestAccept,
@@ -46,6 +49,19 @@ struct PlayerEventData {
 struct ItemEquippedEventData {
     int player;
     int itemId;
+    EquipmentSlot slot;
+};
+
+struct ItemUnequippedEventData {
+    int player;
+    int itemId;
+    EquipmentSlot slot;
+};
+
+struct ItemDroppedEventData {
+    int player;
+    int itemId;
+    int roomId;
 };
 
 struct PlayerLoggedInData {
@@ -80,7 +96,7 @@ struct FactionChangeEventData {
 };
 
 struct EventContext {
-    std::variant<std::monostate, RoomEventData, CombatEventData, ChatEventData, PlayerEventData, ItemEquippedEventData, PlayerLoggedInData, XpGainEventData, LevelUpEventData, QuestEventData, FactionChangeEventData> data;
+    std::variant<std::monostate, RoomEventData, CombatEventData, ChatEventData, PlayerEventData, ItemEquippedEventData, ItemUnequippedEventData, ItemDroppedEventData, PlayerLoggedInData, XpGainEventData, LevelUpEventData, QuestEventData, FactionChangeEventData> data;
 };
 
 class EventBus {

@@ -9,6 +9,7 @@
 #include "ScriptManager.h"
 #include "MetaComponent.h"
 #include "MetaRegistry.h"
+#include "InteractionOverrideComponent.h"
 #include <fstream>
 
 void MobFactory::LoadMobTemplatesFromJSON(const std::string& path) {
@@ -91,6 +92,12 @@ void MobFactory::LoadSingleMobFromJSON(const std::string& key, const json& j) {
         if (comps.contains("meta")) {
             tpl.extra["meta"] = comps["meta"];
         }
+        if (comps.contains("messages") && comps["messages"].is_object()) {
+            tpl.extra["messages"] = comps["messages"];
+        }
+    }
+    if (j.contains("messages") && j["messages"].is_object()) {
+        tpl.extra["messages"] = j["messages"];
     }
 
     tpl.script = j.value("script", "");
@@ -199,6 +206,29 @@ int MobFactory::CreateMob(std::string templateID, json overrides, int x, int y, 
     MetaRegistry::ApplyDefaults("mob", meta);
     if (!meta.empty()) {
         ctx.registry->AddComponent<MetaComponent>(id, MetaComponent{ meta });
+    }
+
+    json messagesJson;
+    if (overrides.contains("messages") && overrides["messages"].is_object()) {
+        messagesJson = overrides["messages"];
+    } else if (tpl.extra.contains("messages") && tpl.extra["messages"].is_object()) {
+        messagesJson = tpl.extra["messages"];
+    } else {
+        static thread_local json s_empty = json::object();
+        messagesJson = s_empty;
+    }
+    if (messagesJson.is_object() && !messagesJson.empty()) {
+        InteractionOverrideComponent ioc;
+        for (auto& [k, v] : messagesJson.items()) {
+            if (v.is_array()) {
+                for (auto& m : v) {
+                    if (m.is_string()) ioc.overrides[k].push_back(m.get<std::string>());
+                }
+            }
+        }
+        if (!ioc.overrides.empty()) {
+            ctx.registry->AddComponent<InteractionOverrideComponent>(id, ioc);
+        }
     }
 
     return id;

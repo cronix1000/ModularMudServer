@@ -1,10 +1,12 @@
 #pragma once
 #include "GameContext.h"
 #include <map>
+#include <unordered_map>
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include "Registry.h"
 #include "Component.h"
+#include "EquipmentSlot.h"
 
 using json = nlohmann::json;
 
@@ -23,9 +25,12 @@ struct ItemTemplate {
     int minDamage;
     int maxDamage;
     std::string damageType;
+    bool twoHanded = false;
     int defense;
-    std::string slot;
+    std::vector<EquipmentSlot> allowedSlots;
     std::string script;
+    std::map<std::string, std::string> itemScripts;
+    json messages;
     json extra;
 };
 
