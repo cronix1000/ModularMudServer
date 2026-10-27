@@ -5,6 +5,7 @@
 #include <string>
 #include "ThreadSafeQueue.h"
 #include <memory>
+#include <atomic>
 
 // Minimal includes - only what's absolutely necessary
 struct PlayerData;

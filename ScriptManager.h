@@ -42,6 +42,7 @@ public:
 	void GrantExperience(int playerID, int amount, const std::string& source);
 
 	sol::table GetMagicKnown(int playerID);
+	sol::table LearnMagic(int playerID, const std::string& magicCode);
 
 	void AcceptQuest(int playerID, const std::string& questId);
 	void ProgressQuest(int playerID, const std::string& questId, const std::string& objectiveId, int delta);

@@ -25,6 +25,8 @@
 
 namespace fs = std::filesystem;
 
+void CreateMagicBindings(const std::string& version, PlayerVariablesComponent* vars);
+
 std::string ScriptManager::DiscoverScriptsRoot() {
 	// 1. Check env var override
 	if (const char* env = std::getenv("MUD_SCRIPTS_PATH"); env && *env) {
@@ -348,7 +350,7 @@ void ScriptManager::init() {
 		return GetMagicKnown(player_id);
 		});
 	lua.set_function("learn_magic", [this](int player_id, std::string magic_code)-> sol::table {
-		return LearnMagic(player_id);
+		return LearnMagic(player_id, magic_code);
 		});
 }
 
@@ -438,22 +440,45 @@ namespace {
 }
 sol::table ScriptManager::GetMagicKnown(int playerID) {
 	auto* vars = GetOrCreateVars(registry, playerID);
-	if (!vars) return;
+	if (!vars) return lua.create_table();
 
-	auto it = vars->stringVars.find("magic");
-	if (it != vars->stringVars.end()) CreateMagicBindings("v1", vars);
+	if (vars->stringVars.find("magic") == vars->stringVars.end()) CreateMagicBindings("v1", vars);
 
-	return JsonToLua(lua, nlohmann::json::parse(vars->stringVars["magic"]));
+	try {
+		return JsonToLua(lua, nlohmann::json::parse(vars->stringVars["magic"]));
+	}
+	catch (...) {
+		return lua.create_table();
+	}
+}
+
+sol::table ScriptManager::LearnMagic(int playerID, const std::string& magicCode) {
+	auto* vars = GetOrCreateVars(registry, playerID);
+	if (!vars) return lua.create_table();
+
+	if (vars->stringVars.find("magic") == vars->stringVars.end()) CreateMagicBindings("v1", vars);
+
+	nlohmann::json magic;
+	try {
+		magic = nlohmann::json::parse(vars->stringVars["magic"]);
+	}
+	catch (...) {
+		CreateMagicBindings("v1", vars);
+		magic = nlohmann::json::parse(vars->stringVars["magic"]);
+	}
+
+	if (!magic.contains("known") || !magic["known"].is_object()) {
+		magic["known"] = nlohmann::json::object();
+	}
+	magic["known"][magicCode] = true;
+	vars->stringVars["magic"] = magic.dump();
+
+	return JsonToLua(lua, magic);
 }
 
 void CreateMagicBindings(const std::string& version, PlayerVariablesComponent* vars) {
 	if (version == "v1") {
-		vars->stringVars["magic"] = R"(
-			"v":1,
-			"trees":{},
-			"known":{}	
-			"slots":{}
-		)";
+		vars->stringVars["magic"] = R"({"v":1,"trees":{},"known":{},"slots":{}})";
 	}
 }
 
