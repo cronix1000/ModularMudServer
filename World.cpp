@@ -177,11 +177,8 @@ void World::ParseSpawns(const json& rData, int roomID,const json& floorSettings,
                 float respawnTime = spawnInfo.value("respawn_time", 30.0f);
                 bool shouldRespawn = spawnInfo.value("respawn", true);
 
-                if (shouldRespawn && ctx.respawnSystem) {
-                    ctx.respawnSystem->CreateSpawnPoint(templateID, respawnTime, x, y, roomID);
-                } else {
-                    ctx.factories->mobs.CreateMob(templateID, finalOverrides, x, y, roomID);
-                }
+                ctx.factories->mobs.CreateMob(templateID, finalOverrides, x, y, roomID);
+                
             }
             else if (type == "item") {
                 ctx.factories->items.CreateItem(templateID,finalOverrides,x,y,roomID);

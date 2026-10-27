@@ -63,6 +63,7 @@ const KeySpec ITEM_KEYS[] = {
 const KeySpec INTERACTABLE_KEYS[] = {
 	{ "cooldown_seconds",   KeyType::Int, 0,  "", false, 0, 86400, 0, true, true, false },
 	{ "max_uses_per_player",KeyType::Int, -1, "", false, -1, 1000, 0, true, true, false },
+	{ "alchemy_circle_id",  KeyType::String, 0, "", false, 0, 0, 200, false, false, true },
 };
 
 const EntitySpec ENTITY_SPECS[] = {

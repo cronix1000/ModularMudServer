@@ -14,13 +14,125 @@
 #include "FactoryManager.h"
 #include "ItemScriptContext.h"
 #include "ItemScriptResult.h"
+#include "Platform.h"
 #include <iostream>
 #include <filesystem>
+#include <fstream>
 #include <map>
+#include <cstdlib>
 #include <nlohmann/json.hpp>
 #include "sol/sol.hpp"
 
 namespace fs = std::filesystem;
+
+std::string ScriptManager::DiscoverScriptsRoot() {
+	// 1. Check env var override
+	if (const char* env = std::getenv("MUD_SCRIPTS_PATH"); env && *env) {
+		fs::path p(env);
+		if (fs::is_directory(p)) {
+			std::error_code ec;
+			return fs::absolute(p, ec).string();
+		}
+	}
+
+	// 2. Walk up from the executable's directory
+	fs::path exeDir;
+#ifdef PLATFORM_WINDOWS
+	char buffer[MAX_PATH];
+	DWORD len = GetModuleFileNameA(nullptr, buffer, MAX_PATH);
+	if (len > 0 && len < MAX_PATH) {
+		buffer[len] = '\0';
+		exeDir = fs::path(buffer).parent_path();
+	}
+#else
+	char buffer[4096];
+	ssize_t rlen = readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);
+	if (rlen > 0) {
+		buffer[rlen] = '\0';
+		exeDir = fs::path(buffer).parent_path();
+	}
+#endif
+
+	for (int i = 0; i < 6; ++i) {
+		if (exeDir.empty()) break;
+		fs::path candidate = exeDir / "scripts";
+		if (fs::is_directory(candidate)) {
+			std::error_code ec;
+			return fs::absolute(candidate, ec).string();
+		}
+		if (!exeDir.has_parent_path()) break;
+		exeDir = exeDir.parent_path();
+	}
+
+	// 3. Fall back to CWD-relative
+	fs::path cwdScripts = fs::current_path() / "scripts";
+	if (fs::is_directory(cwdScripts)) {
+		std::error_code ec;
+		return fs::absolute(cwdScripts, ec).string();
+	}
+
+	return "";
+}
+
+std::string ScriptManager::ResolveScriptPath(const std::string& path, const std::string& kindDir) const {
+	if (path.empty()) return "";
+
+	fs::path p(path);
+
+	// If the path has a directory separator, treat as relative to scriptsRoot or absolute.
+	if (path.find('/') != std::string::npos || path.find('\\') != std::string::npos) {
+		if (p.is_absolute()) return p.string();
+		return (fs::path(scriptsRoot) / p).string();
+	}
+
+	// Bare name. Append .lua if missing.
+	std::string withExt = path;
+	if (withExt.size() < 4 || withExt.substr(withExt.size() - 4) != ".lua") {
+		withExt += ".lua";
+	}
+
+	// Try scriptsRoot/<kindDir>/<name>.lua
+	if (!kindDir.empty()) {
+		fs::path candidate = fs::path(scriptsRoot) / kindDir / withExt;
+		if (fs::exists(candidate)) return candidate.string();
+	}
+
+	// Fallback: scriptsRoot/<name>.lua (in case the user gave the path with dir)
+	fs::path candidate = fs::path(scriptsRoot) / withExt;
+	if (fs::exists(candidate)) return candidate.string();
+
+	return "";
+}
+
+sol::protected_function ScriptManager::LoadOrGetScript(const std::string& path, const std::string& kindDir, const std::string& functionName) {
+	std::string resolved = ResolveScriptPath(path, kindDir);
+	if (resolved.empty()) {
+		std::cerr << "[ScriptManager] Script not found: '" << path << "' (kind=" << kindDir << ")" << std::endl;
+		if (!scriptsRoot.empty()) {
+			std::cerr << "[ScriptManager]   scriptsRoot = " << scriptsRoot << std::endl;
+		}
+		return sol::protected_function();
+	}
+
+	// Always (re)load. The dofile chain in master files already loads
+	// these at boot, and the global scope is idempotent for our scripts.
+	// Re-running it per invocation is the hot-reload mechanism.
+	sol::load_result loaded = lua.load_file(resolved);
+	if (!loaded.valid()) {
+		sol::error err = loaded;
+		std::cerr << "[ScriptManager] Load failed: " << resolved << " : " << err.what() << std::endl;
+		return sol::protected_function();
+	}
+
+	sol::protected_function_result exec = loaded();
+	if (!exec.valid()) {
+		sol::error err = exec;
+		std::cerr << "[ScriptManager] Exec failed: " << resolved << " : " << err.what() << std::endl;
+		return sol::protected_function();
+	}
+
+	return lua[functionName];
+}
 
 sol::table JsonToLua(sol::state& lua, const nlohmann::json& j) {
 	sol::table tbl = lua.create_table();
@@ -58,7 +170,7 @@ sol::table JsonToLua(sol::state& lua, const nlohmann::json& j) {
 
 ScriptManager::ScriptManager(Registry& r) : registry(r) {
 	// Initialize lua state in constructor
-	lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::math, sol::lib::table);
+	lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::math, sol::lib::table, sol::lib::string);
 
 	lua.new_usertype<StatComponent>("Stats",
 		"hp", &StatComponent::Health,
@@ -98,13 +210,66 @@ ScriptManager::ScriptManager(Registry& r) : registry(r) {
 }
 
 void ScriptManager::init() {
-	load_script("scripts/interactables/interactables_master.lua");
-	load_script("scripts/skills/skills_master.lua");
+	scriptsRoot = DiscoverScriptsRoot();
+	if (scriptsRoot.empty()) {
+		std::cerr << "[ScriptManager] FATAL: scripts/ directory not found. Set MUD_SCRIPTS_PATH or run from a directory that has a reachable scripts/ folder." << std::endl;
+	} else {
+		std::cout << "[ScriptManager] Scripts root: " << scriptsRoot << std::endl;
+		// Make package.path point at the absolute scripts root so that
+		// dofile() chains inside master files (which use CWD-relative
+		// paths like "scripts/skills/alchemy/calcify.lua") work regardless
+		// of the binary's CWD.
+		std::string newPath = scriptsRoot + "/?.lua";
+		sol::object existing = lua["package"]["path"];
+		if (existing.is<std::string>()) {
+			newPath += ";";
+			newPath += existing.as<std::string>();
+		}
+		lua["package"]["path"] = newPath;
+	}
+
+	// Load the interactable scripts master
+	{
+		std::string p = ResolveScriptPath("interactables_master", "interactables");
+		if (!p.empty()) {
+			sol::load_result loaded = lua.load_file(p);
+			if (!loaded.valid()) {
+				sol::error err = loaded;
+				std::cerr << "Failed to parse " << p << ": " << err.what() << std::endl;
+			} else {
+				auto result = loaded();
+				if (!result.valid()) {
+					sol::error err = result;
+					std::cerr << "Failed to execute " << p << ": " << err.what() << std::endl;
+				}
+			}
+		} else {
+			std::cerr << "[ScriptManager] interactables_master.lua not found." << std::endl;
+		}
+	}
+
+	// Load the skills scripts master
+	{
+		std::string p = ResolveScriptPath("skills_master", "skills");
+		if (!p.empty()) {
+			sol::load_result loaded = lua.load_file(p);
+			if (!loaded.valid()) {
+				sol::error err = loaded;
+				std::cerr << "Failed to parse " << p << ": " << err.what() << std::endl;
+			} else {
+				auto result = loaded();
+				if (!result.valid()) {
+					sol::error err = result;
+					std::cerr << "Failed to execute " << p << ": " << err.what() << std::endl;
+				}
+			}
+		} else {
+			std::cerr << "[ScriptManager] skills_master.lua not found." << std::endl;
+		}
+	}
 
 	lua.set_function("send_to_char", [this](int player_id, const std::string& message) {
-		fprintf(stderr, "[DEBUG:send_to_char] called player_id=%d msg='%s'\n", player_id, message.c_str()); fflush(stderr);
 		auto* player = GetPlayer(player_id);
-		fprintf(stderr, "[DEBUG:send_to_char] GetPlayer(%d) -> %s\n", player_id, player ? "valid" : "nullptr"); fflush(stderr);
 		if (player) {
 			player->QueueMessage(message);
 		}
@@ -115,7 +280,7 @@ void ScriptManager::init() {
 		});
 
 	lua.set_function("mark_dirty", [this](int entity_id) {
-		registry.AddComponent<VitalsChangedComponent>(entity_id);
+		registry.AddComponent<PlayerDirtyComponent>(entity_id);
 		});
 
 	lua.set_function("get_stats", [this](int entity_id) -> StatComponent* {
@@ -151,6 +316,7 @@ void ScriptManager::init() {
 		return GetFactionStanding(player_id, faction_id);
 		});
 
+
 	lua.set_function("World_AdjustFactionStanding", [this](int player_id, const std::string& faction_id, int delta) -> int {
 		return AdjustFactionStanding(player_id, faction_id, delta);
 		});
@@ -177,6 +343,12 @@ void ScriptManager::init() {
 
 	lua.set_function("World_ShopSell", [this](int player_id, const std::string& keeper_id, const std::string& template_id, int qty) -> bool {
 		return ShopSell(player_id, keeper_id, template_id, qty);
+		});
+	lua.set_function("magic_get_known", [this](int player_id)-> sol::table {
+		return GetMagicKnown(player_id);
+		});
+	lua.set_function("learn_magic", [this](int player_id, std::string magic_code)-> sol::table {
+		return LearnMagic(player_id);
 		});
 }
 
@@ -224,6 +396,7 @@ void ScriptManager::GrantExperience(int playerID, int amount, const std::string&
 
 namespace {
 
+
 	struct QuestProgress {
 		std::map<std::string, int> jsonObjective;
 	};
@@ -263,6 +436,26 @@ namespace {
 	}
 
 }
+sol::table ScriptManager::GetMagicKnown(int playerID) {
+	auto* vars = GetOrCreateVars(registry, playerID);
+	if (!vars) return;
+
+	auto it = vars->stringVars.find("magic");
+	if (it != vars->stringVars.end()) CreateMagicBindings("v1", vars);
+
+	return JsonToLua(lua, nlohmann::json::parse(vars->stringVars["magic"]));
+}
+
+void CreateMagicBindings(const std::string& version, PlayerVariablesComponent* vars) {
+	if (version == "v1") {
+		vars->stringVars["magic"] = R"(
+			"v":1,
+			"trees":{},
+			"known":{}	
+			"slots":{}
+		)";
+	}
+}
 
 void ScriptManager::AcceptQuest(int playerID, const std::string& questId) {
 	if (questId.empty()) return;
@@ -284,7 +477,7 @@ void ScriptManager::AcceptQuest(int playerID, const std::string& questId) {
 
 void ScriptManager::ProgressQuest(int playerID, const std::string& questId, const std::string& objectiveId, int delta) {
 	if (questId.empty() || objectiveId.empty() || delta <= 0) return;
-	auto* vars = registry.GetComponent<PlayerVariablesComponent>(playerID);
+	auto* vars = GetOrCreateVars(registry, playerID);
 	if (!vars) return;
 
 	auto it = vars->stringVars.find(questId);
@@ -507,18 +700,14 @@ void ScriptManager::load_script(const std::string& path) {
 }
 
 void ScriptManager::load_all_scripts(const std::string& root_path) {
+	(void)root_path; // legacy parameter; resolver finds scriptsRoot on its own
 	try {
-		if (!fs::exists(root_path) || !fs::is_directory(root_path)) {
-			std::cerr << "Script directory not found: " << root_path << std::endl;
-			return;
-		}
-
-		std::string path = root_path + "/master_file.lua";
-		std::cout << "Loading script: " << path << std::endl;
-		if(fs::exists(path)) {
+		std::string path = ResolveScriptPath("master_file", "");
+		if (!path.empty()) {
+			std::cout << "Loading script: " << path << std::endl;
 			load_script(path);
 		} else {
-			std::cerr << "Script not found: " << path << std::endl;
+			std::cerr << "Script not found: master_file.lua (searched under scripts root)" << std::endl;
 		}
 	}
 	catch (const std::exception& e) {
@@ -527,31 +716,16 @@ void ScriptManager::load_all_scripts(const std::string& root_path) {
 }
 
 InteractableResult ScriptManager::ExecuteInteractableScript(const std::string& scriptPath, const std::string& functionName, const InteractableContext& context) {
-	// 1. Load Script
-	sol::load_result script = lua.load_file(scriptPath);
-	if (!script.valid()) {
-		std::cerr << "[LUA ERROR] Load failed: " << scriptPath << std::endl;
-		return InteractableResult{ false };
-	}
-
-	// 2. Initialize Script (Runs global scope)
-	sol::protected_function_result scriptBody = script();
-	if (!scriptBody.valid()) {
-		std::cerr << "[LUA ERROR] Exec failed: " << scriptPath << std::endl;
-		return InteractableResult{ false };
-	}
-
-	// 3. Find Function
-	sol::protected_function func = lua[functionName];
+	sol::protected_function func = LoadOrGetScript(scriptPath, "interactables", functionName);
 	if (!func.valid()) {
-		std::cerr << "[LUA ERROR] No '" << functionName << "' in " << scriptPath << std::endl;
+		std::cerr << "[LUA ERROR] No '" << functionName << "' for script: " << scriptPath << std::endl;
 		return InteractableResult{ false };
 	}
 
-	// 4. Execute with Context
+	// Execute with Context
 	auto result = func(context);
 
-	// 5. Unpack Result
+	// Unpack Result
 	if (result.valid() && result.return_count() > 0 && result[0].is<sol::table>()) {
 		sol::table tbl = result[0];
 		InteractableResult res;
@@ -599,23 +773,9 @@ ClientConnection* ScriptManager::GetPlayer(int player_id) {
 }
 
 ItemScriptResult ScriptManager::ExecuteItemScript(const std::string& scriptPath, const std::string& functionName, const ItemScriptContext& context) {
-	sol::load_result script = lua.load_file(scriptPath);
-	if (!script.valid()) {
-		sol::error err = script;
-		std::cerr << "[LUA ERROR] Item script load failed: " << scriptPath << " : " << err.what() << std::endl;
-		return ItemScriptResult{ false };
-	}
-
-	sol::protected_function_result scriptBody = script();
-	if (!scriptBody.valid()) {
-		sol::error err = scriptBody;
-		std::cerr << "[LUA ERROR] Item script exec failed: " << scriptPath << " : " << err.what() << std::endl;
-		return ItemScriptResult{ false };
-	}
-
-	sol::protected_function func = lua[functionName];
+	sol::protected_function func = LoadOrGetScript(scriptPath, "items", functionName);
 	if (!func.valid()) {
-		std::cerr << "[LUA ERROR] No '" << functionName << "' in " << scriptPath << std::endl;
+		std::cerr << "[LUA ERROR] No '" << functionName << "' for item script: " << scriptPath << std::endl;
 		return ItemScriptResult{ false };
 	}
 

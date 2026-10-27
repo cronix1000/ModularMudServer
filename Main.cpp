@@ -12,6 +12,7 @@
 
 #ifdef PLATFORM_LINUX
 #include <unistd.h>
+#include "Main.h"
 #endif
 
 #define DEFAULT_PORT "27015"
@@ -75,23 +76,19 @@ void ProcessConsoleCommand(const std::string& command, GameEngine* engine, GameC
 }
 
 int main(void) {
-	fprintf(stderr, "DEBUG: main() entered\n"); fflush(stderr);
 	GameContext ctx;
 	ThreadSafeQueue<ClientInput> inputQueue;
 	GameEngine engine(ctx, inputQueue);
-	fprintf(stderr, "DEBUG: GameEngine constructed\n"); fflush(stderr);
 	Server server(ctx, &engine, inputQueue);
 	
 	if (!server.Start(DEFAULT_PORT)) {
-		std::cerr << "Failed to start server!" << std::endl;
 		return 1;
 	}
 	
 	// Start network thread
-	std::thread networkThread([&server]() {
-		server.Run();
+	std::jthread networkThread([&server](std::stop_token t) {
+		server.Run(t);
 	});
-	networkThread.detach();
 	
 	// Start console input thread only when stdin is a TTY (interactive).
 	// In detached/backgrounded contexts (CI, docker compose up -d without -t,
@@ -102,6 +99,8 @@ int main(void) {
 		std::thread consoleThread(ConsoleInputThread);
 		consoleThread.detach();
 	}
+
+	//std::thread networkThread
 #else
 	// Windows: spawn console thread unconditionally; user can close the console window to shut down.
 	std::thread consoleThread(ConsoleInputThread);
@@ -116,9 +115,6 @@ int main(void) {
 	while (engine.IsRunning()) {
 		auto next_game_tick = GetTickCountMs() + SKIP_TICKS;
 
-		// Process client inputs from network
-		engine.ProcessInputs();
-		
 		// Process console commands
 		std::string consoleCommand;
 		while (consoleQueue.TryPop(&consoleCommand).has_value()) {
@@ -134,9 +130,12 @@ int main(void) {
 			SleepMs(sleep_time);
 		}
 	}
-	
 	// Graceful shutdown
-	std::cout << "Server shutting down..." << std::endl;
+	networkThread.request_stop(); 
+	networkThread.join(); // Blocks finishing the process until the thread is finished 
+	engine.SaveAllPlayers();
+
+
 	server.Stop();
 	
 	return 0;

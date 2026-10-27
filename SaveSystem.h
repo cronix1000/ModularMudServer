@@ -1,6 +1,6 @@
 #pragma once
-
-
+#include <vector>
+using EntityID = int;
 struct GameContext;
 class Registry;
 
@@ -12,7 +12,9 @@ public:
 	GameContext& ctx;
 	SaveSystem(GameContext& g) : ctx(g) {};
 	~SaveSystem();
-
+	std::vector<EntityID> dirty;
 	void Run(float deltaTime);
+	void SaveNow(EntityID client);
+	void SaveAllPlayers();
 	void SaveDirtyEntities();
 };

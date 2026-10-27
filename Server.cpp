@@ -5,8 +5,10 @@
 #include "ClientInput.h"
 #include "MainMenuState.h"
 #include "GameContext.h"
+#include <unordered_map>
 #include "ThreadSafeQueue.h"
 #include "TelnetCodec.h"
+#include <stop_token>
 
 Server::Server(GameContext& context, GameEngine* engine, ThreadSafeQueue<ClientInput>& queue) : gameContext(context), engine(engine), inputQueue(queue) {
 }
@@ -33,9 +35,9 @@ void Server::HandleReceive(int clientID, std::string& buffer) {
     }
 }
 
-void Server::Run() {
+void Server::Run(std::stop_token stop_token) {
     printf("Running server....");
-    while (true) {
+    while (!stop_token.stop_requested()) {
         fd_set read_fd;
         fd_set write_fd; // Use a single write set
         FD_ZERO(&read_fd);
@@ -45,14 +47,15 @@ void Server::Run() {
         SocketType max_fd = ListenSocket;
 
         // Populate the read_fd and write_fd sets
-        for (ClientConnection* client : activeClients) {
+        for (const auto& pair : activeClients) {
+            std::shared_ptr<ClientConnection> client = pair.second;
             SocketType client_socket = client->tcpSocket;
 
             // ALWAYS check for reading
             FD_SET(client_socket, &read_fd);
 
             // ONLY check for writing if the client has queued data
-            if (!client->OutboundMessages.empty()) {
+            if (!client->outbound.IsEmpty()) {
                 FD_SET(client_socket, &write_fd);
             }
 
@@ -94,7 +97,7 @@ void Server::Run() {
         //std::vector<ClientConnection> tempClients = activeClients;
         // check if clients sent data and recieve it
         for (auto it = activeClients.begin(); it != activeClients.end() && sockets_ready > 0;) {
-            ClientConnection* client = *it;
+            std::shared_ptr<ClientConnection> client = it->second;
             bool disconnected = false;
             SocketType socket = client->tcpSocket;
 
@@ -110,8 +113,10 @@ void Server::Run() {
                 }
                 else {
                     // Process the input that was received
-                    HandleReceive(client->clientID, client->recvBuffer);
-                    client->ProcessInput();  // Then process it
+					//this->inputQueue.Push({client->clientID, client->recvBuffer});
+                    for(std::string line : client->DrainCompleteLines()) {
+                        this->inputQueue.Push({ client->clientID , std::move(line), ClientInputKind::Kind::Line });
+					}
                 }
             }
 
@@ -120,18 +125,15 @@ void Server::Run() {
                 int bytes_sent = client->SendData();
                 if (bytes_sent < 0) {
                     disconnected = true;
+                    inputQueue.Push({ client->clientID, "", ClientInputKind::Kind::Disconnected });
+                    
                 }
             }
 
             // 3. Handle Disconnection
             if (disconnected) {
                 printf("Client Disconnected\n");
-
-                if (client->playerEntityID != -1) {
-                    gameContext.registry->RemoveComponent<ClientComponent>(client->playerEntityID);
-                }
-
-                delete client;
+                inputQueue.Push({ client->clientID, "", ClientInputKind::Kind::Disconnected });
                 it = activeClients.erase(it);
             }
             else {
@@ -139,6 +141,10 @@ void Server::Run() {
             }
 
         }
+    }
+
+    for (auto& [id, client] : activeClients) {
+        client->SendData();
     }
 }
 
@@ -222,29 +228,33 @@ bool Server::Start(const char* DEFAULT_PORT) {
 }
 
 bool Server::Stop() {
+    if (ListenSocket != INVALID_SOCKET_VAL) {
+        CloseSocket(ListenSocket);
+        ListenSocket = INVALID_SOCKET_VAL;
+    }
     return true;
+
 }
 
 bool Server::AcceptClient() {
     SocketType newSocket = accept(ListenSocket, NULL, NULL);
     if (newSocket != INVALID_SOCKET_VAL) {
-        ClientConnection* newClient = new ClientConnection(newSocket);
-
+		auto newClient = std::make_shared<ClientConnection>(newSocket);
         // Set a unique client ID (you can use the socket number or a counter)
         newClient->clientID = static_cast<int>(newSocket);
 
         newClient->SetEngine(engine);
-        newClient->PushState(new MainMenuState());
+        inputQueue.Push({ newClient->clientID , "", ClientInputKind::Kind::Connected, newClient });
 
         // Offer GMCP. Real telnet clients (Mudlet etc.) reply IAC DO GMCP
         // and our Negotiation handler flips ClientComponent.hasGMCP = true.
         // Browser clients via the gateway ignore these bytes.
         // Use SendPacket (not QueueMessage) to bypass the outbound escape pass,
         // which would otherwise double every IAC byte and corrupt the frame.
-        newClient->SendPacket(telnet::buildNegotiation(telnet::WILL, telnet::GMCP));
-        newClient->SendPacket(telnet::buildNegotiation(telnet::DO,   telnet::GMCP));
+        newClient->SendPacket({telnet::buildNegotiation(telnet::WILL, telnet::GMCP), false});
+        newClient->SendPacket({telnet::buildNegotiation(telnet::DO,   telnet::GMCP), false});
 
-        activeClients.push_back(newClient);
+        activeClients[newClient->clientID] = newClient;
 
         printf("New client connected with ID: %d\n", newClient->clientID);
         return true;

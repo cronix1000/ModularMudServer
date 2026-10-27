@@ -105,7 +105,9 @@ void MobFactory::LoadSingleMobFromJSON(const std::string& key, const json& j) {
 
     mobTemplates[key] = tpl;
 }
-
+/*
+* TODO Attach Respawn Component 
+**/
 int MobFactory::CreateMob(std::string templateID, json overrides, int x, int y, int roomID) {
     if (mobTemplates.find(templateID) == mobTemplates.end()) {
         std::cerr << "Mob Template not found: " << templateID << std::endl;

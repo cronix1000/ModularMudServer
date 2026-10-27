@@ -3,7 +3,8 @@
 #include "Platform.h"
 #include <vector>
 #include "ClientConnection.h"
-#include "ThreadSafeQueue.h"  // Include the full template
+#include "ThreadSafeQueue.h"  
+#include <unordered_map>
 
 struct GameContext;
 struct GameContext;
@@ -22,10 +23,11 @@ public:
 	void Init();
 	bool Start(const char* port);
 	void HandleReceive(int clientID, std::string& buffer);
-	void Run();
+	void Run(std::stop_token stop_token);
 	bool Stop();
 	bool AcceptClient();
+	std::shared_ptr<ClientConnection> GetClient(int clientId);
 private:
-	std::vector<ClientConnection*> activeClients;
+	std::unordered_map<int,std::shared_ptr<ClientConnection>> activeClients;
 	SocketType ListenSocket;
 };

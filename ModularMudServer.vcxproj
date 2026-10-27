@@ -107,7 +107,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp23</LanguageStandard>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
     </ClCompile>
@@ -160,8 +160,8 @@
     <ClCompile Include="AttackIntentComponent.h" />
     <ClCompile Include="BehaviorSystem.cpp" />
     <ClCompile Include="CombatStateSystem.cpp" />
+    <ClCompile Include="CraftSystem.cpp" />
     <ClCompile Include="GameContext.cpp" />
-    <ClCompile Include="GMCPHandler.cpp" />
     <ClCompile Include="InteractableFactory.cpp" />
     <ClCompile Include="InteractCommandHandler.cpp" />
     <ClCompile Include="InteractionMessage.cpp" />
@@ -244,9 +244,11 @@
     <ClInclude Include="CoolDownDefinitionComponent.h" />
     <ClInclude Include="CraftingStation.h" />
     <ClInclude Include="CraftIntentComponent.h" />
+    <ClInclude Include="CraftSystem.h" />
     <ClInclude Include="DamageScalingComponent.h" />
     <ClInclude Include="DeadTag.h" />
     <ClInclude Include="DoorComponent.h" />
+    <ClInclude Include="GMCPModules.h" />
     <ClInclude Include="GMPCHandler.h" />
     <ClInclude Include="GMPCModules.h" />
     <ClInclude Include="InteractableFactory.h" />
@@ -255,6 +257,7 @@
     <ClInclude Include="InteractionMessage.h" />
     <ClInclude Include="InteractionOverrideComponent.h" />
     <ClInclude Include="LeverComponent.h" />
+    <ClInclude Include="Main.h" />
     <ClInclude Include="MenuCommandHandler.h" />
     <ClInclude Include="MessageComponent.h" />
     <ClInclude Include="MessageSystem.h" />

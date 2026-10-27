@@ -210,7 +210,6 @@ void InteractableFactory::AttachComponents(int id, const json& components, json 
         }
         else if (compName == "crafting") {
             CraftingStationComponent station;
-            station.heat = compData.value("heat", 0);
             station.isOccupied = false;
             ctx.registry->AddComponent<CraftingStationComponent>(id, station);
 

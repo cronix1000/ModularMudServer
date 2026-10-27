@@ -67,11 +67,9 @@ void NetworkSystem::FlushQueues()
 		if (!clientComp->HasPendingMessages()) continue;
 
 		for (const GameMessage& msg : clientComp->messageQueue) {
-			if (clientComp->isWebClient) {
-				SendToWebClient(clientComp->client, clientComp, msg);
-			} else {
-				SendToTerminalClient(clientComp->client, clientComp, msg);
-			}
+
+			SendToTerminalClient(clientComp->client, clientComp, msg);
+			
 		}
 
 		clientComp->ClearMessageQueue();
@@ -109,29 +107,9 @@ json NetworkSystem::BuildCommandListJson(PermissionLevel playerPerm)
 	return result;
 }
 
-void NetworkSystem::SendToWebClient(ClientConnection* client,
-                                    ClientComponent* clientComp,
-                                    const GameMessage& msg)
-{
-	(void)clientComp;
-
-	if (!msg.jsonData.empty() && msg.jsonData != "{}") {
-		if (clientComp == nullptr || !client->isSubscribed(msg.type)) return;
-		std::string envelope = BuildWebEnvelope(msg.type, msg.consoleText, msg.jsonData);
-		client->QueueMessage(envelope);
-	}
-	else if (!msg.consoleText.empty()) {
-		json envelope = {
-			{"channel", "text"},
-			{"data",    msg.consoleText}
-		};
-		client->QueueMessage(envelope.dump() + "\n");
-	}
-}
-
 void NetworkSystem::SendToTerminalClient(ClientConnection* client,
-                                        ClientComponent* clientComp,
-                                        const GameMessage& msg)
+	ClientComponent* clientComp,
+	const GameMessage& msg)
 {
 	if (!msg.consoleText.empty()) {
 		client->QueueMessage(TextHelperFunctions::Colorize(msg.consoleText));
@@ -140,39 +118,9 @@ void NetworkSystem::SendToTerminalClient(ClientConnection* client,
 	if (msg.jsonData.empty() || msg.jsonData == "{}") return;
 
 	if (clientComp == nullptr) return;
-	if (!clientComp->hasGMCP) return;
+	if (!client->hasGMCP) return;
 	if (!client->isSubscribed(msg.type)) return;
 
-	std::string gmcpPacket = BuildGMCPFrame(msg.type, msg.jsonData);
-	client->SendPacket(gmcpPacket);
-}
-
-std::string NetworkSystem::BuildWebEnvelope(const std::string& module,
-                                            const std::string& consoleText,
-                                            const std::string& jsonDataStr)
-{
-	json envelope;
-	envelope["channel"] = "gmcp";
-	envelope["module"]  = module;
-
-	if (!jsonDataStr.empty()) {
-		try {
-			envelope["data"] = json::parse(jsonDataStr);
-		} catch (...) {
-			envelope["data"] = json::object();
-		}
-	} else {
-		envelope["data"] = json::object();
-	}
-
-	if (!consoleText.empty()) {
-		envelope["text"] = consoleText;
-	}
-
-	return envelope.dump() + "\n";
-}
-
-std::string NetworkSystem::BuildGMCPFrame(const std::string& module, const std::string& jsonDataStr)
-{
-	return telnet::buildGMCPSubneg(module, jsonDataStr);
+	OutboundPacket gmcpPacket{ telnet::buildGMCPSubneg(msg.type, msg.jsonData), /*escape=*/false };
+	client->QueueOutbound(gmcpPacket);
 }

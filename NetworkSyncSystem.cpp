@@ -108,7 +108,7 @@ void NetworkSyncSystem::SendLook(ClientConnection* client)
 
             // Only process if they are in the current room.
             if (entPos->roomId == playerPos->roomId) {
-                if (entPos->x >= 0 && entPos->x <= roomWidth && entPos->y >= 0 && entPos->y <= roomHeight) {
+                if (entPos->x >= 0 && entPos->x < roomWidth && entPos->y >= 0 && entPos->y < roomHeight) {
                     entityOverlay[entPos->y][entPos->x] = entVis;
                 }
             }

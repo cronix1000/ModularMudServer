@@ -1,8 +1,10 @@
 #pragma once
 #include <iostream>
+#include <unordered_map>
 #include <ctime>
 #include <string>
 #include "ThreadSafeQueue.h"
+#include <memory>
 
 // Minimal includes - only what's absolutely necessary
 struct PlayerData;
@@ -26,6 +28,7 @@ class MobFactory;
 struct GameContext;
 class FactoryManager;
 class CombatSystem;
+class CraftSystem;
 class CleanUpSystem;
 class InventorySystem;
 class BehaviorSystem;
@@ -41,6 +44,7 @@ class AmbientAISystem;
 struct TimeData;
 class CommandRegistry;
 struct ClientInput;
+struct OutboundPacket;
 class SkillSystem;
 class EntityResolver;
 class GameEngine
@@ -50,15 +54,12 @@ public:
 	~GameEngine();
 
 	ThreadSafeQueue<ClientInput>& inputQueue;	
+	std::unordered_map<int, std::shared_ptr<ClientConnection>> sessions;
 	// Pass the address (&db)
 
 	GameContext& gameContext;
-	//Registry* registry;
-	World* world;
-	//WorldManager* worldManager;
-	//ScriptManager* scriptManager;
-	//FactoryManager* factoryManager;
-	ScriptEventBridge* scriptEventBridge;
+	std::unique_ptr<World> world;
+	std::unique_ptr <ScriptEventBridge> scriptEventBridge;
 
 	float time = 0;
 
@@ -67,9 +68,11 @@ public:
 	int LoadPlayer(ClientConnection* socket, std::string username);
 	void Update(float deltaTime);
 	const bool IsRunning();
-	ClientConnection* GetClientById(int clientId);
+	std::shared_ptr<ClientConnection> GetClientById(int clientId);
 	int GetEntityByClient(int clientId);
 	void ProcessInputs();
+	void HandleDisconnect(int cliendItd);
+	void SaveAllPlayers();
 	void Quit();
 	GameContext& GetGameContext();
 	CommandInterpreter* interpreter;
@@ -78,31 +81,27 @@ public:
 	void InitializeClimateZones();
 	void OnPlayerChangedZone(int playerEntityId, const std::string& oldZone, const std::string& newZone);
 
-	// Factories
-	ItemFactory* itemFactory;
-	MobFactory* mobFactory;
-	PlayerFactory* playerFactory;
-
 	// SYSTEMS
-	MovementSystem* movementSystem;
-	NetworkSyncSystem* networkSyncSystem;
-	NetworkSystem* networkSystem;
-	EventBus* eventBus;
-	UpdateSystem* updateSystem;
-	InventorySystem* invSystem;
-	CleanUpSystem* cleanSystem;
-	BehaviorSystem* behaviorSystem;
-	CombatSystem* combatSystem;
-	InteractionSystem* interactionSystem;
-	MessageSystem* messageSytem;
-	SaveSystem* saveSystem;
-	RespawnSystem* respawnSystem;
-	WorldClimateSystem* climateSystem;
-	AmbientAISystem* ambientAISystem;
-	SkillSystem* skillSystem;
-	TargetingSystem* targetingSystem;
-	CombatStateSystem* combatStateSystem;
+	std::unique_ptr<MovementSystem> movementSystem;
+	std::unique_ptr<NetworkSyncSystem> networkSyncSystem;
+	std::unique_ptr < NetworkSystem>networkSystem;
+	std::unique_ptr<EventBus> eventBus;
+	std::unique_ptr<UpdateSystem>updateSystem;
+	std::unique_ptr<InventorySystem> invSystem;
+	std::unique_ptr<CleanUpSystem> cleanSystem;
+	std::unique_ptr<BehaviorSystem> behaviorSystem;
+	std::unique_ptr<CombatSystem> combatSystem;
+	std::unique_ptr<InteractionSystem> interactionSystem;
+	std::unique_ptr<MessageSystem> messageSytem;
+	std::unique_ptr<SaveSystem> saveSystem;
+	std::unique_ptr<RespawnSystem> respawnSystem;
+	std::unique_ptr<WorldClimateSystem> climateSystem;
+	std::unique_ptr<AmbientAISystem> ambientAISystem;
+	std::unique_ptr<SkillSystem> skillSystem;
+	std::unique_ptr<TargetingSystem> targetingSystem;
+	std::unique_ptr<CombatStateSystem> combatStateSystem;
+	std::unique_ptr<CraftSystem> craftSystem;
 
 private:
-	bool isRunning = true;
+	std::atomic<bool> isRunning = true;
 };

@@ -26,6 +26,7 @@
 #include <cstring>
 #include <iostream>
 #include <map>
+#include <unordered_set>
 
 using json = nlohmann::json;
 
@@ -218,23 +219,67 @@ bool PostgresDatabase::SavePlayer(EntityID playerEnt, GameContext& ctx) {
     try {
         pqxx::work tx(*conn);
         std::string dataStr = playerData.dump();
-        tx.exec_params(
-            "UPDATE player_players "
-            "SET data = $1::jsonb, room_id = $2, region_id = $3, gold = $4, bank_balance = $5 "
-            "WHERE id = $6",
-            dataStr,
-            pos->roomId,
-            region->region,
-            gold, bank,
-            playerComp->accountID
-        );
+        if (UseEntitiesSource()) {
+            json stateDoc = playerData;
+            json invArr = json::array();
+            auto* invComp = ctx.registry->GetComponent<InventoryComponent>(playerEnt);
+            if (invComp) {
+                for (int id : invComp->items) {
+                    auto* item = ctx.registry->GetComponent<ItemComponent>(id);
+                    if (!item) continue;
+                    json entry = json::object();
+                    entry["template_id"] = item->templateName;
+                    entry["equipped"] = false;
+                    entry["slot"] = -1;
+                    invArr.push_back(entry);
+                }
+            }
+            auto* equipComp = ctx.registry->GetComponent<EquipmentComponent>(playerEnt);
+            if (equipComp) {
+                for (const auto& slotPair : equipComp->slots) {
+                    auto* item = ctx.registry->GetComponent<ItemComponent>(slotPair.second);
+                    if (!item) continue;
+                    const int32_t slotID = static_cast<int32_t>(slotPair.first);
+                    json entry = json::object();
+                    entry["template_id"] = item->templateName;
+                    entry["equipped"] = true;
+                    entry["slot"] = slotID;
+                    if (slotID >= 0 && slotID <= static_cast<int32_t>(EquipmentSlot::Default)) {
+                        entry["slot_string"] = EquipmentSlotInfo::SlotToString(static_cast<EquipmentSlot>(slotPair.first));
+                    }
+                    invArr.push_back(entry);
+                }
+            }
+            stateDoc["inventory"] = invArr;
+            tx.exec_params(
+                "UPDATE player_players "
+                "SET state = $1::jsonb, data = $2::jsonb, room_id = $3, region_id = $4, gold = $5, bank_balance = $6 "
+                "WHERE id = $7",
+                stateDoc.dump(), dataStr,
+                pos->roomId,
+                region->region,
+                gold, bank,
+                playerComp->accountID
+            );
+        } else {
+            tx.exec_params(
+                "UPDATE player_players "
+                "SET data = $1::jsonb, room_id = $2, region_id = $3, gold = $4, bank_balance = $5 "
+                "WHERE id = $6",
+                dataStr,
+                pos->roomId,
+                region->region,
+                gold, bank,
+                playerComp->accountID
+            );
+        }
         tx.commit();
     } catch (const std::exception& e) {
         std::fprintf(stderr, "[Postgres] SavePlayer failed: %s\n", e.what());
         return false;
     }
 
-    SaveInventory(playerEnt, ctx);
+    if (!UseEntitiesSource()) SaveInventory(playerEnt, ctx);
     return true;
 }
 
@@ -253,8 +298,8 @@ int PostgresDatabase::CreatePlayerRow(const std::string& name,
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec_params(
             "INSERT INTO player_players "
-            "(permission, region_id, name, password_hash, salt, room_id, data) "
-            "VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb) "
+            "(permission, region_id, name, password_hash, salt, room_id, data, state) "
+            "VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $7::jsonb) "
             "RETURNING id",
             50,
             std::string("floor1"),
@@ -276,6 +321,7 @@ int PostgresDatabase::CreatePlayerRow(const std::string& name,
 void PostgresDatabase::SaveInventory(EntityID playerEnt, GameContext& ctx) {
     auto playerComp = ctx.registry->GetComponent<PlayerComponent>(playerEnt);
     if (!playerComp || !conn) return;
+    if (UseEntitiesSource()) return;
 
     auto inv = ctx.registry->GetComponent<InventoryComponent>(playerEnt);
     auto equip = ctx.registry->GetComponent<EquipmentComponent>(playerEnt);
@@ -322,7 +368,7 @@ bool PostgresDatabase::LoadPlayer(const std::string& name, PlayerData& outData) 
     try {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec_params(
-            "SELECT id, region_id, room_id, permission, data, gold, bank_balance, "
+            "SELECT id, region_id, room_id, permission, data, state, gold, bank_balance, "
             "       class_id, race_id, level "
             "FROM player_players WHERE name = $1",
             name
@@ -339,17 +385,46 @@ bool PostgresDatabase::LoadPlayer(const std::string& name, PlayerData& outData) 
         if (!r[0]["class_id"].is_null()) outData.classId = r[0]["class_id"].as<std::string>();
         if (!r[0]["race_id"].is_null())  outData.raceId  = r[0]["race_id"].as<std::string>();
         outData.level = r[0]["level"].as<int>();
-        outData.data = json::parse(r[0]["data"].as<std::string>());
 
-        pqxx::result items = tx.exec_params(
-            "SELECT template_id, item_state FROM player_items WHERE owner_id = $1",
-            outData.id
-        );
-        for (const auto& row : items) {
-            SavedItemData item;
-            item.templateId = row["template_id"].as<std::string>();
-            item.state = json::parse(row["item_state"].as<std::string>());
-            outData.items.push_back(item);
+        bool haveStateDoc = false;
+        if (UseEntitiesSource() && !r[0]["state"].is_null()) {
+            const std::string stateRaw = r[0]["state"].as<std::string>();
+            if (!stateRaw.empty() && stateRaw != "{}") {
+                try {
+                    json stateDoc = json::parse(stateRaw);
+                    if (stateDoc.contains("inventory") && stateDoc["inventory"].is_array()) {
+                        for (const auto& entry : stateDoc["inventory"]) {
+                            if (!entry.is_object()) continue;
+                            SavedItemData item;
+                            item.templateId = entry.value("template_id", std::string{});
+                            json st = entry;
+                            st.erase("template_id");
+                            item.state = st;
+                            outData.items.push_back(item);
+                        }
+                        stateDoc.erase("inventory");
+                    }
+                    outData.data = stateDoc;
+                    haveStateDoc = true;
+                } catch (const std::exception& e) {
+                    std::fprintf(stderr, "[Postgres] LoadPlayer: bad state for '%s', falling back to data: %s\n",
+                                 name.c_str(), e.what());
+                }
+            }
+        }
+        if (!haveStateDoc) {
+            outData.data = json::parse(r[0]["data"].as<std::string>());
+
+            pqxx::result items = tx.exec_params(
+                "SELECT template_id, item_state FROM player_items WHERE owner_id = $1",
+                outData.id
+            );
+            for (const auto& row : items) {
+                SavedItemData item;
+                item.templateId = row["template_id"].as<std::string>();
+                item.state = json::parse(row["item_state"].as<std::string>());
+                outData.items.push_back(item);
+            }
         }
         tx.commit();
         return true;
@@ -413,11 +488,152 @@ bool PostgresDatabase::VerifyPassword(const std::string& name, const std::string
 }
 
 // ============================================================================
+// Document model (world.entities)
+// ============================================================================
+
+bool PostgresDatabase::UseEntitiesSource() {
+    if (entitiesSourceCache < 0) {
+        const char* env = std::getenv("MUD_WORLD_SOURCE");
+        entitiesSourceCache = (env && std::strcmp(env, "entities") == 0) ? 1 : 0;
+    }
+    return entitiesSourceCache == 1;
+}
+
+nlohmann::json PostgresDatabase::MergeDocs(const json& base, const json& overlay) {
+    if (!base.is_object() || !overlay.is_object()) return overlay;
+    json out = base;
+    for (auto it = overlay.begin(); it != overlay.end(); ++it) {
+        const auto found = out.find(it.key());
+        if (found != out.end() && found->is_object() && it.value().is_object()) {
+            out[it.key()] = MergeDocs(*found, it.value());
+        } else {
+            out[it.key()] = it.value();
+        }
+    }
+    return out;
+}
+
+nlohmann::json PostgresDatabase::LoadEntityDocs(const std::string& entityType) {
+    json out = json::object();
+    if (!conn) return out;
+    try {
+        struct Rec {
+            std::string id;
+            json doc;
+            std::string parent;
+            bool hasParent = false;
+        };
+        std::vector<Rec> recs;
+        std::map<std::string, size_t> byId;
+
+        pqxx::work tx(*conn);
+        pqxx::result r = tx.exec_params(
+            "SELECT entity_id, doc::text AS doc_text, parent_id "
+            "FROM world.entities WHERE entity_type = $1",
+            entityType
+        );
+        for (const auto& row : r) {
+            Rec rec;
+            rec.id = row["entity_id"].as<std::string>();
+            try {
+                rec.doc = json::parse(row["doc_text"].as<std::string>());
+            } catch (const std::exception& e) {
+                std::fprintf(stderr, "[Postgres] LoadEntityDocs('%s'): bad doc for '%s': %s\n",
+                             entityType.c_str(), rec.id.c_str(), e.what());
+                continue;
+            }
+            if (!row["parent_id"].is_null()) {
+                rec.hasParent = true;
+                rec.parent = row["parent_id"].as<std::string>();
+            }
+            byId[rec.id] = recs.size();
+            recs.push_back(std::move(rec));
+        }
+        tx.commit();
+
+        for (const auto& rec : recs) {
+            std::vector<std::string> chain;
+            std::unordered_set<std::string> seen;
+            std::string cur = rec.id;
+            while (true) {
+                const auto it = byId.find(cur);
+                if (it == byId.end()) break;
+                chain.push_back(cur);
+                if (!recs[it->second].hasParent) break;
+                cur = recs[it->second].parent;
+                if (!seen.insert(cur).second) break;
+            }
+            json merged = json::object();
+            for (auto cit = chain.rbegin(); cit != chain.rend(); ++cit) {
+                merged = MergeDocs(merged, recs[byId[*cit]].doc);
+            }
+            out[rec.id] = std::move(merged);
+        }
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[Postgres] LoadEntityDocs('%s') failed: %s\n",
+                     entityType.c_str(), e.what());
+    }
+    return out;
+}
+
+// ============================================================================
 // World loading
 // ============================================================================
 
 bool PostgresDatabase::LoadTerrain() {
     if (!conn) return false;
+
+    if (UseEntitiesSource()) {
+        try {
+            json terrains = LoadEntityDocs("terrain");
+            int count = 0;
+            for (auto it = terrains.begin(); it != terrains.end(); ++it) {
+                const json& doc = it.value();
+                std::string symTxt = doc.value("symbol", it.key());
+                if (symTxt.empty()) continue;
+                const char symbol = symTxt[0];
+                globalTerrain[symbol] = TerrainDef(
+                    symbol,
+                    doc.value("name", std::string{"Unknown"}),
+                    doc.value("color", std::string{"white"}),
+                    doc.value("blocks_move", false),
+                    doc.value("blocks_sight", false),
+                    doc.value("move_cost", 1));
+                ++count;
+            }
+            printf("[Postgres] Loaded %d terrain symbols from entities.\n", count);
+
+            json regions = LoadEntityDocs("region");
+            int regionCount = 0;
+            int tileCount = 0;
+            for (auto it = regions.begin(); it != regions.end(); ++it) {
+                const std::string regionId = it.key();
+                const json& doc = it.value();
+                if (!doc.contains("floor_palette") || !doc["floor_palette"].is_array()) continue;
+                for (const auto& tile : doc["floor_palette"]) {
+                    if (!tile.is_object()) continue;
+                    const std::string symTxt = tile.value("symbol", std::string{});
+                    if (symTxt.empty()) continue;
+                    const char symbol = symTxt[0];
+                    regionTerrain[regionId][symbol] = TerrainDef(
+                        symbol,
+                        tile.value("name", std::string{"Unknown"}),
+                        tile.value("color", std::string{"&w"}),
+                        tile.value("blocks_move", 0) != 0,
+                        tile.value("blocks_sight", 0) != 0,
+                        tile.value("move_cost", 1));
+                    ++tileCount;
+                }
+                ++regionCount;
+            }
+            printf("[Postgres] Loaded region palettes from entities: %d region(s), %d tile(s).\n",
+                   regionCount, tileCount);
+            return true;
+        } catch (const std::exception& e) {
+            std::fprintf(stderr, "[Postgres] LoadTerrain (entities) failed: %s\n", e.what());
+            return false;
+        }
+    }
 
     try {
         pqxx::work tx(*conn);
@@ -492,6 +708,11 @@ bool PostgresDatabase::LoadTerrain() {
 nlohmann::json PostgresDatabase::LoadItems(const std::string& worldId) {
     json out = json::object();
     if (!conn) return out;
+    if (UseEntitiesSource()) {
+        out = LoadEntityDocs("item");
+        printf("[Postgres] Loaded %zu items from entities.\n", out.size());
+        return out;
+    }
     try {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec(
@@ -534,6 +755,11 @@ nlohmann::json PostgresDatabase::LoadItems(const std::string& worldId) {
 nlohmann::json PostgresDatabase::LoadMobs(const std::string& worldId) {
     json out = json::object();
     if (!conn) return out;
+    if (UseEntitiesSource()) {
+        out = LoadEntityDocs("mob");
+        printf("[Postgres] Loaded %zu mobs from entities.\n", out.size());
+        return out;
+    }
     try {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec(
@@ -584,6 +810,11 @@ nlohmann::json PostgresDatabase::LoadMobs(const std::string& worldId) {
 nlohmann::json PostgresDatabase::LoadInteractables(const std::string& worldId) {
     json out = json::object();
     if (!conn) return out;
+    if (UseEntitiesSource()) {
+        out = LoadEntityDocs("interactable");
+        printf("[Postgres] Loaded %zu interactables from entities.\n", out.size());
+        return out;
+    }
     try {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec(
@@ -621,6 +852,15 @@ nlohmann::json PostgresDatabase::LoadInteractables(const std::string& worldId) {
 nlohmann::json PostgresDatabase::LoadSkills(const std::string& worldId) {
     json out = json::object();
     if (!conn) return out;
+    if (UseEntitiesSource()) {
+        json categories = LoadEntityDocs("skill_category");
+        json skills = LoadEntityDocs("skill");
+        out["skill_categories"] = categories;
+        out["skills"] = skills;
+        printf("[Postgres] Loaded %zu skill categories and %zu skills from entities.\n",
+               categories.size(), skills.size());
+        return out;
+    }
     try {
         pqxx::work tx(*conn);
 
@@ -669,6 +909,17 @@ nlohmann::json PostgresDatabase::LoadSkills(const std::string& worldId) {
 nlohmann::json PostgresDatabase::LoadLootTables(const std::string& worldId) {
     json out = json::object();
     if (!conn) return out;
+    if (UseEntitiesSource()) {
+        json docs = LoadEntityDocs("loot_table");
+        for (auto it = docs.begin(); it != docs.end(); ++it) {
+            const json& doc = it.value();
+            out[it.key()] = doc.contains("entries") && doc["entries"].is_array()
+                ? doc["entries"]
+                : json::array();
+        }
+        printf("[Postgres] Loaded %zu loot tables from entities.\n", out.size());
+        return out;
+    }
     try {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec(
@@ -693,6 +944,11 @@ nlohmann::json PostgresDatabase::LoadLootTables(const std::string& worldId) {
 nlohmann::json PostgresDatabase::LoadDialogues(const std::string& worldId) {
     json out = json::object();
     if (!conn) return out;
+    if (UseEntitiesSource()) {
+        out = LoadEntityDocs("dialogue");
+        printf("[Postgres] Loaded %zu dialogue entries from entities.\n", out.size());
+        return out;
+    }
     try {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec(
@@ -732,6 +988,11 @@ nlohmann::json PostgresDatabase::LoadDialogues(const std::string& worldId) {
 nlohmann::json PostgresDatabase::LoadRecipes(const std::string& worldId) {
     json out = json::object();
     if (!conn) return out;
+    if (UseEntitiesSource()) {
+        out = LoadEntityDocs("recipe");
+        printf("[Postgres] Loaded %zu recipes from entities.\n", out.size());
+        return out;
+    }
     try {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec(
@@ -758,6 +1019,12 @@ nlohmann::json PostgresDatabase::LoadRecipes(const std::string& worldId) {
 nlohmann::json PostgresDatabase::LoadFactions(const std::string& worldId) {
     json out = json::object();
     if (!conn) return out;
+    if (UseEntitiesSource()) {
+        json factions = LoadEntityDocs("faction");
+        out["factions"] = factions;
+        printf("[Postgres] Loaded %zu factions from entities.\n", factions.size());
+        return out;
+    }
     try {
         pqxx::work tx(*conn);
         pqxx::result fr = tx.exec(
@@ -791,6 +1058,12 @@ nlohmann::json PostgresDatabase::LoadFactions(const std::string& worldId) {
 nlohmann::json PostgresDatabase::LoadClasses(const std::string& worldId) {
     json out = json::object();
     if (!conn) return out;
+    if (UseEntitiesSource()) {
+        json classes = LoadEntityDocs("class");
+        out["classes"] = classes;
+        printf("[Postgres] Loaded %zu classes from entities.\n", classes.size());
+        return out;
+    }
     try {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec(
@@ -814,6 +1087,12 @@ nlohmann::json PostgresDatabase::LoadClasses(const std::string& worldId) {
 nlohmann::json PostgresDatabase::LoadRaces(const std::string& worldId) {
     json out = json::object();
     if (!conn) return out;
+    if (UseEntitiesSource()) {
+        json races = LoadEntityDocs("race");
+        out["races"] = races;
+        printf("[Postgres] Loaded %zu races from entities.\n", races.size());
+        return out;
+    }
     try {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec(
@@ -838,6 +1117,12 @@ nlohmann::json PostgresDatabase::LoadRaces(const std::string& worldId) {
 nlohmann::json PostgresDatabase::LoadShopKeepers(const std::string& worldId) {
     json out = json::object();
     if (!conn) return out;
+    if (UseEntitiesSource()) {
+        json keepers = LoadEntityDocs("shop");
+        out["shops"] = keepers;
+        printf("[Postgres] Loaded %zu shop keepers from entities.\n", keepers.size());
+        return out;
+    }
     try {
         pqxx::work tx(*conn);
         pqxx::result kr = tx.exec(
@@ -872,6 +1157,12 @@ nlohmann::json PostgresDatabase::LoadShopKeepers(const std::string& worldId) {
 nlohmann::json PostgresDatabase::LoadBoards(const std::string& worldId) {
     json out = json::object();
     if (!conn) return out;
+    if (UseEntitiesSource()) {
+        json boards = LoadEntityDocs("board");
+        out["boards"] = boards;
+        printf("[Postgres] Loaded %zu boards from entities.\n", boards.size());
+        return out;
+    }
     try {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec(
@@ -962,7 +1253,9 @@ bool PostgresDatabase::RegionExists(const std::string& worldId, const std::strin
     try {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec_params(
-            "SELECT 1 FROM world_regions WHERE id = $1 LIMIT 1",
+            UseEntitiesSource()
+                ? "SELECT 1 FROM world.entities WHERE entity_type = 'region' AND entity_id = $1 LIMIT 1"
+                : "SELECT 1 FROM world_regions WHERE id = $1 LIMIT 1",
             regionId
         );
         tx.commit();
@@ -980,6 +1273,27 @@ bool PostgresDatabase::LoadRegionFloorSettings(const std::string& worldId,
     if (!conn) return false;
     try {
         pqxx::work tx(*conn);
+        if (UseEntitiesSource()) {
+            pqxx::result r = tx.exec_params(
+                "SELECT (doc->'floor_settings')::text AS fs FROM world.entities "
+                "WHERE entity_type = 'region' AND entity_id = $1",
+                regionId
+            );
+            if (!r.empty() && !r[0]["fs"].is_null()) {
+                const std::string raw = r[0]["fs"].as<std::string>();
+                if (!raw.empty()) {
+                    try {
+                        outSettings = json::parse(raw);
+                    } catch (const std::exception& e) {
+                        std::cerr << "[Postgres] floor_settings parse error for region "
+                                  << regionId << ": " << e.what() << std::endl;
+                        return false;
+                    }
+                }
+            }
+            tx.commit();
+            return true;
+        }
         pqxx::result r = tx.exec_params(
             "SELECT floor_settings_json FROM world_regions WHERE id = $1",
             regionId
@@ -1010,11 +1324,14 @@ std::vector<int> PostgresDatabase::LoadZoneIds(const std::string& worldId, const
     try {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec_params(
-            "SELECT zone_id FROM world_zones "
-            "WHERE region_id = $1 ORDER BY zone_id",
+            UseEntitiesSource()
+                ? "SELECT (doc->>'zone_id')::int AS z FROM world.entities "
+                  "WHERE entity_type = 'zone' AND doc->>'region_id' = $1 ORDER BY z"
+                : "SELECT zone_id FROM world_zones "
+                  "WHERE region_id = $1 ORDER BY zone_id",
             regionId
         );
-        for (const auto& row : r) ids.push_back(row["zone_id"].as<int>());
+        for (const auto& row : r) ids.push_back(row[0].as<int>());
         tx.commit();
     } catch (const std::exception& e) {
         std::fprintf(stderr, "[Postgres] LoadZoneIds failed: %s\n", e.what());
@@ -1030,6 +1347,25 @@ bool PostgresDatabase::LoadZoneJson(const std::string& worldId,
     if (!conn) return false;
     try {
         pqxx::work tx(*conn);
+        if (UseEntitiesSource()) {
+            pqxx::result rs = tx.exec_params(
+                "SELECT doc::text AS doc_text FROM world.entities "
+                "WHERE entity_type = 'zone' AND doc->>'region_id' = $1 AND (doc->>'zone_id')::int = $2",
+                regionId, zoneId
+            );
+            if (rs.empty()) return false;
+            outZone = json::parse(rs[0]["doc_text"].as<std::string>());
+            outZone["regionId"] = regionId;
+            outZone["zoneId"] = zoneId;
+            if (outZone.contains("zone_script_ref") && outZone["zone_script_ref"].is_string()) {
+                const std::string ref = outZone["zone_script_ref"].get<std::string>();
+                outZone["isInstanceSource"] = !ref.empty();
+            } else {
+                outZone["isInstanceSource"] = false;
+            }
+            tx.commit();
+            return true;
+        }
         pqxx::result rs = tx.exec_params(
             "SELECT region_id, zone_id, name, description, rules_json, zone_script_ref, is_active "
             "FROM world_zones WHERE region_id = $1 AND zone_id = $2",
@@ -1060,11 +1396,14 @@ std::vector<int> PostgresDatabase::LoadRoomIds(const std::string& worldId, const
     try {
         pqxx::work tx(*conn);
         pqxx::result r = tx.exec_params(
-            "SELECT room_id FROM world_rooms "
-            "WHERE region_id = $1 ORDER BY room_id",
+            UseEntitiesSource()
+                ? "SELECT (doc->>'room_id')::int AS rid FROM world.entities "
+                  "WHERE entity_type = 'room' AND doc->>'region_id' = $1 ORDER BY rid"
+                : "SELECT room_id FROM world_rooms "
+                  "WHERE region_id = $1 ORDER BY room_id",
             regionId
         );
-        for (const auto& row : r) ids.push_back(row["room_id"].as<int>());
+        for (const auto& row : r) ids.push_back(row[0].as<int>());
         tx.commit();
     } catch (const std::exception& e) {
         std::fprintf(stderr, "[Postgres] LoadRoomIds failed: %s\n", e.what());
@@ -1080,6 +1419,109 @@ bool PostgresDatabase::LoadRoomJson(const std::string& worldId,
     if (!conn) return false;
     try {
         pqxx::work tx(*conn);
+        if (UseEntitiesSource()) {
+            pqxx::result rs = tx.exec_params(
+                "SELECT doc::text AS doc_text FROM world.entities "
+                "WHERE entity_type = 'room' AND doc->>'region_id' = $1 AND (doc->>'room_id')::int = $2",
+                regionId, roomId
+            );
+            if (rs.empty()) return false;
+            json doc;
+            try {
+                doc = json::parse(rs[0]["doc_text"].as<std::string>());
+            } catch (const std::exception& e) {
+                std::fprintf(stderr, "[Postgres] LoadRoomJson: bad doc for %s::%d: %s\n",
+                             regionId.c_str(), roomId, e.what());
+                return false;
+            }
+            outRoom = doc;
+            outRoom["id"] = roomId;
+            outRoom["regionId"] = regionId;
+
+            int roomZoneId = 0;
+            if (doc.contains("zone_id") && doc["zone_id"].is_number_integer()) {
+                roomZoneId = doc["zone_id"].get<int>();
+            }
+            std::string roomZoneName;
+            if (roomZoneId > 0) {
+                pqxx::result zr = tx.exec_params(
+                    "SELECT doc->>'name' AS zname FROM world.entities "
+                    "WHERE entity_type = 'zone' AND doc->>'region_id' = $1 AND (doc->>'zone_id')::int = $2",
+                    regionId, roomZoneId
+                );
+                if (!zr.empty() && !zr[0]["zname"].is_null()) {
+                    roomZoneName = zr[0]["zname"].as<std::string>();
+                }
+            }
+            outRoom["zoneId"] = roomZoneId;
+            outRoom["zoneName"] = roomZoneName;
+
+            if (doc.contains("spawns") && doc["spawns"].is_array() && !doc["spawns"].empty()) {
+                struct SpawnDoc {
+                    int x; int y;
+                    std::string type;
+                    std::string tmpl;
+                    json ov;
+                    float respawnTime;
+                    bool respawning;
+                };
+                std::vector<SpawnDoc> spawns;
+                for (const auto& s : doc["spawns"]) {
+                    if (!s.is_object()) continue;
+                    SpawnDoc rec;
+                    rec.x = s.value("x", 0);
+                    rec.y = s.value("y", 0);
+                    rec.type = s.value("type", std::string{});
+                    rec.tmpl = s.value("template_id", std::string{});
+                    rec.ov = s.contains("override") && s["override"].is_object()
+                        ? s["override"] : json::object();
+                    rec.respawnTime = s.value("respawn_time", 30.0f);
+                    rec.respawning = s.value("is_respawning", true);
+                    spawns.push_back(rec);
+                }
+                int w = doc.value("width", 0);
+                int h = doc.value("height", 0);
+                if (w > 0 && h > 0 && !spawns.empty()) {
+                    std::vector<std::string> grid(h, std::string(w, '.'));
+                    json legend = json::object();
+                    std::map<std::string, char> keyToChar;
+                    const char* alphabet = "gmOXCsnrpqtuvwzyabcdefhijkABCDEFGHIJKLMNPQRSTUVWXYZ";
+                    int alphaIdx = 0;
+                    for (auto& rec : spawns) {
+                        std::string key = rec.type + ":" + rec.tmpl;
+                        if (!keyToChar.count(key)) {
+                            keyToChar[key] = (alphaIdx < (int)strlen(alphabet)) ? alphabet[alphaIdx++] : '?';
+                        }
+                        char ch = keyToChar[key];
+                        if (rec.x >= 0 && rec.x < w && rec.y >= 0 && rec.y < h) {
+                            grid[rec.y][rec.x] = ch;
+                        }
+                    }
+                    for (auto& kv : keyToChar) {
+                        for (auto& rec : spawns) {
+                            std::string key = rec.type + ":" + rec.tmpl;
+                            if (key == kv.first) {
+                                json entry = json::object();
+                                entry["type"] = rec.type;
+                                entry["id"] = rec.tmpl;
+                                entry["respawn_time"] = rec.respawnTime;
+                                entry["respawn"] = rec.respawning;
+                                if (!rec.ov.is_null() && !rec.ov.empty()) entry["overrides"] = rec.ov;
+                                std::string k(1, kv.second);
+                                legend[k] = entry;
+                                break;
+                            }
+                        }
+                    }
+                    json spawnRows = json::array();
+                    for (const auto& row : grid) spawnRows.push_back(row);
+                    outRoom["spawns"] = spawnRows;
+                    outRoom["spawn_legend"] = legend;
+                }
+            }
+            tx.commit();
+            return true;
+        }
         pqxx::result rs = tx.exec_params(
             "SELECT room_id, name, description, terrain, width, height, layout_json, "
             "       spawn_x, spawn_y, scripts_json, extra_json, zone_id "

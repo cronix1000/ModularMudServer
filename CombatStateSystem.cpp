@@ -118,7 +118,7 @@ void CombatStateSystem::Run(float deltaTime) {
             } else {
                 // STAT-BASED ATTACK SYSTEM
                 auto* mobStats = ctx.registry->GetComponent<StatComponent>(entityID);
-                if (mobStats) {
+                if (mobStats && !mobAttack->attackPatterns.empty()) {
                     // Pick random attack pattern
                     std::uniform_int_distribution<int> patternDist(0, mobAttack->attackPatterns.size() - 1);
                     int patternIdx = patternDist(rng);

@@ -38,220 +38,267 @@
 #include "CommandInitializer.h"
 #include "SkillSystem.h"
 #include "EntityResolver.h"
+#include "MainMenuState.h"
+#include "SaveSystem.h"
+#include "CraftSystem.h"
 #include <cstdlib>
 #include <set>
 
 GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : gameContext(ctx), isRunning(true), inputQueue(input) {
-    const char* dbUrl = std::getenv("MUD_DATABASE_URL");
-    if (dbUrl == nullptr || *dbUrl == '\0') {
-        std::fprintf(stderr, "FATAL: MUD_DATABASE_URL is required (e.g. postgresql://mud_prod:...@postgres:5432/mud_prod)\n");
-        std::exit(1);
-    }
+	const char* dbUrl = std::getenv("MUD_DATABASE_URL");
+	if (dbUrl == nullptr || *dbUrl == '\0') {
+		std::fprintf(stderr, "FATAL: MUD_DATABASE_URL is required (e.g. postgresql://mud_prod:...@postgres:5432/mud_prod)\n");
+		std::exit(1);
+	}
 
-    fprintf(stderr, "DEBUG: GE 1\n"); fflush(stderr);
-    world = new World();
-    fprintf(stderr, "DEBUG: GE 2 (after World)\n"); fflush(stderr);
-    gameContext.registry = std::make_unique<Registry>();
-    fprintf(stderr, "DEBUG: GE 3 (after Registry)\n"); fflush(stderr);
-    gameContext.eventBus = std::make_unique<EventBus>();
-    fprintf(stderr, "DEBUG: GE 4 (after EventBus)\n"); fflush(stderr);
-    gameContext.scripts = std::make_unique<ScriptManager>(*gameContext.registry);
-    gameContext.scripts->gameContext = &gameContext;
-    fprintf(stderr, "DEBUG: GE 5 (after ScriptManager)\n"); fflush(stderr);
-    gameContext.worldManager = std::make_unique<WorldManager>(world, gameContext.registry.get());
-    fprintf(stderr, "DEBUG: GE 6 (after WorldManager)\n"); fflush(stderr);
-    gameContext.scripts->init();
-    fprintf(stderr, "DEBUG: GE 7 (after scripts init)\n"); fflush(stderr);
-    gameContext.scripts->load_all_scripts("scripts");
-    fprintf(stderr, "DEBUG: GE 8 (after load_all_scripts)\n"); fflush(stderr);
-    gameContext.scripts->lua.script("print('Hello from Lua')");
-    fprintf(stderr, "DEBUG: GE 9 (after lua print)\n"); fflush(stderr);
-    scriptEventBridge = new ScriptEventBridge(gameContext.eventBus.get(), gameContext.scripts.get());
-    fprintf(stderr, "DEBUG: GE 10 (after ScriptEventBridge)\n"); fflush(stderr);
-    fprintf(stderr, "[GameEngine] backend=postgres\n");
-    gameContext.db = std::make_unique<PostgresDatabase>();
-    fprintf(stderr, "DEBUG: GE 11 (after pg db make)\n"); fflush(stderr);
-    gameContext.db->Connect(dbUrl);
-    fprintf(stderr, "DEBUG: GE 12 (after db Connect)\n"); fflush(stderr);
-    gameContext.entityFind = std::make_unique<EntityResolver>(gameContext.registry.get());
+	fprintf(stderr, "DEBUG: GE 1\n"); fflush(stderr);
+	world = std::make_unique<World>();
+	fprintf(stderr, "DEBUG: GE 2 (after World)\n"); fflush(stderr);
+	gameContext.registry = std::make_unique<Registry>();
+	fprintf(stderr, "DEBUG: GE 3 (after Registry)\n"); fflush(stderr);
+	gameContext.eventBus = std::make_unique<EventBus>();
+	fprintf(stderr, "DEBUG: GE 4 (after EventBus)\n"); fflush(stderr);
+	gameContext.scripts = std::make_unique<ScriptManager>(*gameContext.registry);
+	gameContext.scripts->gameContext = &gameContext;
+	fprintf(stderr, "DEBUG: GE 5 (after ScriptManager)\n"); fflush(stderr);
+	gameContext.worldManager = std::make_unique<WorldManager>(world.get(), gameContext.registry.get());
+	fprintf(stderr, "DEBUG: GE 6 (after WorldManager)\n"); fflush(stderr);
+	gameContext.scripts->init();
+	fprintf(stderr, "DEBUG: GE 7 (after scripts init)\n"); fflush(stderr);
+	gameContext.scripts->load_all_scripts("scripts");
+	fprintf(stderr, "DEBUG: GE 8 (after load_all_scripts)\n"); fflush(stderr);
+	gameContext.scripts->lua.script("print('Hello from Lua')");
+	fprintf(stderr, "DEBUG: GE 9 (after lua print)\n"); fflush(stderr);
+	scriptEventBridge = std::make_unique<ScriptEventBridge>(gameContext.eventBus.get(), gameContext.scripts.get());
+	fprintf(stderr, "DEBUG: GE 10 (after ScriptEventBridge)\n"); fflush(stderr);
+	fprintf(stderr, "[GameEngine] backend=postgres\n");
+	gameContext.db = std::make_unique<PostgresDatabase>();
+	fprintf(stderr, "DEBUG: GE 11 (after pg db make)\n"); fflush(stderr);
+	gameContext.db->Connect(dbUrl);
+	fprintf(stderr, "DEBUG: GE 12 (after db Connect)\n"); fflush(stderr);
+	gameContext.entityFind = std::make_unique<EntityResolver>(gameContext.registry.get());
 
-    // 3. Link the manager back to the context
+	// 3. Link the manager back to the context
 
-    gameContext.time = std::make_unique<TimeData>();
-    fprintf(stderr, "DEBUG: GE 13 (after time)\n"); fflush(stderr);
-    gameContext.factories = std::make_unique<FactoryManager>(gameContext);
-    fprintf(stderr, "DEBUG: GE 14 (after FactoryManager)\n"); fflush(stderr);
+	gameContext.time = std::make_unique<TimeData>();
+	fprintf(stderr, "DEBUG: GE 13 (after time)\n"); fflush(stderr);
+	gameContext.factories = std::make_unique<FactoryManager>(gameContext);
+	fprintf(stderr, "DEBUG: GE 14 (after FactoryManager)\n"); fflush(stderr);
 
-    
-    // Initialize new command system
-    gameContext.commandRegistry = std::make_unique<CommandRegistry>(gameContext, gameContext.scripts->lua);
-    CommandInitializer::RegisterAllCommands(*gameContext.commandRegistry);
-    
-    // 3. initialize systems
-    movementSystem = new MovementSystem(gameContext);
-    networkSystem = new NetworkSystem(gameContext);
-    networkSyncSystem = new NetworkSyncSystem(gameContext);
-    invSystem = new InventorySystem(gameContext);
-    behaviorSystem = new BehaviorSystem(gameContext);
-    updateSystem = new UpdateSystem(gameContext);
-    combatSystem = new CombatSystem(gameContext);
-    skillSystem = new SkillSystem(gameContext);
-    respawnSystem = new RespawnSystem(gameContext);
-    gameContext.respawnSystem = respawnSystem;  // Make accessible via GameContext
-    climateSystem = new WorldClimateSystem(gameContext);
-    ambientAISystem = new AmbientAISystem(gameContext);
-    interactionSystem = new InteractionSystem(gameContext);
-    messageSytem = new MessageSystem(gameContext);
-    saveSystem = new SaveSystem(gameContext);
-    cleanSystem = new CleanUpSystem(gameContext);
-    targetingSystem = new TargetingSystem(gameContext);
-    combatStateSystem = new CombatStateSystem(gameContext);
 
-    // Initialize climate zones for each loaded region
-    // This will be called after regions are loaded
-    InitializeClimateZones();
+	// Initialize new command system
+	gameContext.commandRegistry = std::make_unique<CommandRegistry>(gameContext, gameContext.scripts->lua);
+	CommandInitializer::RegisterAllCommands(*gameContext.commandRegistry);
 
-    // Add and global entity as 1
-    gameContext.registry->CreateEntity();
+	// 3. initialize systems
+	movementSystem = std::make_unique<MovementSystem>(gameContext);
+	networkSystem = std::make_unique<NetworkSystem>(gameContext);
+	networkSyncSystem = std::make_unique<NetworkSyncSystem>(gameContext);
+	invSystem = std::make_unique<InventorySystem>(gameContext);
+	behaviorSystem = std::make_unique < BehaviorSystem>(gameContext);
+	updateSystem = std::make_unique<UpdateSystem>(gameContext);
+	combatSystem = std::make_unique<CombatSystem>(gameContext);
+	skillSystem = std::make_unique<SkillSystem>(gameContext);
+	respawnSystem = std::make_unique<RespawnSystem>(gameContext);
+	climateSystem = std::make_unique < WorldClimateSystem>(gameContext);
+	ambientAISystem = std::make_unique<AmbientAISystem>(gameContext);
+	interactionSystem = std::make_unique<InteractionSystem>(gameContext);
+	messageSytem = std::make_unique<MessageSystem>(gameContext);
+	saveSystem = std::make_unique<SaveSystem>(gameContext);
+	cleanSystem = std::make_unique < CleanUpSystem>(gameContext);
+	targetingSystem = std::make_unique<TargetingSystem>(gameContext);
+	combatStateSystem = std::make_unique<CombatStateSystem>(gameContext);
+	craftSystem = std::make_unique<CraftSystem>(gameContext);
 
-    gameContext.factories->LoadAllData();
+	// Initialize climate zones for each loaded region
+	// This will be called after regions are loaded
+	InitializeClimateZones();
 
-    //4. Initilise scripts that need to be run right away (e.g event listeners)
-    messageSytem->SubscribeToEvents();
-    networkSystem->SetupListeners();
-    behaviorSystem->SetupListeners();
+	// Add and global entity as 1
+	gameContext.registry->CreateEntity();
+
+	gameContext.factories->LoadAllData();
+
+	//4. Initilise scripts that need to be run right away (e.g event listeners)
+	messageSytem->SubscribeToEvents();
+	networkSystem->SetupListeners();
+	behaviorSystem->SetupListeners();
 }
 
 GameEngine::~GameEngine()
 {
-    // Clean up all systems allocated with new
-    delete movementSystem;
-    delete networkSystem;
-    delete networkSyncSystem;
-    delete invSystem;
-    delete behaviorSystem;
-    delete updateSystem;
-    delete combatSystem;
-    delete respawnSystem;
-    delete climateSystem;
-    delete ambientAISystem;
-    delete interactionSystem;
-    delete messageSytem;
-    delete saveSystem;
-    delete cleanSystem;
-    delete scriptEventBridge;
-    delete world;
+	// Clean up all systems allocated with new
+	movementSystem.reset();
+	networkSystem.reset();
+	networkSyncSystem.reset();
+	invSystem.reset();
+	behaviorSystem.reset();
+	updateSystem.reset();
+	combatSystem.reset();
+	respawnSystem.reset();
+	climateSystem.reset();
+	ambientAISystem.reset();
+	interactionSystem.reset();
+	craftSystem.reset();
+	messageSytem.reset();
+	saveSystem.reset();
+	cleanSystem.reset();
+	scriptEventBridge.reset();
+	world.reset();
 
-    // Factories are managed by FactoryManager which is in GameContext
-    // GameContext's unique_ptrs will be automatically cleaned up
+	// Factories are managed by FactoryManager which is in GameContext
+	// GameContext's unique_ptrs will be automatically cleaned up
 }
 
 std::string GenerateSalt(int length = 16) {
-    const char charset[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*";
+	const char charset[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*";
 
-    // Setup random number generator securely
-    std::default_random_engine rng(std::random_device{}());
-    std::uniform_int_distribution<> dist(0, sizeof(charset) - 2);
+	// Setup random number generator securely
+	std::default_random_engine rng(std::random_device{}());
+	std::uniform_int_distribution<> dist(0, sizeof(charset) - 2);
 
-    std::string salt;
-    for (int i = 0; i < length; ++i) {
-        salt += charset[dist(rng)];
-    }
-    return salt;
+	std::string salt;
+	for (int i = 0; i < length; ++i) {
+		salt += charset[dist(rng)];
+	}
+	return salt;
 }
 
-int GameEngine::CreatePlayer(ClientConnection* clientID, std::string username, std::string password,PlayerData playerData) {
-    std::string salt = GenerateSalt();
-    std::string combined = password + salt;
-    std::string hash = picosha2::hash256_hex_string(combined);
+int GameEngine::CreatePlayer(ClientConnection* clientID, std::string username, std::string password, PlayerData playerData) {
+	std::string salt = GenerateSalt();
+	std::string combined = password + salt;
+	std::string hash = picosha2::hash256_hex_string(combined);
 
-    int newID = gameContext.db->CreatePlayerRow(username, hash, salt);
-    return newID;
+	int newID = gameContext.db->CreatePlayerRow(username, hash, salt);
+	return newID;
 }
 
 
 
 int GameEngine::LoadPlayer(ClientConnection* socket, std::string username) {
-    // The Factory handles checking the DB and attaching all components
-    EntityID id = gameContext.factories->player.LoadPlayer(username, socket);
+	// The Factory handles checking the DB and attaching all components
+	EntityID id = gameContext.factories->player.LoadPlayer(username, socket);
 
-    if (id == -1) {
-        printf("Failed to load or create player %s\n", username.c_str());
-        return -1;
-    }
+	if (id == -1) {
+		printf("Failed to load or create player %s\n", username.c_str());
+		return -1;
+	}
 
-    ClientComponent* client = gameContext.registry->GetComponent<ClientComponent>(id);
-    if (client) {
-        EventContext ectx;
-        ectx.data = RoomEventData{ id, gameContext.registry->GetComponent<PositionComponent>(id)->roomId };
-        gameContext.eventBus->Publish(EventType::RoomEntered, ectx);
-        gameContext.registry->AddComponent<PositionChangedComponent>(id);
-    }
+	ClientComponent* client = gameContext.registry->GetComponent<ClientComponent>(id);
+	if (client) {
+		EventContext ectx;
+		ectx.data = RoomEventData{ id, gameContext.registry->GetComponent<PositionComponent>(id)->roomId };
+		gameContext.eventBus->Publish(EventType::RoomEntered, ectx);
+		gameContext.registry->AddComponent<PositionChangedComponent>(id);
+	}
 
-    printf("Player %s logged in as Entity %d\n", username.c_str(), id);
-    return id;
+	printf("Player %s logged in as Entity %d\n", username.c_str(), id);
+	return id;
 }
 
 void GameEngine::Update(float deltaTime) {
-    time += deltaTime;
+	time += deltaTime;
 
-    gameContext.time->deltaTime = deltaTime;
-    gameContext.time->globalTime += (double)deltaTime;
+	ProcessInputs();
 
-    movementSystem->MovementSystemRun();
-    targetingSystem->Run(deltaTime);        // Resolve ambiguous targets
-    interactionSystem->run();
-    networkSyncSystem->Run();
-    invSystem->Run(deltaTime);
-    behaviorSystem->Run(deltaTime);         // AI decision making
-    combatStateSystem->Run(deltaTime);      // Auto-attack timer
-    skillSystem->Run(deltaTime);
-    combatSystem->run();
-    updateSystem->Update(deltaTime);
-    respawnSystem->Update(deltaTime);
-    climateSystem->Update(deltaTime);
-    ambientAISystem->Update(deltaTime);
-    gameContext.eventBus->CallDefferedCalls();
-    cleanSystem->run();
-    saveSystem->Run(deltaTime);
-    networkSystem->FlushQueues();
+	gameContext.time->deltaTime = deltaTime;
+	gameContext.time->globalTime += (double)deltaTime;
+
+	movementSystem->MovementSystemRun();
+	targetingSystem->Run(deltaTime);        // Resolve ambiguous targets
+	interactionSystem->run();
+	networkSyncSystem->Run();
+	invSystem->Run(deltaTime);
+	behaviorSystem->Run(deltaTime);         // AI decision making
+	combatStateSystem->Run(deltaTime);      // Auto-attack timer
+	skillSystem->Run(deltaTime);
+	combatSystem->run();
+	craftSystem->run();
+	updateSystem->Update(deltaTime);
+	respawnSystem->Update(deltaTime);
+	climateSystem->Update(deltaTime);
+	ambientAISystem->Update(deltaTime);
+	gameContext.eventBus->CallDefferedCalls();
+	cleanSystem->run();
+	saveSystem->Run(deltaTime);
+	networkSystem->FlushQueues();
 }
 
 const bool GameEngine::IsRunning() { return isRunning; }
 
-ClientConnection* GameEngine::GetClientById(int clientId) {
-	auto view = gameContext.registry->view<ClientComponent>();
-	for (EntityID entity : view) {
-		ClientComponent* client = gameContext.registry->GetComponent<ClientComponent>(entity);
-		if (client && client->client && client->client->clientID == clientId) {
-            return client->client;
+std::shared_ptr<ClientConnection> GameEngine::GetClientById(int clientId) {
+	if (auto it = sessions.find(clientId); it!= sessions.end()) {
+		return it->second;
+	}
+	return nullptr;
+}
+
+void GameEngine::ProcessInputs() {
+	ClientInput input;
+
+	// "TryPop" returns true if it got data, false if empty.
+	// We loop until the queue is empty so we handle ALL commands 
+	// that arrived since the last frame.
+	while (inputQueue.TryPop(&input)) {
+
+		// 1. Find which Entity belongs to this Client
+		// (You likely have a helper or map for this)
+
+		auto it = sessions.find(input.clientID);
+		ClientConnection* client = (it != sessions.end()) ? it->second.get() : nullptr;
+
+		if (input.kind == ClientInputKind::Kind::Line) {
+			std::vector<std::string> inputStringVector;
+			std::stringstream ss(input.rawText);
+			std::string token;
+			while (ss >> token) {
+				inputStringVector.push_back(token);
+			}
+
+			if (!inputStringVector.empty() && client && !client->stateStack.empty()) {
+				client->stateStack.top()->HandleInput(client, inputStringVector);
+			}
+		}
+		else if (input.kind == ClientInputKind::Kind::Disconnected) {
+			HandleDisconnect(input.clientID);
+		}
+		else if (input.kind == ClientInputKind::Kind::Connected) {
+
+			sessions[input.clientID] = input.connection;       
+			input.connection->PushState(new MainMenuState());
 		}
 	}
 }
 
-void GameEngine::ProcessInputs() {
-    ClientInput input;
 
-    // "TryPop" returns true if it got data, false if empty.
-    // We loop until the queue is empty so we handle ALL commands 
-    // that arrived since the last frame.
-    while (inputQueue.TryPop(&input)) {
 
-        // 1. Find which Entity belongs to this Client
-        // (You likely have a helper or map for this)
-        ClientConnection* client = GetClientById(input.clientID);
+void GameEngine::HandleDisconnect(int clientID) {
+	if (auto it = sessions.find(clientID); it != sessions.end()) {
+		EntityID id = it->second->playerEntityID;
+		sessions.erase(clientID);
+		if (id == -1) return;
+		gameContext.registry->AddComponent<DestroyTag>(id);
+		saveSystem->SaveNow(id);
+		// Save
 
-        std::vector<std::string> inputStringVector;
-        std::stringstream ss(input.rawText);
-        std::string token;
-        while (ss >> token) {
-            inputStringVector.push_back(token);
-        }
+		// Do a cascace search for all items
+		// Get Inv
+		auto* inv = gameContext.registry->GetComponent<InventoryComponent>(id);
+		auto* equip = gameContext.registry->GetComponent<EquipmentComponent>(id);
+		if(inv)
+		for (auto item : inv->items) {
+			gameContext.registry->AddComponent< DestroyTag>(item);
+		}
+		if(equip)
+		for (auto item : equip->slots) {
+			gameContext.registry->AddComponent<DestroyTag>(item.second);
 
-        if (!inputStringVector.empty() && client && !client->stateStack.empty()) {
-            client->stateStack.top()->HandleInput(client, inputStringVector);
-        }
-    }
+		}
+	}
+}
+
+void GameEngine::SaveAllPlayers() {
+	saveSystem->SaveAllPlayers();
 }
 
 // Allow the game to close itself (e.g., from a "shutdown" command)
@@ -259,71 +306,71 @@ void GameEngine::Quit() { isRunning = false; }
 
 GameContext& GameEngine::GetGameContext()
 {
-    return gameContext;
+	return gameContext;
 }
 
 void GameEngine::InitializeClimateZones() {
-    // Get all unique regions from loaded rooms
-    std::set<std::string> uniqueRegions;
+	// Get all unique regions from loaded rooms
+	std::set<std::string> uniqueRegions;
 
-    for (EntityID entity : gameContext.registry->view<RegionComponent>()) {
-        auto* region = gameContext.registry->GetComponent<RegionComponent>(entity);
-        if (region) {
-            uniqueRegions.insert(region->region);
-        }
-    }
+	for (EntityID entity : gameContext.registry->view<RegionComponent>()) {
+		auto* region = gameContext.registry->GetComponent<RegionComponent>(entity);
+		if (region) {
+			uniqueRegions.insert(region->region);
+		}
+	}
 
-    // Create a climate zone for each unique region
-    for (const auto& regionId : uniqueRegions) {
-        // Skip if already exists
-        if (climateSystem->GetZoneClimate(regionId)) {
-            continue;
-        }
+	// Create a climate zone for each unique region
+	for (const auto& regionId : uniqueRegions) {
+		// Skip if already exists
+		if (climateSystem->GetZoneClimate(regionId)) {
+			continue;
+		}
 
-        // Create climate zone with default settings
-        // You can customize based on region ID (e.g., floor1, floor2, dungeon, etc.)
-        ZoneClimateComponent::ClimateType climateType = ZoneClimateComponent::ClimateType::TEMPERATE;
-        bool isOutdoor = true;
+		// Create climate zone with default settings
+		// You can customize based on region ID (e.g., floor1, floor2, dungeon, etc.)
+		ZoneClimateComponent::ClimateType climateType = ZoneClimateComponent::ClimateType::TEMPERATE;
+		bool isOutdoor = true;
 
-        // Customize based on region name patterns
-        if (regionId.find("dungeon") != std::string::npos ||
-            regionId.find("cave") != std::string::npos ||
-            regionId.find("underground") != std::string::npos) {
-            climateType = ZoneClimateComponent::ClimateType::UNDERGROUND;
-            isOutdoor = false;
-        }
-        else if (regionId.find("desert") != std::string::npos ||
-                 regionId.find("arid") != std::string::npos) {
-            climateType = ZoneClimateComponent::ClimateType::ARID;
-        }
-        else if (regionId.find("snow") != std::string::npos ||
-                 regionId.find("ice") != std::string::npos ||
-                 regionId.find("arctic") != std::string::npos) {
-            climateType = ZoneClimateComponent::ClimateType::ARCTIC;
-        }
-        else if (regionId.find("tropical") != std::string::npos ||
-                 regionId.find("jungle") != std::string::npos) {
-            climateType = ZoneClimateComponent::ClimateType::TROPICAL;
-        }
-        else if (regionId.find("magic") != std::string::npos ||
-                 regionId.find("ethereal") != std::string::npos) {
-            climateType = ZoneClimateComponent::ClimateType::MAGICAL;
-        }
+		// Customize based on region name patterns
+		if (regionId.find("dungeon") != std::string::npos ||
+			regionId.find("cave") != std::string::npos ||
+			regionId.find("underground") != std::string::npos) {
+			climateType = ZoneClimateComponent::ClimateType::UNDERGROUND;
+			isOutdoor = false;
+		}
+		else if (regionId.find("desert") != std::string::npos ||
+			regionId.find("arid") != std::string::npos) {
+			climateType = ZoneClimateComponent::ClimateType::ARID;
+		}
+		else if (regionId.find("snow") != std::string::npos ||
+			regionId.find("ice") != std::string::npos ||
+			regionId.find("arctic") != std::string::npos) {
+			climateType = ZoneClimateComponent::ClimateType::ARCTIC;
+		}
+		else if (regionId.find("tropical") != std::string::npos ||
+			regionId.find("jungle") != std::string::npos) {
+			climateType = ZoneClimateComponent::ClimateType::TROPICAL;
+		}
+		else if (regionId.find("magic") != std::string::npos ||
+			regionId.find("ethereal") != std::string::npos) {
+			climateType = ZoneClimateComponent::ClimateType::MAGICAL;
+		}
 
-        climateSystem->CreateClimateZone(regionId, regionId, climateType, isOutdoor);
-    }
+		climateSystem->CreateClimateZone(regionId, regionId, climateType, isOutdoor);
+	}
 }
 
 void GameEngine::OnPlayerChangedZone(int playerEntityId, const std::string& oldZone, const std::string& newZone) {
-    // Notify climate system of zone changes
-    if (!oldZone.empty()) {
-        climateSystem->OnPlayerExitedZone(oldZone);
-        ambientAISystem->OnPlayerExitedZone(oldZone);
-    }
+	// Notify climate system of zone changes
+	if (!oldZone.empty()) {
+		climateSystem->OnPlayerExitedZone(oldZone);
+		ambientAISystem->OnPlayerExitedZone(oldZone);
+	}
 
-    if (!newZone.empty()) {
-        climateSystem->OnPlayerEnteredZone(newZone);
-        ambientAISystem->OnPlayerEnteredZone(newZone);
-    }
+	if (!newZone.empty()) {
+		climateSystem->OnPlayerEnteredZone(newZone);
+		ambientAISystem->OnPlayerEnteredZone(newZone);
+	}
 }
 

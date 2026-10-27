@@ -268,7 +268,7 @@ void InteractionSystem::HandleInteractableResult(int userEntityID, const Interac
 		if (result.actionType == "heal_player") {
 			auto* stats = ctx.registry->GetComponent<StatComponent>(userEntityID);
 			if (stats && result.targetX > 0) {  // Using targetX as heal amount
-				stats->Health = (std::min)(stats->Health + result.targetX, stats->Health);
+				stats->Health = (std::min)(stats->Health + result.targetX, stats->MaxHealth);
 				ctx.registry->AddComponent<VitalsChangedComponent>(userEntityID);
 			}
 		}

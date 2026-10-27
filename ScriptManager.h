@@ -4,7 +4,9 @@
 #include <map>
 #include <vector>
 #include <iostream>
-#include <nlohmann/json.hpp> 
+#include <filesystem>
+#include <unordered_map>
+#include <nlohmann/json.hpp>
 
 
 class Registry;
@@ -38,6 +40,8 @@ public:
 	void load_all_scripts(const std::string& root_path);
 
 	void GrantExperience(int playerID, int amount, const std::string& source);
+
+	sol::table GetMagicKnown(int playerID);
 
 	void AcceptQuest(int playerID, const std::string& questId);
 	void ProgressQuest(int playerID, const std::string& questId, const std::string& objectiveId, int delta);
@@ -102,4 +106,11 @@ public:
 	ClientConnection* GetPlayer(int player_id);
 	template<typename ...Args>
 	void BroadcastEvent(const std::string& eventName, Args && ...args);
+
+private:
+	std::string scriptsRoot;
+
+	static std::string DiscoverScriptsRoot();
+	std::string ResolveScriptPath(const std::string& path, const std::string& kindDir) const;
+	sol::protected_function LoadOrGetScript(const std::string& path, const std::string& kindDir, const std::string& functionName);
 };

@@ -23,7 +23,6 @@ struct GameContext {
     std::unique_ptr<FactoryManager> factories;
     std::unique_ptr<CommandRegistry> commandRegistry;
     std::unique_ptr<EntityResolver> entityFind;
-    RespawnSystem* respawnSystem;  // Not owned by GameContext, just a pointer
 
     ~GameContext();
     GameContext();

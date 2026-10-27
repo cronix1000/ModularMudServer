@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 project(ModularMudServer VERSION 1.0 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Platform detection
@@ -163,6 +163,7 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_pg_loaders.cpp")
         "${CMAKE_SOURCE_DIR}/tests/test_pg_loaders.cpp"
         "${CMAKE_SOURCE_DIR}/PostgresDatabase.cpp"
         "${CMAKE_SOURCE_DIR}/TerrainDef.cpp"
+        "${CMAKE_SOURCE_DIR}/EquipmentSlotInfo.cpp"
     )
     target_include_directories(test_pg_loaders PRIVATE
         "${CMAKE_SOURCE_DIR}"

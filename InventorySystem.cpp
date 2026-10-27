@@ -150,11 +150,18 @@ void InventorySystem::Run(float dt) {
         }
 
         if (cancel) {
-            // Revert: remove from slot, push back to inventory.
+            // Revert: free the slot; the item never left the inventory list.
             equipment->slots.erase(finalSlot);
-            inventory->items.push_back(intent->itemId);
+            if (std::find(inventory->items.begin(), inventory->items.end(), intent->itemId) == inventory->items.end()) {
+                inventory->items.push_back(intent->itemId);
+            }
             ctx.registry->RemoveComponent<EquipItemIntentComponent>(entity);
             continue;
+        }
+
+        auto itemIt = std::find(inventory->items.begin(), inventory->items.end(), intent->itemId);
+        if (itemIt != inventory->items.end()) {
+            inventory->items.erase(itemIt);
         }
 
         // Publish event and mark inventory as changed.

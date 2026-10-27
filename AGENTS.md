@@ -42,6 +42,21 @@ When adding a new world_* table or column:
 - Map `*_json` columns: object-typed values are merged into the parent JSON; array-typed values get the `_json` suffix stripped.
 - Component-style columns (e.g. `world_items.components_json`) need explicit wrapping under `components` in the loader — see `LoadItems()` for the pattern.
 
+### Document source (`MUD_WORLD_SOURCE=entities`)
+
+`PostgresDatabase` supports two world sources, selected by the `MUD_WORLD_SOURCE` env var:
+
+| Value | Source | Notes |
+|---|---|---|
+| `entities` (opt-in) | `world.entities (entity_type, entity_id, doc JSONB, parent_id)` | Document model; `LoadEntityDocs(type)` returns id -> resolved doc; factories unchanged |
+| unset / `legacy` | `world_*` row tables | Current default |
+
+- Every `Load*()` has an entities branch that returns docs in the exact legacy shape, so factories don't change. `LoadRoomJson` rebuilds the spawn grid/legend from the raw `doc.spawns` array; exits come from `doc.exits`.
+- Prototype inheritance: `parent_id` chains are resolved at load (`MergeDocs`: objects deep-merge, arrays/scalars replace; cycles guarded).
+- Player persistence in entities mode: `player_players.state JSONB` holds `{stats, body_mods, variables, inventory}` in one document; `SaveInventory`'s delete/reinsert dance is skipped; the legacy `data` column is still written in parallel during transition. `player_faction_standing` / `player_known_recipes` stay tables in both modes.
+- Adding a *field* under entities mode needs no C++ change unless the engine must react to it — that's Lua's job (`get_meta`).
+- Adding a new entity *kind* = new `entity_type` rows + a schema entry in `MudAdmin/app/utils/entitySchemas.ts`; loaders/factories only consume kinds the engine knows.
+
 ### Interaction overrides
 
 Any entity (item, mob, interactable) can carry an `InteractionOverrideComponent` (one field: `std::unordered_map<std::string, std::vector<std::string>> overrides`). JSON shape: `components.messages: { "<action>": ["msg1", "msg2", ...] }`.

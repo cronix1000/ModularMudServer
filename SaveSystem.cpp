@@ -17,10 +17,24 @@ void SaveSystem::Run(float deltaTime) {
     }
 }
 
+void SaveSystem::SaveNow(EntityID entityID) {
+    ctx.db->SavePlayer(entityID, ctx);
+
+}
+
+void SaveSystem::SaveAllPlayers() {
+
+}
 
 void SaveSystem::SaveDirtyEntities() {
+    std::vector<EntityID> dirty;
     // Save entities whose stats have changed
     for (EntityID entityID : ctx.registry->view<PlayerDirtyComponent>()) {
-        ctx.db->SavePlayer(entityID, ctx);
+        dirty.push_back(entityID);
     }
+    for (EntityID entityID : dirty) {
+        ctx.db->SavePlayer(entityID, ctx);
+        ctx.registry->RemoveComponent<PlayerDirtyComponent>(entityID);
+    }
+
 }

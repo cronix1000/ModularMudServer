@@ -66,6 +66,18 @@ public:
 private:
     std::unique_ptr<pqxx::connection> conn;
 
+    // MUD_WORLD_SOURCE=entities switches all world loaders and player
+    // persistence to the world.entities document table / player state doc.
+    // Any other value (or unset) keeps the legacy world_* row tables.
+    int entitiesSourceCache = -1;
+    bool UseEntitiesSource();
+
+    // Document-model helpers. LoadEntityDocs returns a map of entity_id ->
+    // resolved doc for one entity_type, with parent_id prototype chains
+    // applied (objects deep-merge, arrays and scalars replace).
+    nlohmann::json LoadEntityDocs(const std::string& entityType);
+    static nlohmann::json MergeDocs(const nlohmann::json& base, const nlohmann::json& overlay);
+
     // Active transaction (if any). libpqxx nests txns naturally — we
     // open a pqxx::work in BeginTransaction() and commit/abort it in
     // EndTransaction(). Null when no transaction is in flight.

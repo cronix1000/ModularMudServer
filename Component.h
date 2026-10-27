@@ -63,3 +63,4 @@
 #include "InteractableIntentComponent.h"
 #include "InteractionOverrideComponent.h"
 #include "MetaComponent.h"
+#include "EquipmentSlot.h"

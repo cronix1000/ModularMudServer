@@ -18,5 +18,4 @@ private:
 	                   const std::string& attackVerb = "attacks", bool isCritical = false);
 	void ProcessHeal(int sourceID, int targetID, float healAmount);
 	void ProcessBuff(int sourceID, int targetID, const std::string& buffType, float magnitude);
-	void ProcessCraft(int sourceID, int skillID, float yieldMultiplier);
 };
