@@ -1,4 +1,7 @@
 #pragma once
+
+#include <string>
+
 struct StatComponent
 {
 	int MaxHealth = 0;

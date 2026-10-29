@@ -2,7 +2,7 @@
 #include "IDatabase.h"
 #include "GameContext.h"
 #include "Registry.h"
-#include "DirtyFlagComponents.h"
+#include "PlayerComponents.h"
 
 SaveSystem::~SaveSystem() {
     // Destructor - nothing special to clean up

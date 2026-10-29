@@ -2,7 +2,6 @@
 #include "SafeJson.h"
 #include "GameContext.h"
 #include "Component.h"
-#include "ScriptComponent.h"
 #include "ScriptManager.h"
 #include <fstream>
 

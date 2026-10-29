@@ -3,14 +3,9 @@
 #include "GameContext.h"
 #include "Component.h"
 #include "TextHelperFunctions.h"
-#include "EquipmentSlot.h"
-#include "StatComponent.h"
 #include "MobAttackComponent.h"
-#include "BehaviourComponent.h"
 #include "ScriptManager.h"
-#include "MetaComponent.h"
 #include "MetaRegistry.h"
-#include "InteractionOverrideComponent.h"
 #include <fstream>
 
 void MobFactory::LoadMobTemplatesFromJSON(const std::string& path) {

@@ -2,7 +2,7 @@
 #include "ClientConnection.h"
 #include "GameContext.h"
 #include "Registry.h"
-#include "PermissionComponent.h"
+#include "PlayerComponents.h"
 #include "CommandChain.h"
 #include <algorithm>
 

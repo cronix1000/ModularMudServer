@@ -1,13 +1,11 @@
 #include "ShopFactory.h"
 #include "SafeJson.h"
 #include "Registry.h"
-#include "PlayerVariablesComponent.h"
+#include "CombatComponents.h"
+#include "InventoryComponents.h"
+#include "PlayerComponents.h"
 #include "ItemFactory.h"
 #include "FactoryManager.h"
-#include "ItemComponent.h"
-#include "InventoryComponent.h"
-#include "DirtyFlagComponents.h"
-#include "Tags.h"
 #include <iostream>
 #include <chrono>
 #include <algorithm>

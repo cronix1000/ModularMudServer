@@ -3,13 +3,10 @@
 #include "ClientConnection.h"
 #include "GameContext.h"
 #include "Registry.h"
-#include "NameComponent.h"
-#include "PositionComponent.h"
-#include "TargetingIntentComponent.h"
-#include "CombatStateComponent.h"
-#include "SkillHolderComponent.h"
-#include "SkillIntentComponent.h"
-#include "StatComponent.h"
+#include "CombatComponents.h"
+#include "MovementComponents.h"
+#include "PresentationComponents.h"
+#include "StatsComponents.h"
 #include <cctype>
 #include <algorithm>
 #include "TargetingUtils.h"

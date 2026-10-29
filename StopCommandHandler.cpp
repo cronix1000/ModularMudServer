@@ -1,7 +1,7 @@
 #include "StopCommandHandler.h"
-#include "CombatStateComponent.h"
-#include "SkillWindupComponents.h"
-#include "ClientComponent.h"
+#include "ClientConnection.h"
+#include "CombatComponents.h"
+#include "PlayerComponents.h"
 #include "Registry.h"
 
 void StopCommandHandler::RegisterAll(CommandRegistry& registry) {

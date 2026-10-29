@@ -1,8 +1,6 @@
 #include "WorldManager.h"
 #include "World.h"
 #include "Component.h"
-#include "Direction.h"
-#include "RoomComponents.h"
 #include "Registry.h"
 #include "TerrainDef.h"
 #include <cstdio>

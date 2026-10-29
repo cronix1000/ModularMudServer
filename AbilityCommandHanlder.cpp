@@ -2,9 +2,8 @@
 #include "Registry.h"
 #include "CommandRegistry.h"
 #include "ClientConnection.h"
-#include "SkillHolderComponent.h"
+#include "CombatComponents.h"
 #include "GameContext.h"
-#include "TargetingIntentComponent.h"
 #include "CombatCommandHandler.h"
 #include "TargetingUtils.h"
 void AbilityCommandHandler::RegisterAll(CommandRegistry& registry) {

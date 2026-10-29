@@ -2,7 +2,7 @@
 #include "ClientConnection.h"
 #include "GMCPModules.h"
 #include "WorldManager.h"
-#include "RoomComponents.h"
+#include "WorldComponents.h"
 #include "Registry.h"
 #include "CommandRegistry.h"
 

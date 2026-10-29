@@ -1,6 +1,6 @@
 #pragma once
 #include "Registry.h"
-#include "InteractionOverrideComponent.h"
+#include "InteractableComponents.h"
 #include <string>
 #include <vector>
 #include <unordered_map>

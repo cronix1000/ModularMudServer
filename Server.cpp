@@ -1,7 +1,8 @@
 #include "Server.h"
+#include "ClientConnection.h"
 #include "Registry.h"
 #include <chrono>
-#include "ClientComponent.h"
+#include "PlayerComponents.h"
 #include "ClientInput.h"
 #include "MainMenuState.h"
 #include "GameContext.h"

@@ -5,7 +5,7 @@
 #include "PlayerData.h"
 #include <string>
 #include "PlayingState.h"
-#include "ClassComponent.h"
+#include "PlayerComponents.h"
 #include "LoginState.h"
 #include "GameEngine.h"
 

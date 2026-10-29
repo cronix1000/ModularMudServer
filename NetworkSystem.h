@@ -1,8 +1,8 @@
 #pragma once
 #include "Registry.h"
 #include "EventBus.h"
-#include "ClientComponent.h"
-#include "PositionComponent.h"
+#include "MovementComponents.h"
+#include "PlayerComponents.h"
 #include "World.h"
 #include "GameContext.h"
 #include "TextHelperFunctions.h"

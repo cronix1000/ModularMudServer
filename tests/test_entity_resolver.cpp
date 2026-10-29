@@ -3,9 +3,9 @@
 // Run: ./test_entity_resolver
 
 #include "EntityResolver.h"
-#include "NameComponent.h"
-#include "PositionComponent.h"
-#include "InventoryComponent.h"
+#include "InventoryComponents.h"
+#include "MovementComponents.h"
+#include "PresentationComponents.h"
 #include "Registry.h"
 
 #include <iostream>

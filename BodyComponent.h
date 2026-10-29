@@ -1,4 +1,8 @@
 #pragma once
+
+#include <map>
+#include <vector>
+
 #include "StatModifier.h"
 
 enum class MutationType {Replacement, Additive};

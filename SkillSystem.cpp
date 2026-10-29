@@ -5,7 +5,6 @@
 #include "TimeData.h"
 #include "SkillContext.h"
 #include "ScriptManager.h"
-#include "CombatIntentComponent.h"
 
 
 void SkillSystem::Run(float dt)

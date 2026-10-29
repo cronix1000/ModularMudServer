@@ -449,9 +449,6 @@
     <ClInclude Include="LootDropComponent.h">
       <Filter>Header Files\Component</Filter>
     </ClInclude>
-    <ClInclude Include="VoiceLineComponent.h">
-      <Filter>Header Files\Component</Filter>
-    </ClInclude>
     <ClInclude Include="dialogue.json">
       <Filter>Data</Filter>
     </ClInclude>
@@ -481,9 +478,6 @@
     </ClInclude>
     <ClInclude Include="CleanUpSystem.h">
       <Filter>Header Files\Systems</Filter>
-    </ClInclude>
-    <ClInclude Include="ProgressionComponent.h">
-      <Filter>Header Files\Component</Filter>
     </ClInclude>
     <ClInclude Include="MasteryComponent.h">
       <Filter>Header Files\Component</Filter>
@@ -554,9 +548,6 @@
     <ClInclude Include="SkillWindupComponents.h">
       <Filter>Header Files\Component</Filter>
     </ClInclude>
-    <ClInclude Include="MessageComponent.h">
-      <Filter>Header Files\Component</Filter>
-    </ClInclude>
     <ClInclude Include="SaveSystem.h">
       <Filter>Header Files\Systems</Filter>
     </ClInclude>
@@ -565,12 +556,6 @@
     </ClInclude>
     <ClInclude Include="ClientInput.h">
       <Filter>Header Files\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="ContainerComponent.h">
-      <Filter>Header Files\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="SpawnComponent.h">
-      <Filter>Header Files\Component</Filter>
     </ClInclude>
     <ClInclude Include="PlayerVariablesComponent.h">
       <Filter>Header Files\Component</Filter>
@@ -589,12 +574,6 @@
     </ClInclude>
     <ClInclude Include="RespawnComponent.h">
       <Filter>Header Files\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="DeadTag.h">
-      <Filter>Header Files\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="SpatialGridComponent.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="WorldClimateSystem.h">
       <Filter>Header Files</Filter>
@@ -739,6 +718,36 @@
     </ClInclude>
     <ClInclude Include="CraftSystem.h">
       <Filter>Header Files\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ActorComponents.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="CombatComponents.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="InteractableComponents.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="InventoryComponents.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="MovementComponents.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="PlayerComponents.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="PresentationComponents.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="StatsComponents.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="WorldComponents.h">
+      <Filter>Header Files\Component</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "ClientConnection.h"
-
 #include <string>
 #include <vector>
+
+class ClientConnection;
 
 // Rich message structure that supports both terminal and web clients
 struct GameMessage {

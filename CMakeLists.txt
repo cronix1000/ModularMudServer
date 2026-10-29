@@ -73,6 +73,9 @@ file(GLOB HEADERS
 # Create executable
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
+# Precompiled header (pch.cpp itself is redundant here - CMake generates its own PCH TU)
+target_precompile_headers(${PROJECT_NAME} PRIVATE pch.h)
+
 # Include directories
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}

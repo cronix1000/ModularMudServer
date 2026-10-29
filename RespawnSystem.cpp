@@ -1,13 +1,12 @@
 #include "RespawnSystem.h"
 #include "GameContext.h"
 #include "Registry.h"
-#include "RespawnComponent.h"
-#include "MobComponent.h"
-#include "PositionComponent.h"
-#include "HealthComponent.h"
+#include "ActorComponents.h"
+#include "CombatComponents.h"
+#include "MovementComponents.h"
+#include "StatsComponents.h"
 #include "MobFactory.h"
 #include "FactoryManager.h"
-#include "Tags.h"
 #include <nlohmann/json.hpp>
 #include <iostream>
 #include <vector>

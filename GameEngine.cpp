@@ -29,7 +29,7 @@
 #include "AmbientAISystem.h"
 #include "TargetingSystem.h"
 #include "CombatStateSystem.h"
-#include "RegionComponent.h"
+#include "WorldComponents.h"
 #include "TimeData.h"
 #include "ClientInput.h"
 #include "GameState.h"

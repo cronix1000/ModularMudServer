@@ -6,8 +6,7 @@
 #include <string>
 #include <map>
 #include <nlohmann/json.hpp>
-#include "DialogueComponent.h"
-#include "VoiceComponent.h"
+#include "PresentationComponents.h"
 
 using json = nlohmann::json;
 

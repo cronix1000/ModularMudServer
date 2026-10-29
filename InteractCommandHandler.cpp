@@ -4,9 +4,8 @@
 #include "ClientConnection.h"
 #include "GameContext.h"
 #include "EntityResolver.h"
-#include "PositionComponent.h"
-#include "InteractableComponent.h"
-#include "InteractableIntentComponent.h"
+#include "InteractableComponents.h"
+#include "MovementComponents.h"
 
 
 void InteractCommandHandler::RegisterAll(CommandRegistry& registry) {

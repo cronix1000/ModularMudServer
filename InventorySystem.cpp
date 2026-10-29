@@ -2,13 +2,9 @@
 #include "GameContext.h"
 #include "Registry.h"
 #include "Component.h"
-#include "EquipmentSlot.h"
-#include "EquipmentSlotInfo.h"
-#include "ScriptComponent.h"
 #include "ItemScriptContext.h"
 #include "ItemScriptResult.h"
 #include "ScriptManager.h"
-#include "ClientComponent.h"
 #include "ClientConnection.h"
 #include <vector>
 #include <iostream>

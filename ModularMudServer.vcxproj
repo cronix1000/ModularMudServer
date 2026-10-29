@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -79,6 +79,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>pch.h</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -93,6 +96,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>pch.h</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -107,6 +113,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>pch.h</ForcedIncludeFiles>
       <LanguageStandard>stdcpp23</LanguageStandard>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
@@ -128,9 +137,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>pch.h</ForcedIncludeFiles>
+      <LanguageStandard>stdcpp23</LanguageStandard>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
     </ClCompile>
@@ -155,10 +167,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="pch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="AbilityCommandHanlder.cpp" />
     <ClCompile Include="AdminConsole.cpp" />
     <ClCompile Include="AmbientAISystem.cpp" />
-    <ClCompile Include="AttackIntentComponent.h" />
     <ClCompile Include="BehaviorSystem.cpp" />
     <ClCompile Include="CombatStateSystem.cpp" />
     <ClCompile Include="CraftSystem.cpp" />
@@ -183,8 +197,6 @@
     <ClCompile Include="SkillFactory.cpp" />
     <ClCompile Include="SocialCommandHandler.cpp" />
     <ClCompile Include="CommandInitializer.cpp" />
-    <ClCompile Include="DialogueComponent.h" />
-    <ClCompile Include="DirtyFlagComponents.h" />
     <ClCompile Include="Entity.cpp" />
     <ClCompile Include="EntityResolver.cpp" />
     <ClCompile Include="EquipmentSlotInfo.cpp" />
@@ -202,7 +214,6 @@
     <ClCompile Include="MovementSystem.cpp" />
     <ClCompile Include="NetworkSyncSystem.cpp" />
     <ClCompile Include="NetworkSystem.cpp" />
-    <ClCompile Include="PickupItemIntentComponent.h" />
     <ClCompile Include="PlayerFactory.cpp" />
     <ClCompile Include="Registry.cpp" />
     <ClCompile Include="RespawnSystem.cpp" />
@@ -210,15 +221,12 @@
     <ClCompile Include="SaveSystem.cpp" />
     <ClCompile Include="ScriptManager.cpp" />
     <ClCompile Include="Server.cpp" />
-    <ClCompile Include="SkillDefintionComponent.h" />
     <ClCompile Include="SkillSystem.cpp" />
     <ClCompile Include="TargetingSystem.cpp" />
     <ClCompile Include="TargetingUtils.cpp" />
     <ClCompile Include="TelnetCodec.cpp" />
     <ClCompile Include="TerrainDef.cpp" />
-    <ClCompile Include="TextHelperFunctions.h" />
     <ClCompile Include="UpdateSystem.cpp" />
-    <ClCompile Include="WeaponComponent.h" />
     <ClCompile Include="World.cpp" />
     <ClCompile Include="WorldClimateSystem.cpp" />
     <ClCompile Include="WorldManager.cpp" />
@@ -230,6 +238,7 @@
     <ClInclude Include="AmbientAIComponent.h" />
     <ClInclude Include="AmbientAISystem.h" />
     <ClInclude Include="ASCIIGenerator.h" />
+    <ClInclude Include="AttackIntentComponent.h" />
     <ClInclude Include="BehaviourType.h" />
     <ClInclude Include="ArmourComponent.h" />
     <ClInclude Include="BaseStatComponent.h" />
@@ -242,13 +251,11 @@
     <ClInclude Include="ClientInput.h" />
     <ClInclude Include="CombatStateComponent.h" />
     <ClInclude Include="CombatStateSystem.h" />
-    <ClInclude Include="ContainerComponent.h" />
     <ClInclude Include="CoolDownDefinitionComponent.h" />
     <ClInclude Include="CraftingStation.h" />
     <ClInclude Include="CraftIntentComponent.h" />
     <ClInclude Include="CraftSystem.h" />
     <ClInclude Include="DamageScalingComponent.h" />
-    <ClInclude Include="DeadTag.h" />
     <ClInclude Include="DoorComponent.h" />
     <ClInclude Include="GMCPModules.h" />
     <ClInclude Include="GMPCHandler.h" />
@@ -261,7 +268,6 @@
     <ClInclude Include="LeverComponent.h" />
     <ClInclude Include="Main.h" />
     <ClInclude Include="MenuCommandHandler.h" />
-    <ClInclude Include="MessageComponent.h" />
     <ClInclude Include="MessageSystem.h" />
     <ClInclude Include="ClassComponent.h" />
     <ClInclude Include="CleanUpSystem.h" />
@@ -339,7 +345,7 @@
     <ClInclude Include="PlayerFactory.h" />
     <ClInclude Include="PlayingState.h" />
     <ClInclude Include="PositionComponent.h" />
-    <ClInclude Include="ProgressionComponent.h" />
+    <ClInclude Include="PickupItemIntentComponent.h" />
     <ClInclude Include="PulseComponent.h" />
     <ClInclude Include="Registry.h" />
     <ClInclude Include="ResourceCostComponent.h" />
@@ -347,8 +353,6 @@
     <ClInclude Include="RespawnSystem.h" />
     <ClInclude Include="RoomComponents.h" />
     <ClInclude Include="RoomFactory.h" />
-    <ClInclude Include="SpatialGridComponent.h" />
-    <ClInclude Include="SpawnComponent.h" />
     <ClInclude Include="SaveSystem.h" />
     <ClInclude Include="ScheduledEventComponent.h" />
     <ClInclude Include="ScriptComponent.h" />
@@ -357,6 +361,7 @@
     <ClInclude Include="Server.h" />
     <ClInclude Include="SetComponent.h" />
     <ClInclude Include="SkillCalculationContext.h" />
+    <ClInclude Include="SkillDefintionComponent.h" />
     <ClInclude Include="SkillFactory.h" />
     <ClInclude Include="SkillHolderComponent.h" />
     <ClInclude Include="SkillIntentComponent.h" />
@@ -372,6 +377,7 @@
     <ClInclude Include="TargetingUtils.h" />
     <ClInclude Include="TelnetCodec.h" />
     <ClInclude Include="TerrainDef.h" />
+    <ClInclude Include="TextHelperFunctions.h" />
     <ClInclude Include="ThreadSafeQueue.h" />
     <ClInclude Include="TimeData.h" />
     <ClInclude Include="UpdateSystem.h" />
@@ -379,11 +385,21 @@
     <ClInclude Include="VisualComponent.h" />
     <ClInclude Include="DialogueFactory.h" />
     <ClInclude Include="VoiceComponent.h" />
-    <ClInclude Include="VoiceLineComponent.h" />
+    <ClInclude Include="WeaponComponent.h" />
     <ClInclude Include="World.h" />
     <ClInclude Include="WorldClimateSystem.h" />
     <ClInclude Include="WorldManager.h" />
     <ClInclude Include="ZoneClimateComponent.h" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="ActorComponents.h" />
+    <ClInclude Include="CombatComponents.h" />
+    <ClInclude Include="InteractableComponents.h" />
+    <ClInclude Include="InventoryComponents.h" />
+    <ClInclude Include="MovementComponents.h" />
+    <ClInclude Include="PlayerComponents.h" />
+    <ClInclude Include="PresentationComponents.h" />
+    <ClInclude Include="StatsComponents.h" />
+    <ClInclude Include="WorldComponents.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".env" />

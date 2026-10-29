@@ -1,4 +1,5 @@
 #include "CraftSystem.h"
+#include "ClientConnection.h"
 #include <vector>
 #include "RecipeFactory.h"
 #include "Component.h"

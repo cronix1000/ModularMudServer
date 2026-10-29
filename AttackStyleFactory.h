@@ -5,16 +5,11 @@
 #include <iostream>
 #include <map>
 #include <nlohmann/json.hpp>
-#include "ItemComponent.h"
-#include "WeaponComponent.h"
-#include "ArmourComponent.h"
-#include "VisualComponent.h"
-#include "PositionComponent.h"
-#include "NameComponent.h"
-#include "DescriptionComponent.h"
+#include "InteractableComponents.h"
+#include "InventoryComponents.h"
+#include "MovementComponents.h"
+#include "PresentationComponents.h"
 #include "TextHelperFunctions.h"
-#include "EquipmentSlotInfo.h"
-#include "InteractionOverrideComponent.h"
 #include "Registry.h"
 
 using json = nlohmann::json;

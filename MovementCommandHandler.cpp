@@ -3,8 +3,7 @@
 #include "ClientConnection.h"
 #include "GameContext.h"
 #include "Registry.h"
-#include "MoveIntentComponent.h"
-#include "Direction.h"
+#include "MovementComponents.h"
 #include <map>
 
 void MovementCommandHandler::RegisterAll(CommandRegistry& registry) {

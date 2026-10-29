@@ -3,14 +3,9 @@
 #include "GameContext.h"
 #include "Component.h"
 #include "TextHelperFunctions.h"
-#include "EquipmentSlot.h"
-#include "EquipmentSlotInfo.h"
 #include "SkillFactory.h"
 #include "FactoryManager.h"
-#include "MetaComponent.h"
 #include "MetaRegistry.h"
-#include "InteractionOverrideComponent.h"
-#include "ScriptComponent.h"
 #include <fstream>
 
 void ItemFactory::LoadItemTemplatesFromJSON(const std::string& path) {

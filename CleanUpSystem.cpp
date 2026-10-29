@@ -1,7 +1,7 @@
 #include "CleanUpSystem.h"
 #include "GameContext.h"
 #include "Registry.h"
-#include "Tags.h"
+#include "CombatComponents.h"
 #include <vector>
 
 void CleanUpSystem::run() {

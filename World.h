@@ -2,8 +2,8 @@
 
 #include "Direction.h"
 #include "Registry.h"
-#include "RoomComponents.h"
-#include "ScriptComponent.h"
+#include "InteractableComponents.h"
+#include "WorldComponents.h"
 #include "TerrainDef.h"
 
 #include <nlohmann/json.hpp>

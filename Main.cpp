@@ -6,8 +6,8 @@
 #include "ClientInput.h"
 #include "ClientConnection.h"
 #include "CommandRegistry.h"
-#include "NameComponent.h"
-#include "PermissionComponent.h"
+#include "PlayerComponents.h"
+#include "PresentationComponents.h"
 #include "Registry.h"
 #include "Platform.h"
 

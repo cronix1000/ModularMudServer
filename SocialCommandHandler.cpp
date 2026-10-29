@@ -3,8 +3,8 @@
 #include "ClientConnection.h"
 #include "GameContext.h"
 #include "Registry.h"
-#include "PositionComponent.h"
-#include "NameComponent.h"
+#include "MovementComponents.h"
+#include "PresentationComponents.h"
 
 std::string SocialCommandHandler::BuildMessage(const std::vector<std::string>& params) {
 	if (params.empty()) return "";

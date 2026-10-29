@@ -241,7 +241,8 @@ for (EntityID entity : registry->view<CombatIntentComponent>()) {
 
 ### Adding a Component
 1. Create `MyComponent.h` with struct definition
-2. Add `#include "MyComponent.h"` to `Component.h`
+2. Add `#include "MyComponent.h"` to the matching group header (`ActorComponents.h`, `CombatComponents.h`, `InteractableComponents.h`, `InventoryComponents.h`, `MovementComponents.h`, `PlayerComponents.h`, `PresentationComponents.h`, `StatsComponents.h`, `WorldComponents.h`). `Component.h` aggregates all groups; systems include group headers, not individual component headers.
+3. Two components are exempt and must stay out of the groups (consumers include them directly): `MobAttackComponent.h` (pulls sol2/Lua) and `MetaComponent.h` (pulls nlohmann/json). `ClientComponent.h` only forward-declares `ClientConnection` — cpps that dereference `client->` include `ClientConnection.h` themselves.
 
 ### Adding a System
 1. Create `MySystem.h/cpp`

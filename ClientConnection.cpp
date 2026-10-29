@@ -1,6 +1,6 @@
 #include "ClientConnection.h"
 
-#include "ClientComponent.h"
+#include "PlayerComponents.h"
 #include "GameContext.h"
 #include "GameEngine.h"
 #include "GameState.h"

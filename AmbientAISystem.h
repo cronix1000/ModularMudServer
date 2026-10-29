@@ -1,8 +1,8 @@
 #pragma once
 #include "GameContext.h"
 #include "Entity.h"
-#include "AmbientAIComponent.h"
-#include "ZoneClimateComponent.h"
+#include "ActorComponents.h"
+#include "WorldComponents.h"
 #include <unordered_map>
 #include <vector>
 #include <string>

@@ -1,18 +1,15 @@
 #include "MovementSystem.h"
+#include "ClientConnection.h"
 
 #include "Component.h"
-#include "Direction.h"
 #include "EventBus.h"
 #include "GameContext.h"
-#include "MoveIntentComponent.h"
-#include "PositionComponent.h"
 #include "Registry.h"
 #include "ScriptManager.h"
 #include "SkillContext.h"
 #include "TextHelperFunctions.h"
 #include "World.h"
 #include "WorldManager.h"
-#include "RoomComponents.h"
 
 #include <vector>
 

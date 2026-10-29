@@ -1,6 +1,6 @@
 #pragma once
 #include "GameContext.h"
-#include "ZoneClimateComponent.h"
+#include "WorldComponents.h"
 #include <string>
 #include <unordered_map>
 #include <vector>

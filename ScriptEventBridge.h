@@ -1,7 +1,7 @@
 #pragma once
 #include "EventBus.h"
 #include "ScriptManager.h"
-#include "EquipmentSlotInfo.h"
+#include "InventoryComponents.h"
 class ScriptEventBridge
 {
 	EventBus* bus;

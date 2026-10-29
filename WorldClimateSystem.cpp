@@ -1,10 +1,11 @@
 #include "WorldClimateSystem.h"
+#include "ClientConnection.h"
 #include "Registry.h"
-#include "RegionComponent.h"
-#include "PositionComponent.h"
-#include "ClientComponent.h"
+#include "ActorComponents.h"
+#include "MovementComponents.h"
+#include "PlayerComponents.h"
+#include "WorldComponents.h"
 #include "ScriptManager.h"
-#include "MobComponent.h"
 #include <cmath>
 #include <chrono>
 #include <algorithm>

@@ -1,10 +1,10 @@
 #include "InteractableFactory.h"
 #include "SafeJson.h"
-#include "CraftingStation.h"
+#include "InteractableComponents.h"
+#include "InventoryComponents.h"
 #include "GameContext.h"
 #include "MetaComponent.h"
 #include "MetaRegistry.h"
-#include "InteractionOverrideComponent.h"
 
 void InteractableFactory::LoadInteractableTemplatesFromJSON(const std::string& path) {
     std::ifstream file(path);

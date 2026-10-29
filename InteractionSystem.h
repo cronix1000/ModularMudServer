@@ -1,6 +1,6 @@
 #pragma once
 #include "InteractableContext.h"
-#include "RoomComponents.h"
+#include "WorldComponents.h"
 
 struct GameContext;
 class Registry;

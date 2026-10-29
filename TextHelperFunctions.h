@@ -1,8 +1,7 @@
 #pragma once
 #include <string>
 #include <regex>
-#include "EquipmentSlot.h"
-#include "EquipmentSlotInfo.h"
+#include "InventoryComponents.h"
 #include "Direction.h"
 #include <map>
  class TextHelperFunctions {

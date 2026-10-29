@@ -6,7 +6,6 @@
 #include <nlohmann/json.hpp>
 #include "Registry.h"
 #include "Component.h"
-#include "EquipmentSlot.h"
 
 using json = nlohmann::json;
 

@@ -9,7 +9,7 @@
 #include "RespawnSystem.h"
 #include "RoomFactory.h"
 #include "Registry.h"
-#include "ZoneComponents.h"
+#include "WorldComponents.h"
 
 const std::string DEFAULT_WORLD_ID = "default";
 

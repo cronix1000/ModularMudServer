@@ -8,7 +8,6 @@
 #include "ScriptManager.h"
 #include "GameContext.h"
 #include "WorldManager.h"
-#include "RoomComponents.h"
 #include "TerrainDef.h"
 #include "ClientConnection.h"
 

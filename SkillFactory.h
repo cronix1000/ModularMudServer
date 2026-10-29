@@ -1,10 +1,8 @@
 #pragma once
 #include "GameContext.h"
 #include "Registry.h"
-#include "ResourceCostComponent.h"
-#include "CoolDownDefinitionComponent.h"
-#include "NameComponent.h"
-#include "SkillDefintionComponent.h"
+#include "CombatComponents.h"
+#include "PresentationComponents.h"
 #include <iostream>
 #include <map>
 #include <string>

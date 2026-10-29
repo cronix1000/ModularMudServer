@@ -1,13 +1,11 @@
 #include "EntityResolver.h"
-#include "NameComponent.h"
-#include "PositionComponent.h"
-#include "InventoryComponent.h"
+#include "InventoryComponents.h"
+#include "MovementComponents.h"
+#include "PresentationComponents.h"
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
 #include <set>
-#include "EquipmentComponent.h"
-#include "ItemComponent.h"
 
 namespace {
     const std::set<std::string> kStopWords = {"a", "the", "an", "of"};
