@@ -32,6 +32,7 @@ public:
 	ClientConnection(SocketType newSocket) : tcpSocket(newSocket) {
 		needsCleanup = false;
 		hasGMCP = false;
+		consoleAdmin = false;
 		playerEntityID = -1;
 		playerId = -1;
 
@@ -56,6 +57,7 @@ public:
 	std::vector<std::string> DrainCompleteLines();
 	void DisconnectGracefully();
 	bool needsCleanup;
+	bool consoleAdmin;
 	std::stack<GameState*> stateStack;
 	void PopState();
 	void PushState(GameState* state);

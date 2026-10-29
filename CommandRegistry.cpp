@@ -135,7 +135,10 @@ bool CommandRegistry::ExecuteSingle(ClientConnection* client, const std::vector<
 	}
 	
 	// Check permission
-	if (!HasPermission(client->playerEntityID, match.node->minPermission)) {
+	PermissionLevel playerPerm = client->consoleAdmin
+		? PermissionLevel::Admin
+		: GetPlayerPermission(client->playerEntityID);
+	if (playerPerm < match.node->minPermission) {
 		client->QueueMessage("You don't have permission to use that command.\r\n");
 		return false;
 	}

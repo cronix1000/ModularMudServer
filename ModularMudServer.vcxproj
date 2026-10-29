@@ -156,6 +156,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AbilityCommandHanlder.cpp" />
+    <ClCompile Include="AdminConsole.cpp" />
     <ClCompile Include="AmbientAISystem.cpp" />
     <ClCompile Include="AttackIntentComponent.h" />
     <ClCompile Include="BehaviorSystem.cpp" />
@@ -224,6 +225,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AbilityCommandHanlder.h" />
+    <ClInclude Include="AdminConsole.h" />
     <ClInclude Include="AfflictionComponent.h" />
     <ClInclude Include="AmbientAIComponent.h" />
     <ClInclude Include="AmbientAISystem.h" />
