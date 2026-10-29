@@ -1,6 +1,7 @@
 #include "AdminConsole.h"
 
 #include <nlohmann/json.hpp>
+#include <iostream>
 #include <cstdio>
 #include <cstring>
 
@@ -58,14 +59,14 @@ bool AdminConsole::Start(const std::string& port, const std::string& password) {
 	password_ = password;
 	enabled_ = !password_.empty();
 	if (!enabled_) {
-		printf("Admin console disabled (MUD_ADMIN_TOKEN not set)\n");
+		std::cout << "Admin console disabled (MUD_ADMIN_TOKEN not set)" << std::endl;
 		return true;
 	}
 
 #ifdef PLATFORM_WINDOWS
 	WSADATA wsaData;
 	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-		printf("Admin console: WSAStartup failed\n");
+		std::cout << "Admin console: WSAStartup failed" << std::endl;
 		enabled_ = false;
 		return false;
 	}
@@ -79,7 +80,7 @@ bool AdminConsole::Start(const std::string& port, const std::string& password) {
 		return false;
 	}
 
-	printf("Admin console listening on port %s\n", port.c_str());
+	std::cout << "Admin console listening on port " << port << std::endl;
 	return true;
 }
 
