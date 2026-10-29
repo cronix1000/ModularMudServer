@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include "SafeJson.h"
 #include <string>
 #include <map>
 #include <random>
@@ -31,7 +32,7 @@ public:
         for (auto& [tableID, list] : data.items()) {
             std::vector<LootEntry> entries;
             for (auto& entry : list) {
-                entries.push_back({ entry["id"], entry.value("weight", 1) });
+                entries.push_back({ entry["id"], SafeValue(entry, "weight", 1) });
             }
             lootTables[tableID] = entries;
         }

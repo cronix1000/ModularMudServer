@@ -1,4 +1,5 @@
 #include "RecipeFactory.h"
+#include "SafeJson.h"
 #include <iostream>
 
 void RecipeFactory::LoadRecipesFromJson(const json& data) {
@@ -18,20 +19,20 @@ void RecipeFactory::LoadRecipesFromJson(const json& data) {
 void RecipeFactory::LoadSingleRecipeFromJson(const std::string& key, const json& data) {
     RecipeDef r;
     r.id = key;
-    r.name = data.value("name", key);
-    r.description = data.value("description", "");
-    r.skillId = data.value("skill_id", "");
-    r.requiredSkillLevel = data.value("required_skill_level", 0);
-    r.stationType = data.value("station_type", "");
-    r.craftTimeSeconds = data.value("craft_time_seconds", 3.0f);
-    r.experienceGain = data.value("experience_gain", 0);
-    r.autoLearned = data.value("is_auto_learned", 1) != 0;
+    r.name = SafeValue(data, "name", key);
+    r.description = SafeValue(data, "description", "");
+    r.skillId = SafeValue(data, "skill_id", "");
+    r.requiredSkillLevel = SafeValue(data, "required_skill_level", 0);
+    r.stationType = SafeValue(data, "station_type", "");
+    r.craftTimeSeconds = SafeValue(data, "craft_time_seconds", 3.0f);
+    r.experienceGain = SafeValue(data, "experience_gain", 0);
+    r.autoLearned = SafeValue(data, "is_auto_learned", 1) != 0;
 
     if (data.contains("inputs") && data["inputs"].is_array()) {
         for (const auto& in : data["inputs"]) {
             RecipeInput ri;
-            ri.templateId = in.value("template_id", in.value("item_id", ""));
-            ri.quantity = in.value("quantity", 1);
+            ri.templateId = SafeValue(in, "template_id", SafeValue(in, "item_id", ""));
+            ri.quantity = SafeValue(in, "quantity", 1);
             if (!ri.templateId.empty()) r.inputs.push_back(ri);
         }
     }
@@ -39,8 +40,8 @@ void RecipeFactory::LoadSingleRecipeFromJson(const std::string& key, const json&
     if (data.contains("outputs") && data["outputs"].is_array()) {
         for (const auto& out : data["outputs"]) {
             RecipeOutput ro;
-            ro.templateId = out.value("template_id", out.value("item_id", ""));
-            ro.quantity = out.value("quantity", 1);
+            ro.templateId = SafeValue(out, "template_id", SafeValue(out, "item_id", ""));
+            ro.quantity = SafeValue(out, "quantity", 1);
             if (!ro.templateId.empty()) r.outputs.push_back(ro);
         }
     }

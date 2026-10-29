@@ -1,4 +1,5 @@
 #include "ItemFactory.h"
+#include "SafeJson.h"
 #include "GameContext.h"
 #include "Component.h"
 #include "TextHelperFunctions.h"
@@ -45,14 +46,14 @@ void ItemFactory::LoadSingleItemFromJSON(const std::string& key, const json& j) 
     ItemTemplate tpl;
     tpl.id = key;
 
-    tpl.name = j.value("name", "Unknown Item");
-    tpl.description = j.value("description", "...");
-    tpl.symbol = j.value("char", "(");
-    tpl.color = j.value("color", "&w");
-    tpl.weight = j.value("weight", 1);
-    tpl.value = j.value("value", 0);
-    tpl.equippable = j.value("equippable", false);
-    tpl.itemType = j.value("type", "misc");
+    tpl.name = SafeValue(j, "name", "Unknown Item");
+    tpl.description = SafeValue(j, "description", "...");
+    tpl.symbol = SafeValue(j, "char", "(");
+    tpl.color = SafeValue(j, "color", "&w");
+    tpl.weight = SafeValue(j, "weight", 1);
+    tpl.value = SafeValue(j, "value", 0);
+    tpl.equippable = SafeValue(j, "equippable", false);
+    tpl.itemType = SafeValue(j, "type", "misc");
 
     if (j.contains("components")) {
         const json& comps = j["components"];
@@ -60,22 +61,22 @@ void ItemFactory::LoadSingleItemFromJSON(const std::string& key, const json& j) 
         if (comps.contains("weapon")) {
             const json& weapon = comps["weapon"];
             tpl.itemType = "weapon";
-            tpl.minDamage = weapon.value("minDamage", 1);
-            tpl.maxDamage = weapon.value("maxDamage", 2);
-            tpl.damageType = weapon.value("damageType", "blunt");
-            tpl.primarySkill = weapon.value("defaultSkill", "");
-            tpl.twoHanded = weapon.value("twoHanded", false);
+            tpl.minDamage = SafeValue(weapon, "minDamage", 1);
+            tpl.maxDamage = SafeValue(weapon, "maxDamage", 2);
+            tpl.damageType = SafeValue(weapon, "damageType", "blunt");
+            tpl.primarySkill = SafeValue(weapon, "defaultSkill", "");
+            tpl.twoHanded = SafeValue(weapon, "twoHanded", false);
         }
 
         if (comps.contains("armour")) {
             const json& armor = comps["armour"];
             tpl.itemType = "armour";
-            tpl.defense = armor.value("defense", 0);
+            tpl.defense = SafeValue(armor, "defense", 0);
         }
 
         if (comps.contains("scripts")) {
             const json& scripts = comps["scripts"];
-            tpl.script = scripts.value("on_hit_proc", "");
+            tpl.script = SafeValue(scripts, "on_hit_proc", "");
             if (scripts.contains("on_equip") && scripts["on_equip"].is_string()) {
                 tpl.itemScripts["on_equip"] = scripts["on_equip"].get<std::string>();
             }
@@ -117,7 +118,7 @@ void ItemFactory::LoadSingleItemFromJSON(const std::string& key, const json& j) 
         }
     }
 
-    tpl.extra = j.value("extra", json::object());
+    tpl.extra = SafeValue(j, "extra", json::object());
     if (j.contains("components") && j["components"].is_object() && j["components"].contains("meta")) {
         tpl.extra["meta"] = j["components"]["meta"];
     }
@@ -134,8 +135,8 @@ int ItemFactory::CreateItem(std::string templateID, json overrides, int x, int y
     const auto& tpl = itemTemplates[templateID];
     int id = ctx.registry->CreateEntity();
 
-    std::string name = overrides.value("name", tpl.name);
-    std::string desc = overrides.value("description", tpl.description);
+    std::string name = SafeValue(overrides, "name", tpl.name);
+    std::string desc = SafeValue(overrides, "description", tpl.description);
 
     ctx.registry->AddComponent<NameComponent>(id, { name });
     ctx.registry->AddComponent<DescriptionComponent>(id, { desc });
@@ -215,15 +216,15 @@ int ItemFactory::CreateItem(std::string templateID, json overrides, int x, int y
 void ItemFactory::AttachTypeComponents(int id, const ItemTemplate& tpl, const json& overrides) {
     if (tpl.itemType == "weapon") {
         WeaponComponent wc;
-        wc.minDamage = overrides.value("minDamage", tpl.minDamage);
-        wc.maxDamage = overrides.value("maxDamage", tpl.maxDamage);
-        wc.damageType = overrides.value("damageType", tpl.damageType);
-        wc.twoHanded = overrides.value("twoHanded", tpl.twoHanded);
+        wc.minDamage = SafeValue(overrides, "minDamage", tpl.minDamage);
+        wc.maxDamage = SafeValue(overrides, "maxDamage", tpl.maxDamage);
+        wc.damageType = SafeValue(overrides, "damageType", tpl.damageType);
+        wc.twoHanded = SafeValue(overrides, "twoHanded", tpl.twoHanded);
         ctx.registry->AddComponent<WeaponComponent>(id, wc);
     }
     else if (tpl.itemType == "armour") {
         ArmourComponent ac;
-        ac.defense = overrides.value("defense", tpl.defense);
+        ac.defense = SafeValue(overrides, "defense", tpl.defense);
         ctx.registry->AddComponent<ArmourComponent>(id, ac);
     }
 }

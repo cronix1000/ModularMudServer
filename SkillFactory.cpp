@@ -1,4 +1,5 @@
 #include "SkillFactory.h"
+#include "SafeJson.h"
 #include "GameContext.h"
 #include "Component.h"
 #include "ScriptComponent.h"
@@ -46,9 +47,9 @@ void SkillFactory::LoadCategoriesFromJSON(const json& data) {
     for (auto& [key, catData] : data.items()) {
         SkillCategory cat;
         cat.id = key;
-        cat.name = catData.value("name", key);
-        cat.description = catData.value("description", "");
-        cat.synergyBonus = catData.value("synergyBonus", 0.1f);
+        cat.name = SafeValue(catData, "name", key);
+        cat.description = SafeValue(catData, "description", "");
+        cat.synergyBonus = SafeValue(catData, "synergyBonus", 0.1f);
 
         if (catData.contains("stats")) {
             for (const auto& s : catData["stats"]) {
@@ -63,23 +64,27 @@ void SkillFactory::LoadCategoriesFromJSON(const json& data) {
 void SkillFactory::LoadSingleSkillFromJSON(const std::string& key, const json& skillData) {
     SkillTemplate tpl;
     tpl.id = key;
-    tpl.category = skillData.value("category", "");
-    tpl.name = skillData.value("name", "Unknown Skill");
-    tpl.description = skillData.value("description", "");
-    tpl.type = skillData.value("type", "combat");
-    tpl.activation = skillData.value("activation", "weapon");
-    tpl.command = skillData.value("command", key);
-    tpl.cooldown = skillData.value("cooldown", 0.0f);
-    tpl.windup = skillData.value("windup", 0.0f);
-    tpl.targeting = skillData.value("targeting", "enemy");
-    tpl.range = skillData.value("range", 1);
-    tpl.script = skillData.value("script", "");
+    if (skillData.contains("category_id")) {
+        tpl.category = SafeValue(skillData, "category_id", "");
+    } else {
+        tpl.category = SafeValue(skillData, "category", "");
+    }
+    tpl.name = SafeValue(skillData, "name", "Unknown Skill");
+    tpl.description = SafeValue(skillData, "description", "");
+    tpl.type = SafeValue(skillData, "type", "combat");
+    tpl.activation = SafeValue(skillData, "activation", "weapon");
+    tpl.command = SafeValue(skillData, "command", key);
+    tpl.cooldown = SafeValue(skillData, "cooldown", 0.0f);
+    tpl.windup = SafeValue(skillData, "windup", 0.0f);
+    tpl.targeting = SafeValue(skillData, "targeting", "enemy");
+    tpl.range = SafeValue(skillData, "range", 1);
+    tpl.script = SafeValue(skillData, "script", "");
 
     if (skillData.contains("costs")) {
         const json& costs = skillData["costs"];
-        tpl.staminaCost = costs.value("stamina", 0);
-        tpl.manaCost = costs.value("mana", 0);
-        tpl.healthCost = costs.value("health", 0);
+        tpl.staminaCost = SafeValue(costs, "stamina", 0);
+        tpl.manaCost = SafeValue(costs, "mana", 0);
+        tpl.healthCost = SafeValue(costs, "health", 0);
     }
 
     CreateSkillEntity(tpl);

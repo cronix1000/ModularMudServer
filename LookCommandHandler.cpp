@@ -21,6 +21,8 @@
 #include "InteractionMessage.h"
 #include "StatModifierComponent.h"
 #include "TextHelperFunctions.h"
+#include "TerrainDef.h"
+#include "WorldManager.h"
 
 #include <nlohmann/json.hpp>
 
@@ -36,6 +38,55 @@ namespace {
             if (id && id->roomId == roomId) return id;
         }
         return nullptr;
+    }
+
+    std::string LowerCopy(std::string s) {
+        std::transform(s.begin(), s.end(), s.begin(),
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        return s;
+    }
+
+    void QueueText(GameContext& ctx, ClientConnection* client, const std::string& text);
+
+    // Handles "examine <terrain>": matches a single layout character or a
+    // terrain name (case-insensitive) among the symbols used in this room.
+    // Returns true when the query was a terrain tile and a reply was queued.
+    bool TryExamineTerrain(GameContext& ctx, ClientConnection* client, PositionComponent* pos, const std::vector<std::string>& params) {
+        if (!ctx.worldManager) return false;
+        const RoomLayoutComponent* layout = ctx.worldManager->GetRoomLayout(pos->roomId);
+        if (!layout || layout->width <= 0 || layout->height <= 0 || params.empty()) return false;
+
+        const RoomIdentityComponent* room = FindRoom(*ctx.registry, pos->roomId);
+        const std::string* regionId = room && !room->regionId.empty() ? &room->regionId : nullptr;
+
+        std::string query = params[0];
+        for (size_t i = 1; i < params.size(); ++i) query += " " + params[i];
+        std::string lower = LowerCopy(query);
+
+        const TerrainDef* match = nullptr;
+        for (int y = 0; y < layout->height && !match; ++y) {
+            for (int x = 0; x < layout->width && !match; ++x) {
+                char c = static_cast<char>(layout->GetTerrain(x, y));
+                const TerrainDef& def = GetTerrainFor(c, regionId);
+                if (query.size() == 1 && c == query[0]) {
+                    match = &def;
+                } else if (!lower.empty() && LowerCopy(def.name) == lower) {
+                    match = &def;
+                }
+            }
+        }
+        if (!match) return false;
+
+        std::ostringstream msg;
+        msg << match->color << match->symbol << "&w " << match->name << "\r\n";
+        if (!match->description.empty()) msg << match->description << "\r\n";
+        msg << "&x(terrain";
+        if (match->blocks_move) msg << ", blocks movement";
+        if (match->blocks_sight) msg << ", blocks sight";
+        if (match->move_cost > 1) msg << ", move cost " << match->move_cost;
+        msg << ")&w\r\n";
+        QueueText(ctx, client, TextHelperFunctions::Colorize(msg.str()));
+        return true;
     }
 
     void QueueText(GameContext& ctx, ClientConnection* client, const std::string& text) {
@@ -437,6 +488,9 @@ CommandResult LookCommandHandler::HandleLook(ClientConnection* client,
 
     auto hits = ctx.entityFind->FindInRoom(playerPos->roomId, params);
     if (hits.empty()) {
+        if (TryExamineTerrain(ctx, client, playerPos, params)) {
+            return CommandResult::Success();
+        }
         return CommandResult::Failure("You don't see that here.");
     }
     if (hits.size() == 1) {
@@ -502,6 +556,9 @@ CommandResult LookCommandHandler::HandleExamine(ClientConnection* client, const 
 
     auto hits = ctx.entityFind->FindInRoom(playerPos->roomId, params);
     if (hits.empty()) {
+        if (TryExamineTerrain(ctx, client, playerPos, params)) {
+            return CommandResult::Success();
+        }
         return CommandResult::Failure("You don't see that here.");
     }
 

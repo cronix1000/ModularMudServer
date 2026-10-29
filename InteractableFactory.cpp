@@ -1,4 +1,5 @@
 #include "InteractableFactory.h"
+#include "SafeJson.h"
 #include "CraftingStation.h"
 #include "GameContext.h"
 #include "MetaComponent.h"
@@ -37,12 +38,12 @@ void InteractableFactory::LoadInteractableTemplatesFromJson(const json& data) {
 void InteractableFactory::LoadSingleInteractableFromJSON(const std::string& key, const json& j) {
     InteractableTemplate tpl;
     tpl.id = key;
-    tpl.name = j.value("name", "Unknown Interactable");
-    tpl.symbol = j.value("char", "?");
-    tpl.color = j.value("color", "&w");
-    tpl.description = j.value("description", "");
-    tpl.script = j.value("script", "");
-    tpl.components = j.value("components", json::object());
+    tpl.name = SafeValue(j, "name", "Unknown Interactable");
+    tpl.symbol = SafeValue(j, "char", "?");
+    tpl.color = SafeValue(j, "color", "&w");
+    tpl.description = SafeValue(j, "description", "");
+    tpl.script = SafeValue(j, "script", "");
+    tpl.components = SafeValue(j, "components", json::object());
 
     interactableTemplates[key] = tpl;
     std::cout << "  Loaded: " << key << " (" << tpl.name << ")" << std::endl;
@@ -58,10 +59,10 @@ int InteractableFactory::CreateInteractable(std::string templateID, json overrid
     const auto& tpl = it->second;
     int id = ctx.registry->CreateEntity();
 
-    std::string name = overrides.value("name", tpl.name);
-    std::string desc = overrides.value("description", tpl.description);
-    std::string sym = overrides.value("char", tpl.symbol);
-    std::string col = overrides.value("color", tpl.color);
+    std::string name = SafeValue(overrides, "name", tpl.name);
+    std::string desc = SafeValue(overrides, "description", tpl.description);
+    std::string sym = SafeValue(overrides, "char", tpl.symbol);
+    std::string col = SafeValue(overrides, "color", tpl.color);
 
     ctx.registry->AddComponent<NameComponent>(id, NameComponent{ name });
     ctx.registry->AddComponent<DescriptionComponent>(id, DescriptionComponent{ desc });
@@ -122,43 +123,43 @@ void InteractableFactory::AttachComponents(int id, const json& components, json 
         if (compName == "meta" || compName == "messages") continue;
         if (compName == "portal") {
             PortalComponent portal;
-            portal.destination_room = compData.value("destination_room", -1);
-            portal.direction_command = compData.value("direction_command", "enter");
-            portal.is_open = compData.value("is_open", true);
-            portal.is_locked = compData.value("is_locked", false);
-            portal.key_id = compData.value("key_id", -1);
+            portal.destination_room = SafeValue(compData, "destination_room", -1);
+            portal.direction_command = SafeValue(compData, "direction_command", "enter");
+            portal.is_open = SafeValue(compData, "is_open", true);
+            portal.is_locked = SafeValue(compData, "is_locked", false);
+            portal.key_id = SafeValue(compData, "key_id", -1);
             ctx.registry->AddComponent<PortalComponent>(id, portal);
             InteractableComponent marker;
             marker.interaction_type = "portal";
             if (compData.contains("max_uses")) {
-                marker.uses_remaining = compData.value("max_uses", -1);
+                marker.uses_remaining = SafeValue(compData, "max_uses", -1);
             }
             ctx.registry->AddComponent<InteractableComponent>(id, marker);
         }
         else if (compName == "chest") {
             ChestComponent chest;
-            chest.is_open = compData.value("is_open", false);
-            chest.is_locked = compData.value("is_locked", false);
-            chest.key_id = compData.value("key_id", -1);
-            chest.loot_table = compData.value("loot_table", "");
-            chest.max_uses = compData.value("max_uses", 1);
+            chest.is_open = SafeValue(compData, "is_open", false);
+            chest.is_locked = SafeValue(compData, "is_locked", false);
+            chest.key_id = SafeValue(compData, "key_id", -1);
+            chest.loot_table = SafeValue(compData, "loot_table", "");
+            chest.max_uses = SafeValue(compData, "max_uses", 1);
             chest.uses_remaining = chest.max_uses;
             ctx.registry->AddComponent<ChestComponent>(id, chest);
             InteractableComponent marker;
             marker.interaction_type = "chest";
-            marker.uses_remaining = compData.value("max_uses", 1);
+            marker.uses_remaining = SafeValue(compData, "max_uses", 1);
             ctx.registry->AddComponent<InteractableComponent>(id, marker);
         }
         else if (compName == "door") {
             DoorComponent door;
-            door.is_open = compData.value("is_open", false);
-            door.is_locked = compData.value("is_locked", true);
-            door.key_id = compData.value("key_id", "");
-            door.destination_room = compData.value("destination_room", -1);
-            door.destination_x = compData.value("destination_x", -1);
-            door.destination_y = compData.value("destination_y", -1);
-            door.open_message = compData.value("open_message", "The door creaks open.");
-            door.close_message = compData.value("close_message", "The door slams shut.");
+            door.is_open = SafeValue(compData, "is_open", false);
+            door.is_locked = SafeValue(compData, "is_locked", true);
+            door.key_id = SafeValue(compData, "key_id", "");
+            door.destination_room = SafeValue(compData, "destination_room", -1);
+            door.destination_x = SafeValue(compData, "destination_x", -1);
+            door.destination_y = SafeValue(compData, "destination_y", -1);
+            door.open_message = SafeValue(compData, "open_message", "The door creaks open.");
+            door.close_message = SafeValue(compData, "close_message", "The door slams shut.");
             ctx.registry->AddComponent<DoorComponent>(id, door);
             InteractableComponent marker;
             marker.interaction_type = "door";
@@ -166,46 +167,46 @@ void InteractableFactory::AttachComponents(int id, const json& components, json 
         }
         else if (compName == "lever") {
             LeverComponent lever;
-            lever.state = compData.value("state", "up");
-            lever.event_trigger = compData.value("event_trigger", "");
-            lever.target_room = compData.value("target_room", -1);
-            lever.cooldown_seconds = compData.value("cooldown", 0);
-            lever.can_be_reset = compData.value("can_be_reset", true);
-            lever.uses_remaining = compData.value("uses_remaining", -1);
+            lever.state = SafeValue(compData, "state", "up");
+            lever.event_trigger = SafeValue(compData, "event_trigger", "");
+            lever.target_room = SafeValue(compData, "target_room", -1);
+            lever.cooldown_seconds = SafeValue(compData, "cooldown", 0);
+            lever.can_be_reset = SafeValue(compData, "can_be_reset", true);
+            lever.uses_remaining = SafeValue(compData, "uses_remaining", -1);
             ctx.registry->AddComponent<LeverComponent>(id, lever);
             InteractableComponent marker;
             marker.interaction_type = "lever";
-            marker.cooldown_seconds = compData.value("cooldown", 0);
-            marker.uses_remaining = compData.value("uses_remaining", -1);
+            marker.cooldown_seconds = SafeValue(compData, "cooldown", 0);
+            marker.uses_remaining = SafeValue(compData, "uses_remaining", -1);
             ctx.registry->AddComponent<InteractableComponent>(id, marker);
         }
         else if (compName == "healing") {
             ShrineComponent shrine;
-            shrine.heal_amount = compData.value("heal_amount", 25);
-            shrine.mana_amount = compData.value("mana_amount", 0);
-            shrine.cooldown_seconds = compData.value("cooldown", 300);
-            shrine.max_uses_per_player = compData.value("max_uses_per_player", -1);
-            shrine.blessing_type = compData.value("blessing_type", "health");
-            shrine.prayer_message = compData.value("prayer_message", "You feel blessed by divine energy.");
+            shrine.heal_amount = SafeValue(compData, "heal_amount", 25);
+            shrine.mana_amount = SafeValue(compData, "mana_amount", 0);
+            shrine.cooldown_seconds = SafeValue(compData, "cooldown", 300);
+            shrine.max_uses_per_player = SafeValue(compData, "max_uses_per_player", -1);
+            shrine.blessing_type = SafeValue(compData, "blessing_type", "health");
+            shrine.prayer_message = SafeValue(compData, "prayer_message", "You feel blessed by divine energy.");
             ctx.registry->AddComponent<ShrineComponent>(id, shrine);
             InteractableComponent marker;
             marker.interaction_type = "healing";
-            marker.cooldown_seconds = compData.value("cooldown", 300);
-            marker.uses_remaining = compData.value("max_uses_per_player", -1);
+            marker.cooldown_seconds = SafeValue(compData, "cooldown", 300);
+            marker.uses_remaining = SafeValue(compData, "max_uses_per_player", -1);
             ctx.registry->AddComponent<InteractableComponent>(id, marker);
         }
         else if (compName == "inventory") {
             InteractableComponent interactable;
             interactable.interaction_type = "container";
-            interactable.cooldown_seconds = compData.value("cooldown", 0);
-            interactable.uses_remaining = compData.value("max_uses", -1);
+            interactable.cooldown_seconds = SafeValue(compData, "cooldown", 0);
+            interactable.uses_remaining = SafeValue(compData, "max_uses", -1);
             ctx.registry->AddComponent<InteractableComponent>(id, interactable);
         }
         else if (compName == "loot") {
             InteractableComponent interactable;
             interactable.interaction_type = "loot";
-            interactable.custom_data["loot_table"] = compData.value("table", "");
-            interactable.int_data["max_uses"] = compData.value("max_uses", 1);
+            interactable.custom_data["loot_table"] = SafeValue(compData, "table", "");
+            interactable.int_data["max_uses"] = SafeValue(compData, "max_uses", 1);
             ctx.registry->AddComponent<InteractableComponent>(id, interactable);
         }
         else if (compName == "crafting") {
@@ -215,8 +216,8 @@ void InteractableFactory::AttachComponents(int id, const json& components, json 
 
             InteractableComponent marker;
             marker.interaction_type = "crafting";
-            marker.cooldown_seconds = compData.value("cooldown", 0);
-            marker.uses_remaining = compData.value("max_uses", -1);
+            marker.cooldown_seconds = SafeValue(compData, "cooldown", 0);
+            marker.uses_remaining = SafeValue(compData, "max_uses", -1);
             ctx.registry->AddComponent<InteractableComponent>(id, marker);
         }
         else {

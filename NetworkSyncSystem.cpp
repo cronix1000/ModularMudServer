@@ -13,6 +13,40 @@
 #include "ClientConnection.h"
 
 
+namespace {
+
+bool TerrainBlocksSight(const RoomLayoutComponent& layout, const std::string& regionId, int x, int y) {
+    int terrainId = layout.GetTerrain(x, y);
+    const TerrainDef& def = GetTerrainFor(static_cast<char>(terrainId), regionId.empty() ? nullptr : &regionId);
+    return def.blocks_sight;
+}
+
+// Bresenham line-of-sight: any cell strictly between from and to that blocks
+// sight hides the target. Adjacent cells are always visible.
+bool HasLineOfSight(const RoomLayoutComponent& layout, const std::string& regionId, int fromX, int fromY, int toX, int toY) {
+    if (fromX < 0 || fromY < 0 || fromX >= layout.width || fromY >= layout.height) return true;
+    int dx = toX > fromX ? toX - fromX : fromX - toX;
+    int dy = toY > fromY ? toY - fromY : fromY - toY;
+    if (dx + dy <= 1) return true;
+    int sx = toX > fromX ? 1 : -1;
+    int sy = toY > fromY ? 1 : -1;
+    int err = dx - dy;
+    int x = fromX;
+    int y = fromY;
+    while (x != toX || y != toY) {
+        int e2 = 2 * err;
+        if (e2 > -dy) { err -= dy; x += sx; }
+        if (e2 < dx) { err += dx; y += sy; }
+        if (x == toX && y == toY) break;
+        if (!layout.IsValidCoord(x, y)) return false;
+        if (TerrainBlocksSight(layout, regionId, x, y)) return false;
+    }
+    return true;
+}
+
+} // namespace
+
+
 //// Telnet Constants
 //const char IAC = (char)255;
 //const char SB = (char)250;
@@ -123,6 +157,10 @@ void NetworkSyncSystem::SendLook(ClientConnection* client)
     for (int y = 0; y < roomHeight; y++) {
         std::string row = "";
         for (int x = 0; x < roomWidth; x++) {
+            if (!HasLineOfSight(*roomLayout, lookupRegionId, playerPos->x, playerPos->y, x, y)) {
+                row += "   ";
+                continue;
+            }
             std::string currentColor;
             std::string symbol;
 
@@ -136,12 +174,12 @@ void NetworkSyncSystem::SendLook(ClientConnection* client)
                 // Get terrain from layout component
                 int terrainId = roomLayout->GetTerrain(x, y);
                 const TerrainDef* type = &VOID_TERRAIN;
-                
+
                 // Look up terrain in global terrain map by char symbol
                 char terrainChar = static_cast<char>(terrainId);
                 type = &GetTerrainFor(terrainChar, lookupRegionId.empty() ? nullptr : &lookupRegionId);
-                
-                currentColor = type->color;
+
+                currentColor = type->color + type->bg_color;
                 symbol = std::string(1, type->symbol);
             }
 

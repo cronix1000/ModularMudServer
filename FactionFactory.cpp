@@ -1,4 +1,5 @@
 #include "FactionFactory.h"
+#include "SafeJson.h"
 #include "GameContext.h"
 #include "IDatabase.h"
 #include "EventBus.h"
@@ -14,9 +15,9 @@ void FactionFactory::LoadFactionsFromJson(const json& data) {
 		for (auto& [key, j] : data["factions"].items()) {
 			FactionDef f;
 			f.id = key;
-			f.name = j.value("name", key);
-			f.description = j.value("description", "");
-			f.ideology = j.value("ideology", "");
+			f.name = SafeValue(j, "name", key);
+			f.description = SafeValue(j, "description", "");
+			f.ideology = SafeValue(j, "ideology", "");
 			if (j.contains("relations") && j["relations"].is_object()) {
 				for (auto& [other, val] : j["relations"].items()) {
 					if (val.is_number_integer()) {

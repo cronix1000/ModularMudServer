@@ -1,4 +1,5 @@
 #include "PlayerFactory.h"
+#include "SafeJson.h"
 #include <iostream>
 #include "PlayerData.h"
 #include "GameContext.h"
@@ -50,15 +51,15 @@ EntityID PlayerFactory::LoadPlayer(std::string username, ClientConnection* conne
     auto statsJson = s["stats"];
 
     // Extract all stat values with defaults
-    stats.Health = statsJson.value("hp", 100);
-    stats.MaxHealth = statsJson.value("max_hp", 100);
-    stats.Strength = statsJson.value("str", 10);
-    stats.Dexterity = statsJson.value("dex", 10);
-    stats.Intelligence = statsJson.value("int", 10);
-    stats.Wisdom = statsJson.value("wis", 10);
-    stats.AttackDamage = statsJson.value("atk", 5);
-    stats.attackSpeed = statsJson.value("atkspd", 1.0f);
-    stats.Mana = statsJson.value("mana", 50);
+    stats.Health = SafeValue(statsJson, "hp", 100);
+    stats.MaxHealth = SafeValue(statsJson, "max_hp", 100);
+    stats.Strength = SafeValue(statsJson, "str", 10);
+    stats.Dexterity = SafeValue(statsJson, "dex", 10);
+    stats.Intelligence = SafeValue(statsJson, "int", 10);
+    stats.Wisdom = SafeValue(statsJson, "wis", 10);
+    stats.AttackDamage = SafeValue(statsJson, "atk", 5);
+    stats.attackSpeed = SafeValue(statsJson, "atkspd", 1.0f);
+    stats.Mana = SafeValue(statsJson, "mana", 50);
     ctx.registry->AddComponent(player, stats);
 
     // Player variables (addon data) from DB
@@ -140,9 +141,9 @@ EntityID PlayerFactory::LoadPlayer(std::string username, ClientConnection* conne
     for (auto& itemData : data.items) {
         EntityID item = ctx.factories->items.CreateItem(itemData.templateId);
         // Apply saved state (equipped, durability, etc)
-        if (itemData.state.value("equipped", false)) {
+        if (SafeValue(itemData.state, "equipped", false)) {
             EquipmentSlot slot = EquipmentSlot::Default;
-            int32_t rawSlot = itemData.state.value("slot", static_cast<int32_t>(EquipmentSlot::Default));
+            int32_t rawSlot = SafeValue(itemData.state, "slot", static_cast<int32_t>(EquipmentSlot::Default));
             if (rawSlot >= 0 && rawSlot <= static_cast<int32_t>(EquipmentSlot::Default)) {
                 slot = static_cast<EquipmentSlot>(rawSlot);
             }

@@ -1,5 +1,6 @@
 #pragma once
 #include "GameContext.h"
+#include "SafeJson.h"
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -37,15 +38,15 @@ public:
 
         for (auto& [key, val] : itemData.items()) {
             AttackStyleTemplate t;
-            t.name = val.value("name", "unknown");
-            t.symbol = val.value("char", "?");
-            t.color = val.value("color", "&w");
-            t.description = val.value("description", "");
-            t.weight = val.value("weight", 1);
-            t.value = val.value("value", 0);
-            t.equippable = val.value("equippable", false);
-            t.gettable = val.value("gettable", true);
-            t.extra = val.value("components", json::object());
+            t.name = SafeValue(val, "name", "unknown");
+            t.symbol = SafeValue(val, "char", "?");
+            t.color = SafeValue(val, "color", "&w");
+            t.description = SafeValue(val, "description", "");
+            t.weight = SafeValue(val, "weight", 1);
+            t.value = SafeValue(val, "value", 0);
+            t.equippable = SafeValue(val, "equippable", false);
+            t.gettable = SafeValue(val, "gettable", true);
+            t.extra = SafeValue(val, "components", json::object());
 
             attackStyleTemplates[key] = t;
         }
@@ -78,13 +79,13 @@ public:
             weapon.templateID = templateID;
 
             // WE COPY THE NUMBERS HERE
-            weapon.minDamage = w.value("minDamage", 1);
-            weapon.maxDamage = w.value("maxDamage", 1);
-            weapon.strScaling = w.value("strScaling", 0.0f);
-            weapon.dexScaling = w.value("dexScaling", 0.0f);
-            weapon.intScaling = w.value("intScaling", 0.0f);
-            weapon.damageType = w.value("damageType", "blunt");
-            weapon.twoHanded = w.value("twoHanded", false);
+            weapon.minDamage = SafeValue(w, "minDamage", 1);
+            weapon.maxDamage = SafeValue(w, "maxDamage", 1);
+            weapon.strScaling = SafeValue(w, "strScaling", 0.0f);
+            weapon.dexScaling = SafeValue(w, "dexScaling", 0.0f);
+            weapon.intScaling = SafeValue(w, "intScaling", 0.0f);
+            weapon.damageType = SafeValue(w, "damageType", "blunt");
+            weapon.twoHanded = SafeValue(w, "twoHanded", false);
 
             ctx.registry->AddComponent<WeaponComponent>(id, weapon);
         }
@@ -95,8 +96,8 @@ public:
             armour.templateID = templateID;
 
             // WE COPY THE NUMBERS HERE
-            armour.defense = a.value("defense", 0);
-            armour.magicDefense = a.value("magicDefense", 0);
+            armour.defense = SafeValue(a, "defense", 0);
+            armour.magicDefense = SafeValue(a, "magicDefense", 0);
 
             ctx.registry->AddComponent<ArmourComponent>(id, armour);
         }

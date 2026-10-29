@@ -1,4 +1,5 @@
 #include "MobFactory.h"
+#include "SafeJson.h"
 #include "GameContext.h"
 #include "Component.h"
 #include "TextHelperFunctions.h"
@@ -42,36 +43,36 @@ void MobFactory::LoadSingleMobFromJSON(const std::string& key, const json& j) {
     MobTemplate tpl;
     tpl.id = key;
 
-    tpl.name = j.value("name", "Unknown Mob");
-    tpl.description = j.value("description", "A generic creature.");
-    tpl.symbol = j.value("char", "m");
-    tpl.color = j.value("color", "&r");
-    tpl.hp = j.value("hp", 10);
-    tpl.level = j.value("level", 1);
-    tpl.aiType = j.value("ai", "aggressive");
-    tpl.lootTable = j.value("loot_drop", "");
+    tpl.name = SafeValue(j, "name", "Unknown Mob");
+    tpl.description = SafeValue(j, "description", "A generic creature.");
+    tpl.symbol = SafeValue(j, "char", "m");
+    tpl.color = SafeValue(j, "color", "&r");
+    tpl.hp = SafeValue(j, "hp", 10);
+    tpl.level = SafeValue(j, "level", 1);
+    tpl.aiType = SafeValue(j, "ai", "aggressive");
+    tpl.lootTable = SafeValue(j, "loot_drop", "");
 
     if (j.contains("stat")) {
         const json& stats = j["stat"];
-        tpl.str = stats.value("strength", 10);
-        tpl.dex = stats.value("dexterity", 10);
-        tpl.intel = stats.value("intelligence", 10);
+        tpl.str = SafeValue(stats, "strength", 10);
+        tpl.dex = SafeValue(stats, "dexterity", 10);
+        tpl.intel = SafeValue(stats, "intelligence", 10);
     }
     else {
         tpl.str = 10; tpl.dex = 10; tpl.intel = 10;
     }
 
-    tpl.attackDamage = j.value("attack_damage", 5);
-    tpl.attackSpeed = j.value("attack_speed", 2.0f);
-    tpl.criticalChance = j.value("critical_chance", 0.05f);
-    tpl.criticalMultiplier = j.value("critical_multiplier", 1.5f);
+    tpl.attackDamage = SafeValue(j, "attack_damage", 5);
+    tpl.attackSpeed = SafeValue(j, "attack_speed", 2.0f);
+    tpl.criticalChance = SafeValue(j, "critical_chance", 0.05f);
+    tpl.criticalMultiplier = SafeValue(j, "critical_multiplier", 1.5f);
 
     if (j.contains("attack_patterns")) {
         for (const auto& pattern : j["attack_patterns"]) {
             MobAttackPattern mobPattern;
-            mobPattern.verb = pattern.value("verb", "attacks");
-            mobPattern.multiplier = pattern.value("multiplier", 1.0f);
-            mobPattern.damageType = pattern.value("damage_type", "physical");
+            mobPattern.verb = SafeValue(pattern, "verb", "attacks");
+            mobPattern.multiplier = SafeValue(pattern, "multiplier", 1.0f);
+            mobPattern.damageType = SafeValue(pattern, "damage_type", "physical");
             tpl.attackPatterns.push_back(mobPattern);
         }
     }
@@ -100,8 +101,11 @@ void MobFactory::LoadSingleMobFromJSON(const std::string& key, const json& j) {
         tpl.extra["messages"] = j["messages"];
     }
 
-    tpl.script = j.value("script", "");
-    tpl.extra = j.value("extra", json::object());
+    tpl.script = SafeValue(j, "script", "");
+    json extraDoc = SafeValue(j, "extra", json::object());
+    for (auto extraIt = extraDoc.begin(); extraIt != extraDoc.end(); ++extraIt) {
+        tpl.extra[extraIt.key()] = extraIt.value();
+    }
 
     mobTemplates[key] = tpl;
 }
@@ -117,8 +121,8 @@ int MobFactory::CreateMob(std::string templateID, json overrides, int x, int y, 
     const auto& tpl = mobTemplates[templateID];
     int id = ctx.registry->CreateEntity();
 
-    std::string name = overrides.value("name", tpl.name);
-    int hp = overrides.value("hp", tpl.hp);
+    std::string name = SafeValue(overrides, "name", tpl.name);
+    int hp = SafeValue(overrides, "hp", tpl.hp);
 
     int str = tpl.str;
     int dex = tpl.dex;
@@ -126,9 +130,9 @@ int MobFactory::CreateMob(std::string templateID, json overrides, int x, int y, 
 
     if (overrides.contains("stats")) {
         auto s = overrides["stats"];
-        str = s.value("str", str);
-        dex = s.value("dex", dex);
-        intel = s.value("int", intel);
+        str = SafeValue(s, "str", str);
+        dex = SafeValue(s, "dex", dex);
+        intel = SafeValue(s, "int", intel);
     }
 
     ctx.registry->AddComponent<NameComponent>(id, { name });
@@ -199,7 +203,7 @@ int MobFactory::CreateMob(std::string templateID, json overrides, int x, int y, 
         ctx.registry->AddComponent<PositionComponent>(id, { x, y, roomID });
     }
 
-    json meta = tpl.extra.value("meta", json::object());
+    json meta = SafeValue(tpl.extra, "meta", json::object());
     if (overrides.contains("meta") && overrides["meta"].is_object()) {
         for (auto& [k, v] : overrides["meta"].items()) {
             meta[k] = v;

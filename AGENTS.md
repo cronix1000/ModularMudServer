@@ -42,14 +42,14 @@ When adding a new world_* table or column:
 - Map `*_json` columns: object-typed values are merged into the parent JSON; array-typed values get the `_json` suffix stripped.
 - Component-style columns (e.g. `world_items.components_json`) need explicit wrapping under `components` in the loader — see `LoadItems()` for the pattern.
 
-### Document source (`MUD_WORLD_SOURCE=entities`)
+### Document source (`world.entities` default)
 
 `PostgresDatabase` supports two world sources, selected by the `MUD_WORLD_SOURCE` env var:
 
 | Value | Source | Notes |
 |---|---|---|
-| `entities` (opt-in) | `world.entities (entity_type, entity_id, doc JSONB, parent_id)` | Document model; `LoadEntityDocs(type)` returns id -> resolved doc; factories unchanged |
-| unset / `legacy` | `world_*` row tables | Current default |
+| unset (default) / `entities` | `world.entities (entity_type, entity_id, doc JSONB, parent_id)` | Document model; `LoadEntityDocs(type)` returns id -> resolved doc; factories unchanged |
+| `legacy` | `world_*` row tables | Only for databases predating migration 30, which drops those tables once empty |
 
 - Every `Load*()` has an entities branch that returns docs in the exact legacy shape, so factories don't change. `LoadRoomJson` rebuilds the spawn grid/legend from the raw `doc.spawns` array; exits come from `doc.exits`.
 - Prototype inheritance: `parent_id` chains are resolved at load (`MergeDocs`: objects deep-merge, arrays/scalars replace; cycles guarded).

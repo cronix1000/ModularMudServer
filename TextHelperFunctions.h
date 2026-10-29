@@ -35,7 +35,30 @@ public:
         result.reserve(text.size()); // Pre-allocate memory for speed
 
         for (size_t i = 0; i < text.size(); ++i) {
-            if (text[i] == '&' && i + 1 < text.size()) {
+            if (text[i] == '{' && i + 1 < text.size()) {
+                char code = text[++i];
+                switch (code) {
+                case 'x': result += "\033[40m"; break;  // Black bg
+                case 'X': result += "\033[100m"; break; // Bright Black bg
+                case 'g': result += "\033[42m"; break;  // Green bg
+                case 'G': result += "\033[102m"; break; // Bright Green bg
+                case 'b': result += "\033[44m"; break;  // Blue bg
+                case 'B': result += "\033[104m"; break; // Bright Blue bg
+                case 'y': result += "\033[43m"; break;  // Yellow bg
+                case 'Y': result += "\033[103m"; break; // Bright Yellow bg
+                case 'r': result += "\033[41m"; break;  // Red bg
+                case 'R': result += "\033[101m"; break; // Bright Red bg
+                case 'm': result += "\033[45m"; break;  // Magenta bg
+                case 'M': result += "\033[105m"; break; // Bright Magenta bg
+                case 'c': result += "\033[46m"; break;  // Cyan bg
+                case 'C': result += "\033[106m"; break; // Bright Cyan bg
+                case 'w': result += "\033[47m"; break;  // White bg
+                case 'W': result += "\033[107m"; break; // Bright White bg
+                case 'n': result += "\033[49m"; break;  // Default bg
+                default:  result += '{'; result += code; break; // Not a code, keep it
+                }
+            }
+            else if (text[i] == '&' && i + 1 < text.size()) {
                 char code = text[++i]; // Peek at the next char and skip it
                 switch (code) {
                 case 'x': result += "\033[30m"; break; // Black

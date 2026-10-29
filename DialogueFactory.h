@@ -1,5 +1,6 @@
 #pragma once
 #include "GameContext.h"
+#include "SafeJson.h"
 #include <fstream>
 #include <vector>
 #include <string>
@@ -48,14 +49,14 @@ public:
             // TYPE 1: Interactive Dialogue Node
             if (val.contains("text")) {
                 DialogueNode node;
-                node.text = val.value("text", "...");
+                node.text = SafeValue(val, "text", "...");
 
                 if (val.contains("options") && val["options"].is_array()) {
                     for (auto& optJson : val["options"]) {
                         node.options.push_back({
-                            optJson.value("text", "Continue..."),
-                            optJson.value("targetNode", "EXIT"),
-                            optJson.value("luaCallback", "")
+                            SafeValue(optJson, "text", "Continue..."),
+                            SafeValue(optJson, "targetNode", "EXIT"),
+                            SafeValue(optJson, "luaCallback", "")
                             });
                     }
                 }
@@ -67,9 +68,9 @@ public:
             // TYPE 2: Simple Voice Barks
             else if (val.contains("idle") || val.contains("combat")) {
                 VoiceSet vs;
-                vs.idleLines = val.value("idle", std::vector<std::string>{});
-                vs.combatLines = val.value("combat", std::vector<std::string>{});
-                vs.deathLines = val.value("death", std::vector<std::string>{});
+                vs.idleLines = SafeValue(val, "idle", std::vector<std::string>{});
+                vs.combatLines = SafeValue(val, "combat", std::vector<std::string>{});
+                vs.deathLines = SafeValue(val, "death", std::vector<std::string>{});
                 voiceLibrary[key] = vs;
             }
         }

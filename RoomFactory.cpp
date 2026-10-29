@@ -1,4 +1,5 @@
 #include "RoomFactory.h"
+#include "SafeJson.h"
 #include "RoomComponents.h"
 #include "ScriptComponent.h"
 #include "GameContext.h"
@@ -126,24 +127,24 @@ EntityID RoomFactory::GetRoomById(int roomId) {
 EntityID RoomFactory::CreateRoomInternal(const json& roomData, bool isInstance, int templateId) {
     // Create entity
     EntityID roomEntity = ctx.registry->CreateEntity();
-    int roomId = roomData.value("id", roomEntity);  // Use provided ID or entity ID
+    int roomId = SafeValue(roomData, "id", roomEntity);  // Use provided ID or entity ID
     
     // 1. Add RoomIdentityComponent
     RoomIdentityComponent identity;
     identity.roomId = roomId;
-    identity.name = roomData.value("name", "Unnamed Room");
-    identity.description = roomData.value("description", "");
-    identity.regionId = roomData.value("regionId", "");
+    identity.name = SafeValue(roomData, "name", "Unnamed Room");
+    identity.description = SafeValue(roomData, "description", "");
+    identity.regionId = SafeValue(roomData, "regionId", "");
     identity.isInstance = isInstance;
     identity.templateId = templateId;
-    identity.zoneId = roomData.value("zoneId", 0);
-    identity.zoneName = roomData.value("zoneName", "");
+    identity.zoneId = SafeValue(roomData, "zoneId", 0);
+    identity.zoneName = SafeValue(roomData, "zoneName", "");
     
     ctx.registry->AddComponent<RoomIdentityComponent>(roomEntity, identity);
     
     // 2. Add RoomLayoutComponent (if grid-based)
-    int width = roomData.value("width", 0);
-    int height = roomData.value("height", 0);
+    int width = SafeValue(roomData, "width", 0);
+    int height = SafeValue(roomData, "height", 0);
     
     if (width > 0 && height > 0) {
         RoomLayoutComponent layout;
@@ -167,10 +168,18 @@ EntityID RoomFactory::CreateRoomInternal(const json& roomData, bool isInstance, 
     }
     
     // 4. Add RoomSpawnComponent
-    if (roomData.contains("spawn")) {
+    bool hasSpawnX = roomData.contains("spawn_x") && roomData["spawn_x"].is_number();
+    bool hasSpawnY = roomData.contains("spawn_y") && roomData["spawn_y"].is_number();
+    if (hasSpawnX || hasSpawnY || roomData.contains("spawn")) {
         RoomSpawnComponent spawn;
-        spawn.spawnX = roomData["spawn"].value("x", width / 2);
-        spawn.spawnY = roomData["spawn"].value("y", height / 2);
+        spawn.spawnX = width > 0 ? width / 2 : 0;
+        spawn.spawnY = height > 0 ? height / 2 : 0;
+        if (roomData.contains("spawn") && roomData["spawn"].is_object()) {
+            spawn.spawnX = SafeValue(roomData["spawn"], "x", spawn.spawnX);
+            spawn.spawnY = SafeValue(roomData["spawn"], "y", spawn.spawnY);
+        }
+        if (hasSpawnX) spawn.spawnX = roomData["spawn_x"].get<int>();
+        if (hasSpawnY) spawn.spawnY = roomData["spawn_y"].get<int>();
         ctx.registry->AddComponent<RoomSpawnComponent>(roomEntity, spawn);
     } else if (width > 0 && height > 0) {
         // Default spawn to center
@@ -216,9 +225,9 @@ if (roomData.contains("meta") && roomData["meta"].is_object()) {
     if (roomData.contains("rules") && roomData["rules"].is_object()) {
         const json& rules = roomData["rules"];
         RoomRulesComponent rr;
-        rr.allowDrop = rules.value("allowDrop", true);
-        rr.allowPickup = rules.value("allowPickup", true);
-        rr.maxItemsOnGround = rules.value("maxItemsOnGround", -1);
+        rr.allowDrop = SafeValue(rules, "allowDrop", true);
+        rr.allowPickup = SafeValue(rules, "allowPickup", true);
+        rr.maxItemsOnGround = SafeValue(rules, "maxItemsOnGround", -1);
         ctx.registry->AddComponent<RoomRulesComponent>(roomEntity, rr);
     }
 
@@ -288,13 +297,13 @@ void RoomFactory::ParseExits(RoomExitsComponent& exits, const json& exitsData) {
         
         // Handle Object format: "north": { "target_room": 2, ... }
         if (exitValue.is_object()) {
-            exit.targetRoomId = exitValue.value("target_room", -1);
-            exit.destX = exitValue.value("dest_x", -1);
-            exit.destY = exitValue.value("dest_y", -1);
-            exit.isPortal = exitValue.value("is_portal", false);
-            exit.isOneWay = exitValue.value("is_one_way", false);
-            exit.portalName = exitValue.value("portal_name", "");
-            exit.autoTrigger = exitValue.value("auto_trigger", true);
+            exit.targetRoomId = SafeValue(exitValue, "target_room", -1);
+            exit.destX = SafeValue(exitValue, "dest_x", -1);
+            exit.destY = SafeValue(exitValue, "dest_y", -1);
+            exit.isPortal = SafeValue(exitValue, "is_portal", false);
+            exit.isOneWay = SafeValue(exitValue, "is_one_way", false);
+            exit.portalName = SafeValue(exitValue, "portal_name", "");
+            exit.autoTrigger = SafeValue(exitValue, "auto_trigger", true);
         }
         // Handle simple format: "north": 2
         else if (exitValue.is_number_integer()) {

@@ -8,6 +8,7 @@ struct TerrainDef {
     std::string name;
     std::string color;
     std::string description;
+    std::string bg_color;
     bool blocks_move = false;
     bool blocks_sight = false;
     int move_cost = 1;

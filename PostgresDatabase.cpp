@@ -1,4 +1,5 @@
 #include "PostgresDatabase.h"
+#include "SafeJson.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -31,6 +32,26 @@
 using json = nlohmann::json;
 
 namespace {
+
+// Admin-authored docs may contain explicit nulls (e.g. cleared script refs).
+// Every loader treats "absent" as the default; a present-but-null key would
+// make json::value() throw a type_error, so nulls are erased at load time.
+void StripNulls(json& j) {
+    if (j.is_object()) {
+        for (auto it = j.begin(); it != j.end();) {
+            if (it.value().is_null()) {
+                it = j.erase(it);
+            } else {
+                StripNulls(it.value());
+                ++it;
+            }
+        }
+    } else if (j.is_array()) {
+        for (auto& e : j) {
+            StripNulls(e);
+        }
+    }
+}
 
 bool shouldSkip(const std::string& name, const std::vector<std::string>& skip) {
     for (const auto& s : skip) if (s == name) return true;
@@ -396,7 +417,7 @@ bool PostgresDatabase::LoadPlayer(const std::string& name, PlayerData& outData) 
                         for (const auto& entry : stateDoc["inventory"]) {
                             if (!entry.is_object()) continue;
                             SavedItemData item;
-                            item.templateId = entry.value("template_id", std::string{});
+                            item.templateId = SafeValue(entry, "template_id", std::string{});
                             json st = entry;
                             st.erase("template_id");
                             item.state = st;
@@ -494,7 +515,14 @@ bool PostgresDatabase::VerifyPassword(const std::string& name, const std::string
 bool PostgresDatabase::UseEntitiesSource() {
     if (entitiesSourceCache < 0) {
         const char* env = std::getenv("MUD_WORLD_SOURCE");
-        entitiesSourceCache = (env && std::strcmp(env, "entities") == 0) ? 1 : 0;
+        if (!env || !*env) {
+            entitiesSourceCache = 1;
+        } else {
+            entitiesSourceCache = (std::strcmp(env, "entities") == 0) ? 1 : 0;
+        }
+        printf("[Postgres] World source: %s (MUD_WORLD_SOURCE=%s)\n",
+               entitiesSourceCache == 1 ? "entities" : "legacy",
+               env && *env ? env : "<unset>");
     }
     return entitiesSourceCache == 1;
 }
@@ -567,6 +595,7 @@ nlohmann::json PostgresDatabase::LoadEntityDocs(const std::string& entityType) {
             for (auto cit = chain.rbegin(); cit != chain.rend(); ++cit) {
                 merged = MergeDocs(merged, recs[byId[*cit]].doc);
             }
+            StripNulls(merged);
             out[rec.id] = std::move(merged);
         }
     } catch (const std::exception& e) {
@@ -589,16 +618,18 @@ bool PostgresDatabase::LoadTerrain() {
             int count = 0;
             for (auto it = terrains.begin(); it != terrains.end(); ++it) {
                 const json& doc = it.value();
-                std::string symTxt = doc.value("symbol", it.key());
+                std::string symTxt = SafeValue(doc, "symbol", it.key());
                 if (symTxt.empty()) continue;
                 const char symbol = symTxt[0];
                 globalTerrain[symbol] = TerrainDef(
                     symbol,
-                    doc.value("name", std::string{"Unknown"}),
-                    doc.value("color", std::string{"white"}),
-                    doc.value("blocks_move", false),
-                    doc.value("blocks_sight", false),
-                    doc.value("move_cost", 1));
+                    SafeValue(doc, "name", std::string{"Unknown"}),
+                    SafeValue(doc, "color", std::string{"white"}),
+                    SafeValue(doc, "description", std::string{}),
+                    SafeValue(doc, "blocks_move", false),
+                    SafeValue(doc, "blocks_sight", false),
+                    SafeValue(doc, "move_cost", 1));
+                globalTerrain[symbol].bg_color = SafeValue(doc, "bg_color", std::string{});
                 ++count;
             }
             printf("[Postgres] Loaded %d terrain symbols from entities.\n", count);
@@ -612,16 +643,18 @@ bool PostgresDatabase::LoadTerrain() {
                 if (!doc.contains("floor_palette") || !doc["floor_palette"].is_array()) continue;
                 for (const auto& tile : doc["floor_palette"]) {
                     if (!tile.is_object()) continue;
-                    const std::string symTxt = tile.value("symbol", std::string{});
+                    const std::string symTxt = SafeValue(tile, "symbol", std::string{});
                     if (symTxt.empty()) continue;
                     const char symbol = symTxt[0];
                     regionTerrain[regionId][symbol] = TerrainDef(
                         symbol,
-                        tile.value("name", std::string{"Unknown"}),
-                        tile.value("color", std::string{"&w"}),
-                        tile.value("blocks_move", 0) != 0,
-                        tile.value("blocks_sight", 0) != 0,
-                        tile.value("move_cost", 1));
+                        SafeValue(tile, "name", std::string{"Unknown"}),
+                        SafeValue(tile, "color", std::string{"&w"}),
+                        SafeValue(tile, "description", std::string{}),
+                        SafeValue(tile, "blocks_move", 0) != 0,
+                        SafeValue(tile, "blocks_sight", 0) != 0,
+                        SafeValue(tile, "move_cost", 1));
+                    regionTerrain[regionId][symbol].bg_color = SafeValue(tile, "bg_color", std::string{});
                     ++tileCount;
                 }
                 ++regionCount;
@@ -681,14 +714,14 @@ bool PostgresDatabase::LoadTerrain() {
             if (!pal.is_array()) continue;
             for (const auto& tile : pal) {
                 if (!tile.is_object()) continue;
-                const std::string symTxt = tile.value("symbol", std::string{});
+                const std::string symTxt = SafeValue(tile, "symbol", std::string{});
                 if (symTxt.empty()) continue;
                 const char symbol = symTxt[0];
-                const std::string name  = tile.value("name", std::string{"Unknown"});
-                const std::string color = tile.value("color", std::string{"&w"});
-                const bool blocksMove  = tile.value("blocks_move", 0) != 0;
-                const bool blocksSight = tile.value("blocks_sight", 0) != 0;
-                const int  moveCost    = tile.value("move_cost", 1);
+                const std::string name  = SafeValue(tile, "name", std::string{"Unknown"});
+                const std::string color = SafeValue(tile, "color", std::string{"&w"});
+                const bool blocksMove  = SafeValue(tile, "blocks_move", 0) != 0;
+                const bool blocksSight = SafeValue(tile, "blocks_sight", 0) != 0;
+                const int  moveCost    = SafeValue(tile, "move_cost", 1);
                 regionTerrain[regionId][symbol] =
                     TerrainDef(symbol, name, color, blocksMove, blocksSight, moveCost);
                 ++tileCount;
@@ -1284,6 +1317,7 @@ bool PostgresDatabase::LoadRegionFloorSettings(const std::string& worldId,
                 if (!raw.empty()) {
                     try {
                         outSettings = json::parse(raw);
+                        StripNulls(outSettings);
                     } catch (const std::exception& e) {
                         std::cerr << "[Postgres] floor_settings parse error for region "
                                   << regionId << ": " << e.what() << std::endl;
@@ -1355,6 +1389,7 @@ bool PostgresDatabase::LoadZoneJson(const std::string& worldId,
             );
             if (rs.empty()) return false;
             outZone = json::parse(rs[0]["doc_text"].as<std::string>());
+            StripNulls(outZone);
             outZone["regionId"] = regionId;
             outZone["zoneId"] = zoneId;
             if (outZone.contains("zone_script_ref") && outZone["zone_script_ref"].is_string()) {
@@ -1435,6 +1470,7 @@ bool PostgresDatabase::LoadRoomJson(const std::string& worldId,
                 return false;
             }
             outRoom = doc;
+            StripNulls(outRoom);
             outRoom["id"] = roomId;
             outRoom["regionId"] = regionId;
 
@@ -1469,18 +1505,18 @@ bool PostgresDatabase::LoadRoomJson(const std::string& worldId,
                 for (const auto& s : doc["spawns"]) {
                     if (!s.is_object()) continue;
                     SpawnDoc rec;
-                    rec.x = s.value("x", 0);
-                    rec.y = s.value("y", 0);
-                    rec.type = s.value("type", std::string{});
-                    rec.tmpl = s.value("template_id", std::string{});
+                    rec.x = SafeValue(s, "x", 0);
+                    rec.y = SafeValue(s, "y", 0);
+                    rec.type = SafeValue(s, "type", std::string{});
+                    rec.tmpl = SafeValue(s, "template_id", std::string{});
                     rec.ov = s.contains("override") && s["override"].is_object()
                         ? s["override"] : json::object();
-                    rec.respawnTime = s.value("respawn_time", 30.0f);
-                    rec.respawning = s.value("is_respawning", true);
+                    rec.respawnTime = SafeValue(s, "respawn_time", 30.0f);
+                    rec.respawning = SafeValue(s, "is_respawning", true);
                     spawns.push_back(rec);
                 }
-                int w = doc.value("width", 0);
-                int h = doc.value("height", 0);
+                int w = SafeValue(doc, "width", 0);
+                int h = SafeValue(doc, "height", 0);
                 if (w > 0 && h > 0 && !spawns.empty()) {
                     std::vector<std::string> grid(h, std::string(w, '.'));
                     json legend = json::object();
@@ -1614,8 +1650,8 @@ bool PostgresDatabase::LoadRoomJson(const std::string& worldId,
         }
 
         if (!spawns.empty()) {
-            int w = outRoom.value("width", 0);
-            int h = outRoom.value("height", 0);
+            int w = SafeValue(outRoom, "width", 0);
+            int h = SafeValue(outRoom, "height", 0);
             if (w > 0 && h > 0) {
                 std::vector<std::string> grid(h, std::string(w, '.'));
                 json legend = json::object();

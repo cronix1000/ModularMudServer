@@ -1,4 +1,5 @@
 #include "World.h"
+#include "SafeJson.h"
 #include <iostream>
 #include "ItemFactory.h"
 #include "MobFactory.h"
@@ -66,22 +67,22 @@ bool World::LoadRegion(const std::string& regionId, GameContext& ctx)
                           << " for region " << regionId << std::endl;
                 continue;
             }
-            if (zData.value("isInstanceSource", false)) {
+            if (SafeValue(zData, "isInstanceSource", false)) {
                 proceduralZoneIds.insert(zid);
             }
             EntityID zEnt = ctx.registry->CreateEntity();
             ZoneIdentityComponent zc;
-            zc.regionId = zData.value("regionId", regionId);
+            zc.regionId = SafeValue(zData, "regionId", regionId);
             zc.zoneId = zid;
-            zc.name = zData.value("name", std::string{});
-            zc.description = zData.value("description", std::string{});
+            zc.name = SafeValue(zData, "name", std::string{});
+            zc.description = SafeValue(zData, "description", std::string{});
             if (zData.contains("rules_json") && zData["rules_json"].is_object()) {
                 zc.rules = zData["rules_json"];
             } else if (zData.contains("rules") && zData["rules"].is_object()) {
                 zc.rules = zData["rules"];
             }
-            zc.zoneScriptRef = zData.value("zone_script_ref", std::string{});
-            zc.isInstanceSource = zData.value("isInstanceSource", false);
+            zc.zoneScriptRef = SafeValue(zData, "zone_script_ref", std::string{});
+            zc.isInstanceSource = SafeValue(zData, "isInstanceSource", false);
             ctx.registry->AddComponent<ZoneIdentityComponent>(zEnt, zc);
         }
 
@@ -95,8 +96,8 @@ bool World::LoadRegion(const std::string& regionId, GameContext& ctx)
                 continue;
             }
             fprintf(stderr, "[DEBUG:World] roomId=%d loaded. zoneId=%d. Has 'scripts' key: %d\n",
-                    roomId, rData.value("zoneId", 0), (int)rData.contains("scripts")); fflush(stderr);
-            int rzid = rData.value("zoneId", 0);
+                    roomId, SafeValue(rData, "zoneId", 0), (int)rData.contains("scripts")); fflush(stderr);
+            int rzid = SafeValue(rData, "zoneId", 0);
             if (rzid != 0 && proceduralZoneIds.count(rzid)) {
                 fprintf(stderr, "[DEBUG:World] roomId=%d SKIPPED (procedural zone)\n", roomId); fflush(stderr);
                 continue;
@@ -116,7 +117,7 @@ bool World::LoadRegion(const std::string& regionId, GameContext& ctx)
 
 bool World::LoadRoomFromJson(const json& rData, const json& floorSettings, GameContext& ctx)
 {
-    int id = rData.value("id", -1);
+    int id = SafeValue(rData, "id", -1);
     if (id < 0) {
         std::cerr << "World::LoadRoomFromJson: missing valid id" << std::endl;
         return false;
@@ -133,7 +134,7 @@ bool World::LoadRoomFromJson(const json& rData, const json& floorSettings, GameC
     }
 
     if (rData.contains("spawns") && rData.contains("spawn_legend")) {
-        int logicalRoomId = rData.value("id", (int)roomEntity);
+        int logicalRoomId = SafeValue(rData, "id", (int)roomEntity);
         ParseSpawns(rData, logicalRoomId, floorSettings, ctx);
     }
 
@@ -174,8 +175,8 @@ void World::ParseSpawns(const json& rData, int roomID,const json& floorSettings,
             }
 
             if (type == "mob") {
-                float respawnTime = spawnInfo.value("respawn_time", 30.0f);
-                bool shouldRespawn = spawnInfo.value("respawn", true);
+                float respawnTime = SafeValue(spawnInfo, "respawn_time", 30.0f);
+                bool shouldRespawn = SafeValue(spawnInfo, "respawn", true);
 
                 ctx.factories->mobs.CreateMob(templateID, finalOverrides, x, y, roomID);
                 

@@ -4,6 +4,7 @@
 #include "Direction.h"
 #include "RoomComponents.h"
 #include "Registry.h"
+#include "TerrainDef.h"
 #include <cstdio>
 
 enum MoveType {
@@ -156,8 +157,17 @@ bool WorldManager::CanMoveTo(int roomId, int x, int y)
 {
     const RoomLayoutComponent* layout = GetRoomLayout(roomId);
     if (!layout) return false;
-    
-    return !layout->IsWall(x, y);
+
+    if (layout->IsWall(x, y)) return false;
+
+    EntityID roomEntity = GetRoomEntity(roomId);
+    const RoomIdentityComponent* identity = roomEntity != 0
+        ? registry->GetComponent<RoomIdentityComponent>(roomEntity)
+        : nullptr;
+    const std::string* regionId = identity && !identity->regionId.empty() ? &identity->regionId : nullptr;
+    char terrainChar = static_cast<char>(layout->GetTerrain(x, y));
+    const TerrainDef& terrain = GetTerrainFor(terrainChar, regionId);
+    return !terrain.blocks_move;
 }
 
 bool WorldManager::PutPlayerInRoom(int roomId, PositionComponent& position)

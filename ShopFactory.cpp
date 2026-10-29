@@ -1,4 +1,5 @@
 #include "ShopFactory.h"
+#include "SafeJson.h"
 #include "Registry.h"
 #include "PlayerVariablesComponent.h"
 #include "ItemFactory.h"
@@ -20,21 +21,21 @@ void ShopFactory::LoadShopsFromJson(const json& data) {
 		for (auto& [key, j] : data["shops"].items()) {
 			ShopKeeper k;
 			k.id = key;
-			k.mobId = j.value("mob_id", "");
-			k.markup = j.value("markup", 1.0);
-			k.markdown = j.value("markdown", 1.0);
-			k.openHour = j.value("open_hour", 0);
-			k.closeHour = j.value("close_hour", 24);
-			k.shopType = j.value("shop_type", "general");
+			k.mobId = SafeValue(j, "mob_id", "");
+			k.markup = SafeValue(j, "markup", 1.0);
+			k.markdown = SafeValue(j, "markdown", 1.0);
+			k.openHour = SafeValue(j, "open_hour", 0);
+			k.closeHour = SafeValue(j, "close_hour", 24);
+			k.shopType = SafeValue(j, "shop_type", "general");
 
 			if (j.contains("inventory") && j["inventory"].is_object()) {
 				for (auto& [tplId, itemJson] : j["inventory"].items()) {
 					ShopItem item;
 					item.templateId = tplId;
-					item.maxStock = itemJson.value("max_stock", -1);
-					item.currentStock = itemJson.value("current_stock", -1);
-					item.restockSeconds = itemJson.value("restock_seconds", 600);
-					item.priceOverride = itemJson.value("price_override", -1);
+					item.maxStock = SafeValue(itemJson, "max_stock", -1);
+					item.currentStock = SafeValue(itemJson, "current_stock", -1);
+					item.restockSeconds = SafeValue(itemJson, "restock_seconds", 600);
+					item.priceOverride = SafeValue(itemJson, "price_override", -1);
 					k.inventory[tplId] = item;
 				}
 			}
