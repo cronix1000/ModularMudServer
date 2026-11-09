@@ -186,10 +186,17 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_pg_loaders.cpp")
     target_include_directories(test_pg_loaders PRIVATE
         ${MUD_INCLUDE_DIRS}
         ${PostgreSQL_INCLUDE_DIRS}
+        ${LUA_INCLUDE_DIR}
+        ${SOL2_INCLUDE_DIR}
+    )
+    target_compile_definitions(test_pg_loaders PRIVATE
+        SOL2_USING_LUA_VERSION=5${LUA_VERSION_MINOR}0
     )
     target_link_libraries(test_pg_loaders PRIVATE
         ${PostgreSQL_LIBRARIES}
         ${PQXX_LIBRARY}
+        ${LUA_LIBRARIES}
+        nlohmann_json::nlohmann_json
     )
 endif()
 

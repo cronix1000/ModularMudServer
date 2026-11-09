@@ -1,0 +1,21 @@
+-- Copy to .projbuild.lua and fill in real values (.projbuild.lua is gitignored).
+return {
+	configs = { 'Debug', 'Release' },
+	default_config = 'Debug',
+	build = {
+		cmd = {
+			'C:/PROGRA~1/MICROS~3/18/ENTERP~1/MSBuild/Current/Bin/MSBuild.exe',
+			'ModularMudServer.sln',
+			'/p:Configuration=%s',
+			'/p:Platform=x64',
+			'/m', '/v:m', '/nologo',
+		},
+	},
+	run = {
+		cmd = { 'x64/%s/ModularMudServer.exe' },
+		env = {
+			MUD_DATABASE_URL = 'postgresql://USER:PASSWORD@127.0.0.1:5432/DBNAME',
+			MUD_WORLD_SOURCE = 'entities',
+		},
+	},
+}

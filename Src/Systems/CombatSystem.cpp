@@ -103,7 +103,8 @@ float CombatSystem::RollCritChance(int sourceID) {
 
 bool CombatSystem::IsMagicDamage(const std::string &damageType) {
   static const std::vector<std::string> magicTypes = {
-      "magic", "fire", "ice", "frost", "lightning", "arcane"};
+      "Heat",  "Dissolution",  "Seperation", "Conjunction",
+      "Death", "Distillation", "Creation"};
   return std::find(magicTypes.begin(), magicTypes.end(), damageType) !=
          magicTypes.end();
 }
@@ -111,24 +112,16 @@ bool CombatSystem::IsMagicDamage(const std::string &damageType) {
 void CombatSystem::ProcessCombatIntent(int sourceID,
                                        const CombatIntentComponent &intent) {
   // Route to appropriate handler based on action type
-  if (intent.actionType == "attack") {
-    bool forcedCritical = false;
-    for (const auto &tag : intent.addedTags) {
-      if (tag == "critical") {
-        forcedCritical = true;
-        break;
-      }
+  bool forcedCritical = false;
+  for (const auto &tag : intent.addedTags) {
+    if (tag == "critical") {
+      forcedCritical = true;
+      break;
     }
-    ProcessAttack(sourceID, intent.targetID, intent.magnitude,
-                  intent.damageType, intent.dataString, forcedCritical,
-                  intent.skillID);
-  } else if (intent.actionType == "heal") {
-    ProcessHeal(sourceID, intent.targetID, intent.magnitude);
-  } else if (intent.actionType == "buff" || intent.actionType == "debuff") {
-    ProcessBuff(sourceID, intent.targetID, intent.actionType, intent.magnitude);
   }
+  ProcessAttack(sourceID, intent.targetID, intent.magnitude, intent.damageType,
+                intent.dataString, forcedCritical, intent.skillID);
 }
-
 void CombatSystem::ProcessAttack(int sourceID, int targetID, float multiplier,
                                  const std::string &damageType,
                                  const std::string &attackVerb,
@@ -258,6 +251,11 @@ void CombatSystem::HandleDeath(int sourceID, int targetID, int skillID,
       killMsg.consoleText = "&YYou have slain " + targetNameStr + "!&X";
       killMsg.jsonData = killData.dump();
       sourceClient->QueueGameMessage(killMsg);
+
+      auto *mobTracker =
+          ctx.registry->GetComponent<MonsterKillTrackerComponent>(sourceID);
+
+      mobTracker->monsterKillTracker[mobComp->templateId] += 1;
     }
 
     SkillXP::GrantKillBonus(ctx, sourceID, skillID);
@@ -267,101 +265,4 @@ void CombatSystem::HandleDeath(int sourceID, int targetID, int skillID,
   EventContext eventContext;
   eventContext.data = eventData;
   ctx.eventBus->Publish(EventType::EntityDeath, eventContext);
-}
-
-void CombatSystem::ProcessHeal(int sourceID, int targetID, float healAmount) {
-  auto *targetStats = ctx.registry->GetComponent<StatComponent>(targetID);
-  if (!targetStats)
-    return;
-
-  int actualHeal =
-      (std::min)((int)healAmount, targetStats->MaxHealth - targetStats->Health);
-  targetStats->Health += actualHeal;
-
-  // Send heal messages using new GameMessage pattern
-  auto *sourceClient = ctx.registry->GetComponent<ClientComponent>(sourceID);
-  if (sourceClient && sourceID != targetID) {
-    auto *targetName = ctx.registry->GetComponent<NameComponent>(targetID);
-    std::string targetNameStr = targetName ? targetName->displayName : "target";
-
-    json jsonData = {{"action", "heal"},
-                     {"heal_amount", actualHeal},
-                     {"target", targetNameStr},
-                     {"target_current_hp", targetStats->Health},
-                     {"target_max_hp", targetStats->MaxHealth}};
-
-    GameMessage msg;
-    msg.type = "combat_heal";
-    msg.consoleText = "You heal " + targetNameStr + " for &G" +
-                      std::to_string(actualHeal) + "&X health!";
-    msg.jsonData = jsonData.dump();
-    sourceClient->QueueGameMessage(msg);
-  }
-
-  auto *targetClient = ctx.registry->GetComponent<ClientComponent>(targetID);
-  if (targetClient) {
-    if (sourceID == targetID) {
-      json jsonData = {{"action", "self_heal"},
-                       {"heal_amount", actualHeal},
-                       {"current_hp", targetStats->Health},
-                       {"max_hp", targetStats->MaxHealth}};
-
-      GameMessage msg;
-      msg.type = "combat_heal";
-      msg.consoleText = "You heal yourself for &G" +
-                        std::to_string(actualHeal) + "&X health!";
-      msg.jsonData = jsonData.dump();
-      targetClient->QueueGameMessage(msg);
-    } else {
-      auto *sourceName = ctx.registry->GetComponent<NameComponent>(sourceID);
-      std::string sourceNameStr =
-          sourceName ? sourceName->displayName : "someone";
-
-      json jsonData = {{"action", "healed"},
-                       {"heal_amount", actualHeal},
-                       {"source", sourceNameStr},
-                       {"current_hp", targetStats->Health},
-                       {"max_hp", targetStats->MaxHealth}};
-
-      GameMessage msg;
-      msg.type = "combat_heal";
-      msg.consoleText = sourceNameStr + " heals you for &G" +
-                        std::to_string(actualHeal) + "&X health!";
-      msg.jsonData = jsonData.dump();
-      targetClient->QueueGameMessage(msg);
-    }
-  }
-}
-
-void CombatSystem::ProcessBuff(int sourceID, int targetID,
-                               const std::string &buffType, float magnitude) {
-  // For now, just send a message using new GameMessage pattern - buffs/debuffs
-  // would need a separate component system
-  auto *sourceClient = ctx.registry->GetComponent<ClientComponent>(sourceID);
-  if (sourceClient) {
-    json jsonData = {{"action", "cast_buff"},
-                     {"buff_type", buffType},
-                     {"magnitude", magnitude}};
-
-    GameMessage msg;
-    msg.type = "combat_buff";
-    msg.consoleText = "You cast &C" + buffType + "&X on your target!";
-    msg.jsonData = jsonData.dump();
-    sourceClient->QueueGameMessage(msg);
-  }
-
-  auto *targetClient = ctx.registry->GetComponent<ClientComponent>(targetID);
-  if (targetClient) {
-    json jsonData = {{"action", "buffed"},
-                     {"buff_type", buffType},
-                     {"magnitude", magnitude}};
-
-    GameMessage msg;
-    msg.type = "combat_buff";
-    msg.consoleText = "You are affected by &C" + buffType + "&X!";
-    msg.jsonData = jsonData.dump();
-    targetClient->QueueGameMessage(msg);
-  }
-
-  // TODO: Implement actual buff/debuff system with temporary stat modifiers
 }

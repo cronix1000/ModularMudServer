@@ -5,11 +5,12 @@
 #include <vector>
 
 #include "AttackIntentComponent.h"
-#include "CastIntentComponent.h"
 #include "BusyComponent.h"
+#include "CastIntentComponent.h"
 #include "CombatIntentComponent.h"
 #include "CoolDownDefinitionComponent.h"
 #include "DamageScalingComponent.h"
+#include "MonsterKillTrackerComponent.h"
 #include "ResourceCostComponent.h"
 #include "SkillDefintionComponent.h"
 #include "SkillHolderComponent.h"

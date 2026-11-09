@@ -13,6 +13,15 @@ namespace {
 constexpr int XP_KILL_BONUS = 50;
 }
 
+namespace PlayerXP {
+void Grant(GameContext &ctx, int playerID, int amount) {
+  // grant less based on each enemy kill max xp per first kill
+  // Kills give variable xp based on mob itself
+  // e.g. Boss might give 100 000 xp first time but 95 000 second time
+  auto *XPHolder = ctx.registry->GetComponent<LevelComponent>(playerID);
+}
+} // namespace PlayerXP
+
 namespace SkillXP {
 
 void Grant(GameContext &ctx, int playerID, int skillID, int amount) {
@@ -48,10 +57,7 @@ void Grant(GameContext &ctx, int playerID, int skillID, int amount) {
 
     PowerCalculator::RecalculateDerivedStats(ctx.registry.get(), playerID);
   }
-  // Grant EXP to player
-  auto *expHolder = ctx.registry->GetComponent<LevelComponent>(playerID);
 }
-
 void GrantKillBonus(GameContext &ctx, int playerID, int skillID) {
   int effectiveSkill = skillID;
   if (effectiveSkill <= 0) {

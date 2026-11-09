@@ -241,6 +241,11 @@ bool PostgresDatabase::SavePlayer(EntityID playerEnt, GameContext& ctx) {
         playerData["skills"] = skillsObj;
     }
 
+    auto* killTracker = ctx.registry->GetComponent<MonsterKillTrackerComponent>(playerEnt);
+    if (killTracker) {
+        playerData["monster_kills"] = killTracker->monsterKillTracker;
+    }
+
     int gold = 0;
     int bank = 0;
     if (vars) {

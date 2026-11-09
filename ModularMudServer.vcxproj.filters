@@ -451,6 +451,9 @@
     <ClInclude Include="Include\Components\MobComponent.h">
       <Filter>Include\Components</Filter>
     </ClInclude>
+    <ClInclude Include="Include\Components\MonsterKillTrackerComponent.h">
+      <Filter>Include\Components</Filter>
+    </ClInclude>
     <ClInclude Include="Include\Components\MoveIntentComponent.h">
       <Filter>Include\Components</Filter>
     </ClInclude>

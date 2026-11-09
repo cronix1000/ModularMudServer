@@ -297,6 +297,7 @@
     <ClInclude Include="Include\Components\MetaComponent.h" />
     <ClInclude Include="Include\Components\MobAttackComponent.h" />
     <ClInclude Include="Include\Components\MobComponent.h" />
+    <ClInclude Include="Include\Components\MonsterKillTrackerComponent.h" />
     <ClInclude Include="Include\Components\MoveIntentComponent.h" />
     <ClInclude Include="Include\Components\MovementComponents.h" />
     <ClInclude Include="Include\Components\NameComponent.h" />

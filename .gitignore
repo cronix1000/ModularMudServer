@@ -59,3 +59,4 @@ Platform.h.bak
 /vcpkg
 build-clangd/
 .nvim.lua
+.projbuild.lua

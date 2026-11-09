@@ -149,6 +149,15 @@ EntityID PlayerFactory::LoadPlayer(std::string username, ClientConnection* conne
     }
     ctx.registry->AddComponent(player, skillHolder);
 
+    MonsterKillTrackerComponent killTracker;
+    if (s.contains("monster_kills") && s["monster_kills"].is_object()) {
+        for (auto& [mobId, count] : s["monster_kills"].items()) {
+            if (!count.is_number()) continue;
+            killTracker.monsterKillTracker[mobId] = count.get<int>();
+        }
+    }
+    ctx.registry->AddComponent(player, killTracker);
+
     // 5. Hydrate Inventory
     auto* inv = ctx.registry->GetComponent<InventoryComponent>(player);
     auto* equip = ctx.registry->GetComponent<EquipmentComponent>(player);
