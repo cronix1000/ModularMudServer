@@ -11,6 +11,7 @@
 #include <algorithm>
 #include "EventBus.h"
 #include "FactoryManager.h"
+#include "PowerCalculator.h"
 
 void ApplyStatBonus(StatComponent* stats, const std::string& key, int val) {
     if (key == "strength") stats->Strength += val;
@@ -61,16 +62,10 @@ void InventorySystem::Run(float dt) {
             finalSlot = slot;
             didEquip = true;
 
-            // Update the default "attack" skill alias.
+            // Update the extra skill aliases from the item.
             auto* itemComp = ctx.registry->GetComponent<ItemComponent>(intent->itemId);
             auto* skillHolder = ctx.registry->GetComponent<SkillHolderComponent>(entity);
             if (skillHolder && itemComp) {
-                // 1. Update the generic "attack" command to use the item's primary skill
-                if (itemComp->primarySkillId != -1) {
-                    skillHolder->skillAliases["attack"] = itemComp->primarySkillId;
-                }
-
-                // 2. Map the extra skills by their actual names so the player can call them
                 for (int sId : itemComp->extraSkillIds) {
                     auto* nameComp = ctx.registry->GetComponent<NameComponent>(sId);
                     if (nameComp) {
@@ -218,13 +213,6 @@ void InventorySystem::Run(float dt) {
             auto* skillHolder = ctx.registry->GetComponent<SkillHolderComponent>(entity);
 
             if (skillHolder && itemComp) {
-                if (itemComp->primarySkillId != -1) {
-                    auto aliasIt = skillHolder->skillAliases.find("attack");
-                    if (aliasIt != skillHolder->skillAliases.end() &&
-                        aliasIt->second == itemComp->primarySkillId) {
-                        skillHolder->skillAliases.erase(aliasIt);
-                    }
-                }
                 for (int sId : itemComp->extraSkillIds) {
                     auto* nameComp = ctx.registry->GetComponent<NameComponent>(sId);
                     if (!nameComp) continue;
@@ -298,6 +286,8 @@ void InventorySystem::RecalculateStats(int entityID)
     stats->Armour = baseStats->Armour;
     stats->AttackDamage = baseStats->AttackDamage;
     stats->DamageType = baseStats->damageType;
+    stats->Dexterity = baseStats->Dexterity;
+    stats->Intelligence = baseStats->Intelligence;
     stats->MagicDamage = baseStats->MagicDamage;
     stats->MagicDefense = baseStats->MagicDefense;
     stats->Mana = baseStats->Mana;
@@ -326,19 +316,7 @@ void InventorySystem::RecalculateStats(int entityID)
                 ApplyStatBonus(stats, statName, value);
             }
         }
-
-        if (slotName == EquipmentSlot::MainArm) {
-            auto* weapon = ctx.registry->GetComponent<WeaponComponent>(itemID);
-            if (weapon) {
-                // 1. Calculate Attribute Scaling
-                int bonus = 0;
-                bonus += (int)(stats->Strength * weapon->strScaling);
-                bonus += (int)(stats->Dexterity * weapon->dexScaling);
-                bonus += (int)(stats->Intelligence * weapon->intScaling);
-
-                // 3. Add to the Player's "Flat Bonus"
-                stats->AttackDamage += bonus;
-            }
-        }
     }
+
+    PowerCalculator::RecalculateDerivedStats(ctx.registry.get(), entityID);
 }

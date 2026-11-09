@@ -25,6 +25,13 @@ struct ItemTemplate {
     int maxDamage;
     std::string damageType;
     bool twoHanded = false;
+    float strScaling = 0.0f;
+    float dexScaling = 0.0f;
+    float intScaling = 0.0f;
+    int maxRange = 1;
+    float baseWindup = 1.0f;
+    std::string scalingStat;
+    float scalingFactor = 0.02f;
     int defense;
     std::vector<EquipmentSlot> allowedSlots;
     std::string script;

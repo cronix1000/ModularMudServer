@@ -61,6 +61,13 @@ void ItemFactory::LoadSingleItemFromJSON(const std::string& key, const json& j) 
             tpl.damageType = SafeValue(weapon, "damageType", "blunt");
             tpl.primarySkill = SafeValue(weapon, "defaultSkill", "");
             tpl.twoHanded = SafeValue(weapon, "twoHanded", false);
+            tpl.strScaling = SafeValue(weapon, "strScaling", 0.0f);
+            tpl.dexScaling = SafeValue(weapon, "dexScaling", 0.0f);
+            tpl.intScaling = SafeValue(weapon, "intScaling", 0.0f);
+            tpl.maxRange = SafeValue(weapon, "maxRange", 1);
+            tpl.baseWindup = SafeValue(weapon, "baseWindup", 1.0f);
+            tpl.scalingStat = SafeValue(weapon, "scalingStat", "");
+            tpl.scalingFactor = SafeValue(weapon, "scalingFactor", 0.02f);
         }
 
         if (comps.contains("armour")) {
@@ -215,6 +222,13 @@ void ItemFactory::AttachTypeComponents(int id, const ItemTemplate& tpl, const js
         wc.maxDamage = SafeValue(overrides, "maxDamage", tpl.maxDamage);
         wc.damageType = SafeValue(overrides, "damageType", tpl.damageType);
         wc.twoHanded = SafeValue(overrides, "twoHanded", tpl.twoHanded);
+        wc.strScaling = SafeValue(overrides, "strScaling", tpl.strScaling);
+        wc.dexScaling = SafeValue(overrides, "dexScaling", tpl.dexScaling);
+        wc.intScaling = SafeValue(overrides, "intScaling", tpl.intScaling);
+        wc.maxRange = SafeValue(overrides, "maxRange", tpl.maxRange);
+        wc.baseWindup = SafeValue(overrides, "baseWindup", tpl.baseWindup);
+        wc.scalingStat = SafeValue(overrides, "scalingStat", tpl.scalingStat);
+        wc.scalingFactor = SafeValue(overrides, "scalingFactor", tpl.scalingFactor);
         ctx.registry->AddComponent<WeaponComponent>(id, wc);
     }
     else if (tpl.itemType == "armour") {

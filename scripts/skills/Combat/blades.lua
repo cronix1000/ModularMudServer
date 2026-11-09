@@ -1,6 +1,7 @@
 skills["slash"] = MeleeSkill({
     name = "Wide Slash",
-    damage = 12,
+    multiplier = 1.2,
+    verb = "slash",
     cooldown = 2.5,
     damageType = "slashing",
    synergies = {
@@ -13,10 +14,11 @@ skills["slash"] = MeleeSkill({
 
 skills["stab"] = MeleeSkill({
     name = "Quick Stab",
-    damage = 8,
+    multiplier = 0.8,
+    verb = "stab",
     cooldown = 1.5,
     damageType = "piercing",
-    
+
     synergies = {
         -- If player has Lvl 40 Slash, Stab does 1.2x damage
         { skill = "slash", level = 40, type = "buff_dmg", amount = 1.2 },
@@ -27,10 +29,11 @@ skills["stab"] = MeleeSkill({
 
 skills["poke"] = MeleeSkill({
     name = "Precise Poke",
-    damage = 10,
+    multiplier = 1.0,
+    verb = "poke",
     cooldown = 0.2,
     damageType = "piercing",
-     
+
     synergies = {
         -- If player has Lvl 30 Slash, Poke does 1.3x damage
         { skill = "slash", level = 30, type = "buff_dmg", amount = 1.3 },

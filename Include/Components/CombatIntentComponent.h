@@ -12,6 +12,11 @@ struct CombatIntentComponent {
     std::vector<std::string> addedTags; // Additional effect tags
     int sourceID;              // Who initiated this combat action
     bool attackOnce = false;
+    double nextFireTime = 0.0; // Renewal timestamp for auto-attack intents; 0 = due now
 
-    //CombatIntentComponent(int targetID, std::string actionType, std::strin    g damageType, ) : targetID(targetID), actionType(actionType),
+    // One-shot skill results waiting to fire while a renewing auto-attack
+    // intent occupies this component slot.
+    std::vector<CombatIntentComponent> queuedOneShots;
+
+    CombatIntentComponent() = default;
 };

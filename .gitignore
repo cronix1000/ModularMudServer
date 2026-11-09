@@ -57,3 +57,5 @@ server.log
 *.db.bak
 Platform.h.bak
 /vcpkg
+build-clangd/
+.nvim.lua

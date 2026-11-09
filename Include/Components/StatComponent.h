@@ -20,6 +20,9 @@ struct StatComponent
 	int AttackDamage = 0;
 	int MagicDamage = 0;
 
+	int Power = 0;
+	int MagicPower = 0;
+
 	std::string DamageType = "blunt";
 	std::string DefenseType = "soft";
 

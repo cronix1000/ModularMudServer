@@ -8,6 +8,7 @@
 #include "BaseStatsComponent.h"
 #include "BodyComponent.h"
 #include "HealthComponent.h"
+#include "LevelComponent.h"
 #include "MasteryComponent.h"
 #include "RenownFactionComponent.h"
 #include "StatComponent.h"

@@ -16,10 +16,6 @@ private:
 
     void ProcessResult(int entity, SkillResult result, int targetId);
 
-    bool CheckRequirements(int entityID, int skillID);
-    void PayCosts(int entityID, int skillID);
-    void ApplyCooldown(int entityID, int skillID, float modifier);
-    void GrantXP(int entityID, int skillID, float amount);
     // The Core Logic
     void ExecuteScriptAndDispatch(int entityID, int skillID, int targetID);
 

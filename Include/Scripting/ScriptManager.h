@@ -99,9 +99,10 @@ public:
 			sol::error err = result;
 			std::cerr << "Lua Runtime Error: " << err.what() << std::endl;
 		}
-	}
+	} 
 
 	SkillResult ExecuteSkillScript(const std::string& scriptPath, const SkillContext& ctx);
+	void CallLua(const std::string function, int playerID, const std::string name);
 	InteractableResult ExecuteInteractableScript(const std::string& scriptPath, const std::string& functionName, const InteractableContext& context);
 	ItemScriptResult ExecuteItemScript(const std::string& scriptPath, const std::string& functionName, const ItemScriptContext& context);
 	ClientConnection* GetPlayer(int player_id);

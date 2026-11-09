@@ -28,7 +28,6 @@
 #include "WorldClimateSystem.h"
 #include "AmbientAISystem.h"
 #include "TargetingSystem.h"
-#include "CombatStateSystem.h"
 #include "WorldComponents.h"
 #include "TimeData.h"
 #include "ClientInput.h"
@@ -107,7 +106,6 @@ GameEngine::GameEngine(GameContext& ctx, ThreadSafeQueue<ClientInput>& input) : 
 	saveSystem = std::make_unique<SaveSystem>(gameContext);
 	cleanSystem = std::make_unique < CleanUpSystem>(gameContext);
 	targetingSystem = std::make_unique<TargetingSystem>(gameContext);
-	combatStateSystem = std::make_unique<CombatStateSystem>(gameContext);
 	craftSystem = std::make_unique<CraftSystem>(gameContext);
 
 	// Initialize climate zones for each loaded region
@@ -210,7 +208,6 @@ void GameEngine::Update(float deltaTime) {
 	networkSyncSystem->Run();
 	invSystem->Run(deltaTime);
 	behaviorSystem->Run(deltaTime);         // AI decision making
-	combatStateSystem->Run(deltaTime);      // Auto-attack timer
 	skillSystem->Run(deltaTime);
 	combatSystem->run();
 	craftSystem->run();

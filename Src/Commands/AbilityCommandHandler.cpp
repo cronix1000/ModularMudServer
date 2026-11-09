@@ -1,4 +1,4 @@
-#include "AbilityCommandHanlder.h"
+#include "AbilityCommandHandler.h"
 #include "Registry.h"
 #include "CommandRegistry.h"
 #include "ClientConnection.h"
@@ -6,8 +6,8 @@
 #include "GameContext.h"
 #include "CombatCommandHandler.h"
 #include "TargetingUtils.h"
+#include "ScriptManager.h"
 void AbilityCommandHandler::RegisterAll(CommandRegistry& registry) {
-    registry.RegisterWithAliases("attack", HandleAbilityCall, { }, PermissionLevel::Player);
     registry.RegisterWithAliases("cast", HandleCastCall, { "" }, PermissionLevel::Player);
 }
 
@@ -52,7 +52,17 @@ CommandResult AbilityCommandHandler::HandleAbilityCall(ClientConnection* client,
 
 CommandResult AbilityCommandHandler::HandleCastCall(ClientConnection* client, const std::vector<std::string>& params, GameContext& ctx)
 {
-    // future for spells that are done with symbs ex. cast @@c those symbols create a spell
+    if (params.empty()) {
+        return CommandResult::Failure("Cast what?");
+    }
+    // Parse cast 
+    EntityID playerID = client->playerEntityID;
+    auto* skillHolder = ctx.registry->GetComponent<SkillHolderComponent>(playerID);
+    if (!skillHolder) {
+        return CommandResult::Failure("You don't know any skills.");
+    }
+
+
 
     return CommandResult();
 }

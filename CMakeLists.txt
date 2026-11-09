@@ -55,20 +55,35 @@ if(NOT SOL2_INCLUDE_DIR)
     set(SOL2_INCLUDE_DIR ${SOL2_SRC}/include)
 endif()
 
+set(MUD_MODULES
+    Commands Components Core Database Factories Networking Scripting States Systems Utils World
+)
+
+# Headers live in Include/<module>/, implementation files in Src/<module>/.
+# pch.h/pch.cpp stay at the source root.
+set(MUD_INCLUDE_DIRS ${CMAKE_SOURCE_DIR})
+foreach(dir ${MUD_MODULES})
+    list(APPEND MUD_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/Include/${dir}")
+endforeach()
+
 # Source files (automatically collect all .cpp files)
-file(GLOB SOURCES 
+file(GLOB SOURCES CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/*.cpp"
 )
-
-# Remove any .cpp files that are actually headers (as seen in vcxproj)
-list(REMOVE_ITEM SOURCES 
-)
+foreach(dir ${MUD_MODULES})
+    file(GLOB dir_sources CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/Src/${dir}/*.cpp")
+    list(APPEND SOURCES ${dir_sources})
+endforeach()
 
 # Header files (for IDE support)
-file(GLOB HEADERS
+file(GLOB HEADERS CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/*.h"
     "${CMAKE_SOURCE_DIR}/*.hpp"
 )
+foreach(dir ${MUD_MODULES})
+    file(GLOB dir_headers CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/Include/${dir}/*.h" "${CMAKE_SOURCE_DIR}/Include/${dir}/*.hpp")
+    list(APPEND HEADERS ${dir_headers})
+endforeach()
 
 # Create executable
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
@@ -78,7 +93,7 @@ target_precompile_headers(${PROJECT_NAME} PRIVATE pch.h)
 
 # Include directories
 target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_SOURCE_DIR}
+    ${MUD_INCLUDE_DIRS}
     ${PostgreSQL_INCLUDE_DIRS}
     ${LUA_INCLUDE_DIR}
     ${SOL2_INCLUDE_DIR}
@@ -164,12 +179,12 @@ install(DIRECTORY scripts DESTINATION share/${PROJECT_NAME} OPTIONAL)
 if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_pg_loaders.cpp")
     add_executable(test_pg_loaders
         "${CMAKE_SOURCE_DIR}/tests/test_pg_loaders.cpp"
-        "${CMAKE_SOURCE_DIR}/PostgresDatabase.cpp"
-        "${CMAKE_SOURCE_DIR}/TerrainDef.cpp"
-        "${CMAKE_SOURCE_DIR}/EquipmentSlotInfo.cpp"
+        "${CMAKE_SOURCE_DIR}/Src/Database/PostgresDatabase.cpp"
+        "${CMAKE_SOURCE_DIR}/Src/World/TerrainDef.cpp"
+        "${CMAKE_SOURCE_DIR}/Src/Components/EquipmentSlotInfo.cpp"
     )
     target_include_directories(test_pg_loaders PRIVATE
-        "${CMAKE_SOURCE_DIR}"
+        ${MUD_INCLUDE_DIRS}
         ${PostgreSQL_INCLUDE_DIRS}
     )
     target_link_libraries(test_pg_loaders PRIVATE
@@ -183,10 +198,10 @@ endif()
 if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_telnet_codec.cpp")
     add_executable(test_telnet_codec
         "${CMAKE_SOURCE_DIR}/tests/test_telnet_codec.cpp"
-        "${CMAKE_SOURCE_DIR}/TelnetCodec.cpp"
+        "${CMAKE_SOURCE_DIR}/Src/Networking/TelnetCodec.cpp"
     )
     target_include_directories(test_telnet_codec PRIVATE
-        "${CMAKE_SOURCE_DIR}"
+        ${MUD_INCLUDE_DIRS}
     )
 endif()
 
@@ -195,9 +210,9 @@ endif()
 if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_entity_resolver.cpp")
     add_executable(test_entity_resolver
         "${CMAKE_SOURCE_DIR}/tests/test_entity_resolver.cpp"
-        "${CMAKE_SOURCE_DIR}/EntityResolver.cpp"
+        "${CMAKE_SOURCE_DIR}/Src/Utils/EntityResolver.cpp"
     )
     target_include_directories(test_entity_resolver PRIVATE
-        "${CMAKE_SOURCE_DIR}"
+        ${MUD_INCLUDE_DIRS}
     )
 endif()

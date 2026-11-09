@@ -87,6 +87,27 @@ public:
             scripts->dispatch_event("FactionChange", luaTable);
             });
 
+        bus->Subscribe(EventType::SkillLevelUp, [this](const EventContext& ctx) {
+            auto data = std::get<SkillLevelUpEventData>(ctx.data);
+
+            sol::table luaTable = scripts->lua.create_table();
+            luaTable["player_id"] = data.playerID;
+            luaTable["skill_key"] = data.skillKey;
+            luaTable["new_level"] = data.newLevel;
+
+            scripts->dispatch_event("SkillLevelUp", luaTable);
+            });
+        bus->Subscribe(EventType::EntityDeath, [this](const EventContext& ctx) {
+            auto data = std::get<EntityDeathEventData>(ctx.data);
+
+            sol::table luaTable = scripts->lua.create_table();
+            luaTable["killer_id"] = data.killerID;
+            luaTable["victim_id"] = data.victimID;
+            luaTable["skill_id"] = data.skillID;
+
+            scripts->dispatch_event("EntityDeath", luaTable);
+            });
+
         bus->Subscribe(EventType::ItemEquipped, [this](const EventContext& ctx) {
             auto data = std::get<ItemEquippedEventData>(ctx.data);
 

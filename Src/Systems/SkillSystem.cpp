@@ -5,6 +5,7 @@
 #include "TimeData.h"
 #include "SkillContext.h"
 #include "ScriptManager.h"
+#include "SkillXP.h"
 
 
 void SkillSystem::Run(float dt)
@@ -31,21 +32,20 @@ void SkillSystem::Run(float dt)
         if (!intent) continue;
 
         auto* skillHolder = ctx.registry->GetComponent<SkillHolderComponent>(entity);
-        // Using intent->skillId instead of intent.skillId because intent is a pointer
-        auto* cooldown = ctx.registry->GetComponent<CooldownStatsComponent>(intent->skillId);
-
-        if (!skillHolder || !cooldown) {
+        if (!skillHolder) {
             ctx.registry->RemoveComponent<SkillIntentComponent>(entity);
             continue;
         }
+
+        auto* cooldown = ctx.registry->GetComponent<CooldownStatsComponent>(intent->skillId);
+        float windupTime = cooldown ? cooldown->windupTime : 0.0f;
+        float cooldownTime = cooldown ? cooldown->cooldownTime : 0.0f;
 
         if (!skillHolder->IsReady(intent->skillId, ctx.time->globalTime)) {
             // Skill is not ready (on cooldown).
             // Optionally send a message to the player.
             // We still remove the intent as it has been "handled" (by being rejected).
         } else {
-            float windupTime = cooldown->windupTime;
-
             if (windupTime > 0.0f) {
                 // Skill has a windup time, so add the windup component.
                 // The loop above will handle it in subsequent frames.
@@ -57,10 +57,10 @@ void SkillSystem::Run(float dt)
                 ExecuteScriptAndDispatch(entity, intent->skillId, intent->targetId);
             }
             // Set the skill on cooldown *after* it has been successfully initiated.
-                skillHolder->SetCooldown(intent->skillId, ctx.time->globalTime, cooldown->cooldownTime);
+                skillHolder->SetCooldown(intent->skillId, ctx.time->globalTime, cooldownTime);
             }
-        
-        
+
+
         // Remove the intent component now that it has been handled.
         ctx.registry->RemoveComponent<SkillIntentComponent>(entity);
     }
@@ -87,32 +87,25 @@ void SkillSystem::ExecuteScriptAndDispatch(int entityID, int skillID, int target
 
         std::string path = scriptComp->scripts_path.at(scriptKey);
 
-        // 3. CALCULATE BASE POWER (Weapon Damage or Tool Tier)
-        int power = 0;
-        auto* equipment = ctx.registry->GetComponent<EquipmentComponent>(entityID);
-        if (equipment) {
-            int weaponID = equipment->slots[EquipmentSlot::MainArm];
-            auto* weapon = ctx.registry->GetComponent<WeaponComponent>(weaponID);
-            if (weapon) {
-                power = weapon->maxDamage;
-            }
-        }
-
-        // 4. PREPARE CONTEXT
+        // 3. PREPARE CONTEXT
         SkillContext context;
         context.sourceID = entityID;
         context.targetID = targetID;
         context.skillID = skillID;
-        context.basePower = power;
+
+        auto* sourceStats = ctx.registry->GetComponent<StatComponent>(entityID);
+        context.basePower = sourceStats ? sourceStats->Power : 0;
 
         auto* holder = ctx.registry->GetComponent<SkillHolderComponent>(entityID);
         context.masteryLevel = holder ? holder->GetMastery(skillID) : 1;
 
-        // 5. RUN LUA SCRIPT
+        // 4. RUN LUA SCRIPT
         SkillResult result = ctx.scripts->ExecuteSkillScript(path, context);
 
-        // 6. DISPATCH RESULT
+        // 5. DISPATCH RESULT
         if (!result.success) return;
+
+        SkillXP::Grant(ctx, entityID, skillID, 10);
 
         // Pass the skillID through the result for proper intent creation
         result.skillID = skillID;
@@ -131,7 +124,14 @@ void SkillSystem::ProcessResult(int entity, SkillResult result, int targetId)
     combatIntent.damageType = result.damageType;
     combatIntent.dataString = result.dataString;
     combatIntent.addedTags = result.addedTags;
-    
+    combatIntent.attackOnce = true;
+
+    auto* existing = ctx.registry->GetComponent<CombatIntentComponent>(entity);
+    if (existing) {
+        existing->queuedOneShots.push_back(combatIntent);
+        return;
+    }
+
     // Add the combat intent to the source entity
     ctx.registry->AddComponent<CombatIntentComponent>(entity, combatIntent);
 }

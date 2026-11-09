@@ -12,6 +12,7 @@
 #include "StatsComponents.h"
 #include "WorldComponents.h"
 #include "FactoryManager.h"
+#include "PowerCalculator.h"
 #include "WorldManager.h"
 #include "World.h"
 #include "EventBus.h"
@@ -56,6 +57,20 @@ EntityID PlayerFactory::LoadPlayer(std::string username, ClientConnection* conne
     stats.attackSpeed = SafeValue(statsJson, "atkspd", 1.0f);
     stats.Mana = SafeValue(statsJson, "mana", 50);
     ctx.registry->AddComponent(player, stats);
+
+    BaseStatComponent baseStats;
+    baseStats.Health = stats.Health;
+    baseStats.MaxHealth = stats.MaxHealth;
+    baseStats.Armour = 0;
+    baseStats.MagicDefense = 0;
+    baseStats.Mana = stats.Mana;
+    baseStats.Strength = stats.Strength;
+    baseStats.Intelligence = stats.Intelligence;
+    baseStats.Dexterity = stats.Dexterity;
+    baseStats.AttackDamage = stats.AttackDamage;
+    baseStats.MagicDamage = 0;
+    baseStats.damageType = stats.DamageType;
+    ctx.registry->AddComponent(player, baseStats);
 
     // Player variables (addon data) from DB
     PlayerVariablesComponent playerVars;
@@ -121,12 +136,16 @@ EntityID PlayerFactory::LoadPlayer(std::string username, ClientConnection* conne
     
     // Initialize skills system for the player
     SkillHolderComponent skillHolder;
-    // Add basic unarmed attack skill - every player should be able to punch
-    int punchSkillID = ctx.factories->skills.GetSkillID("skill_punch");
-    if (punchSkillID != -1) {
-        skillHolder.skillAliases["attack"] = punchSkillID;
-        skillHolder.skillAliases["punch"] = punchSkillID;
-        skillHolder.mastery[punchSkillID] = 1; // Start with mastery level 1
+    if (s.contains("skills") && s["skills"].is_object()) {
+        for (auto& [key, skillJson] : s["skills"].items()) {
+            int skillEntity = ctx.factories->skills.GetSkillID(key);
+            if (skillEntity == -1) continue;
+            SkillProgress progress;
+            progress.level = SafeValue(skillJson, "level", 1);
+            progress.xp = SafeValue(skillJson, "xp", 0);
+            progress.uses = SafeValue(skillJson, "uses", 0);
+            skillHolder.skills[skillEntity] = progress;
+        }
     }
     ctx.registry->AddComponent(player, skillHolder);
 
@@ -156,7 +175,9 @@ EntityID PlayerFactory::LoadPlayer(std::string username, ClientConnection* conne
         }
     }
 
-    // send event that player logged in 
+    // send event that player logged in
+    PowerCalculator::RecalculateDerivedStats(ctx.registry.get(), player);
+
     PlayerLoggedInData ectx = { player, username, data.permission };
     EventContext event_data;
     event_data.data = ectx;

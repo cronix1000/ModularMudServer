@@ -33,7 +33,7 @@ Exercises `SQLiteDatabase::Load*` methods against the live `mud.db`.
 World content (items, mobs, interactables, skills, dialogues, terrain, regions, rooms, exits, spawns, loot tables) is loaded from the SQLite database `mud.db` tables `world_*` at startup. JSON files in this directory (`items.json`, `mobs.json`, etc.) are no longer read by the running server; they are kept on disk as legacy fallback only.
 
 The flow:
-1. `FactoryManager::LoadAllData()` (`FactoryManager.h:30`) calls `ctx.db->Load*()` for each content type.
+1. `FactoryManager::LoadAllData()` (`Include/Factories/FactoryManager.h:30`) calls `ctx.db->Load*()` for each content type.
 2. `SQLiteDatabase` queries the `world_*` tables and assembles a `nlohmann::json` object shaped identically to the legacy JSON file the corresponding factory used to consume.
 3. Each factory exposes a `LoadXxxFromJson(const json&)` method. The original file-reading path is preserved as `LoadXxxFromJSON(filename)` but is unused at runtime.
 
@@ -67,7 +67,7 @@ Tokens: `{name}`, `{slot}`, `{charges}`, `{wielder}`, `{level}`. Unknown tokens 
 
 Pool-pick: deterministic per-(entity, action, tick). Same item re-equipped at a later tick yields a different message.
 
-Resolution lives in `InteractionMessage.h` (`InteractionMessage::Resolve`). Systems call it at the render point: `MessageSystem` for equip/unequip/drop events, `LookCommandHandler::RenderEntity` for `look`. Falls through to the system's default message on `nullopt`.
+Resolution lives in `Include/Utils/InteractionMessage.h` (`InteractionMessage::Resolve`). Systems call it at the render point: `MessageSystem` for equip/unequip/drop events, `LookCommandHandler::RenderEntity` for `look`. Falls through to the system's default message on `nullopt`.
 
 ### Item slot ownership
 
@@ -104,6 +104,22 @@ A C++17 Entity-Component-System (ECS) MUD (Multi-User Dungeon) server with:
 - Implementation: `.cpp` extension
 - One class per file (generally)
 - Header guards: Use `#pragma once` (preferred over include guards)
+
+### Directory Layout
+
+```
+Include/<Module>/<File>.h    all headers, grouped by module
+Src/<Module>/<File>.cpp      all implementation files
+```
+
+Modules: `Commands`, `Components`, `Core`, `Database`, `Factories`, `Networking`, `Scripting`, `States`, `Systems`, `Utils`, `World`. `pch.h`/`pch.cpp` and the data files (`*.json`, `mud*.db`) stay at the project root.
+
+Includes stay bare (`#include "CombatSystem.h"`) — every `Include/<Module>` directory is on the include path in both build systems, so no path prefixes are needed. When adding a new module folder, register it in BOTH:
+
+- `ModularMudServer.vcxproj` — `AdditionalIncludeDirectories` (all four configurations)
+- `CMakeLists.txt` — `MUD_MODULES`
+
+The Visual Studio filter tree (`ModularMudServer.vcxproj.filters`) mirrors `Include\<Module>` / `Src\<Module>`.
 
 ### Includes
 ```cpp

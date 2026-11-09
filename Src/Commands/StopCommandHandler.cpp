@@ -12,17 +12,18 @@ CommandResult StopCommandHandler::HandleStop(ClientConnection* client,
                                             const std::vector<std::string>& params,
                                             GameContext& ctx) {
     EntityID playerID = client->playerEntityID;
-    
-    // Check if player is in combat state
-    auto* combatState = ctx.registry->GetComponent<CombatStateComponent>(playerID);
-    if (combatState) {
-        ctx.registry->RemoveComponent<CombatStateComponent>(playerID);
+
+    bool wasFighting = false;
+
+    if (ctx.registry->GetComponent<CombatIntentComponent>(playerID)) {
+        ctx.registry->RemoveComponent<CombatIntentComponent>(playerID);
+        wasFighting = true;
     }
-    
-    // Also cancel any skill windup
+
     if (ctx.registry->GetComponent<SkillWindupComponent>(playerID)) {
         ctx.registry->RemoveComponent<SkillWindupComponent>(playerID);
+        wasFighting = true;
     }
-    
-    return CommandResult::Success("You stop fighting.");
+
+    return CommandResult::Success(wasFighting ? "You stop fighting." : "You aren't fighting.");
 }

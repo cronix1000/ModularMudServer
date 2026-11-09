@@ -5,9 +5,9 @@
 #include <vector>
 
 #include "AttackIntentComponent.h"
+#include "CastIntentComponent.h"
 #include "BusyComponent.h"
 #include "CombatIntentComponent.h"
-#include "CombatStateComponent.h"
 #include "CoolDownDefinitionComponent.h"
 #include "DamageScalingComponent.h"
 #include "ResourceCostComponent.h"

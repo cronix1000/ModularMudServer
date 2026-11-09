@@ -1,145 +1,163 @@
 #pragma once
-#include <vector>
-#include <map>
-#include <functional>
-#include <string>
 #include "EquipmentSlot.h"
-
-enum class EventType {
-    None = 0,
-    RoomEntered,   // <--- This is the one you need
-    EntityMoved,
-    PlayerJoined,
-    CombatHit,
-    ItemEquipped,
-    ItemUnequipped,
-    ItemDropped,
-    XpGain,
-    LevelUp,
-    QuestAccept,
-    QuestObjectiveProgress,
-    QuestComplete,
-    FactionChange
-};
+#include <functional>
+#include <map>
+#include <string>
 #include <variant>
+#include <vector>
+enum class EventType {
+  None = 0,
+  RoomEntered, // <--- This is the one you need
+  EntityMoved,
+  PlayerJoined,
+  CombatHit,
+  ItemEquipped,
+  ItemUnequipped,
+  ItemDropped,
+  XpGain,
+  LevelUp,
+  QuestAccept,
+  QuestObjectiveProgress,
+  QuestComplete,
+  FactionChange,
+  SkillLevelUp,
+  EntityDeath
+};
 #include <queue>
 
 struct RoomEventData {
-    int EntityID;
-    int RoomID;
+  int EntityID;
+  int RoomID;
 };
 
 // Data specific to fighting
 struct CombatEventData {
-    int attackerID;
-    int victimID;
+  int attackerID;
+  int victimID;
 };
 
 // Data specific to chatting
 struct ChatEventData {
-    int senderID;
-    std::string message;
+  int senderID;
+  std::string message;
 };
 
 struct PlayerEventData {
-    int player;
-    std::string name;
+  int player;
+  std::string name;
 };
 
 struct ItemEquippedEventData {
-    int player;
-    int itemId;
-    EquipmentSlot slot;
+  int player;
+  int itemId;
+  EquipmentSlot slot;
 };
 
 struct ItemUnequippedEventData {
-    int player;
-    int itemId;
-    EquipmentSlot slot;
+  int player;
+  int itemId;
+  EquipmentSlot slot;
 };
 
 struct ItemDroppedEventData {
-    int player;
-    int itemId;
-    int roomId;
+  int player;
+  int itemId;
+  int roomId;
 };
 
 struct PlayerLoggedInData {
-    int playerID;
-    std::string playerName;
-    int permissionLevel;
+  int playerID;
+  std::string playerName;
+  int permissionLevel;
 };
 
 struct XpGainEventData {
-    int playerID;
-    int amount;
-    std::string source;
+  int playerID;
+  int amount;
+  std::string source;
 };
 
 struct LevelUpEventData {
-    int playerID;
-    int newLevel;
+  int playerID;
+  int newLevel;
 };
 
 struct QuestEventData {
-    int playerID;
-    std::string questId;
-    std::string objectiveId;
-    int count;
+  int playerID;
+  std::string questId;
+  std::string objectiveId;
+  int count;
 };
 
 struct FactionChangeEventData {
-    int playerID;
-    std::string factionId;
-    int oldStanding;
-    int newStanding;
+  int playerID;
+  std::string factionId;
+  int oldStanding;
+  int newStanding;
+};
+
+struct SkillLevelUpEventData {
+  int playerID;
+  std::string skillKey;
+  int newLevel;
+};
+
+struct EntityDeathEventData {
+  int killerID;
+  int victimID;
+  int skillID;
 };
 
 struct EventContext {
-    std::variant<std::monostate, RoomEventData, CombatEventData, ChatEventData, PlayerEventData, ItemEquippedEventData, ItemUnequippedEventData, ItemDroppedEventData, PlayerLoggedInData, XpGainEventData, LevelUpEventData, QuestEventData, FactionChangeEventData> data;
+  std::variant<std::monostate, RoomEventData, CombatEventData, ChatEventData,
+               PlayerEventData, ItemEquippedEventData, ItemUnequippedEventData,
+               ItemDroppedEventData, PlayerLoggedInData, XpGainEventData,
+               LevelUpEventData, QuestEventData, FactionChangeEventData,
+               SkillLevelUpEventData, EntityDeathEventData>
+      data;
 };
 
 class EventBus {
-    // Define a "Callback" as a function that takes context and returns void
-    using Callback = std::function<void(const EventContext&)>;
+  // Define a "Callback" as a function that takes context and returns void
+  using Callback = std::function<void(const EventContext &)>;
 
-    // A map of: EventType -> List of Listeners
-    std::map<EventType, std::vector<Callback>> subscribers;
-    std::queue<std::pair<Callback, EventContext>> deferredCalls;
+  // A map of: EventType -> List of Listeners
+  std::map<EventType, std::vector<Callback>> subscribers;
+  std::queue<std::pair<Callback, EventContext>> deferredCalls;
 
 public:
-    // Systems "Subscribe" to listen for events
-    void Subscribe(EventType type, Callback callback) {
-        subscribers[type].push_back(callback);
+  // Systems "Subscribe" to listen for events
+  void Subscribe(EventType type, Callback callback) {
+    subscribers[type].push_back(callback);
+  }
+
+  // Systems "Publish" events when things happen
+  void Publish(EventType type, const EventContext &ctx, bool deferred = false) {
+    if (subscribers.find(type) == subscribers.end())
+      return;
+
+    auto check = subscribers.find(type);
+    if (check == subscribers.end()) {
+      return;
     }
 
-    // Systems "Publish" events when things happen
-    void Publish(EventType type, const EventContext& ctx, bool deferred = false) {
-        if (subscribers.find(type) == subscribers.end()) return;
-
-        auto check = subscribers.find(type);
-        if (check == subscribers.end()) {
-            return;
-        }
-
-        for (auto& callback : subscribers[type]) {
-            if (deferred) {
-                // Store it for later
-                deferredCalls.push({ callback, ctx });
-            }
-            else {
-                callback(ctx);
-            }
-        }
+    for (auto &callback : subscribers[type]) {
+      if (deferred) {
+        // Store it for later
+        deferredCalls.push({callback, ctx});
+      } else {
+        callback(ctx);
+      }
     }
-    // delayed events that get called at the end of the tick
-    void CallDefferedCalls() {
-        while (!deferredCalls.empty()) {
-            auto& [callback, context] = deferredCalls.front();
+  }
+  // delayed events that get called at the end of the tick
+  void CallDefferedCalls() {
+    while (!deferredCalls.empty()) {
+      auto &[callback, context] = deferredCalls.front();
 
-            callback(context);
+      callback(context);
 
-            deferredCalls.pop();
-        }
+      deferredCalls.pop();
     }
+  }
 };

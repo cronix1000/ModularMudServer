@@ -14,8 +14,13 @@ public:
 
 private:
 	void ProcessCombatIntent(int sourceID, const CombatIntentComponent& intent);
-	void ProcessAttack(int sourceID, int targetID, float damage, const std::string& damageType,
-	                   const std::string& attackVerb = "attacks", bool isCritical = false);
+	void ProcessAttack(int sourceID, int targetID, float multiplier, const std::string& damageType,
+	                   const std::string& attackVerb = "attacks", bool forceCritical = false,
+	                   int skillID = -1);
 	void ProcessHeal(int sourceID, int targetID, float healAmount);
 	void ProcessBuff(int sourceID, int targetID, const std::string& buffType, float magnitude);
+	void HandleDeath(int sourceID, int targetID, int skillID, int finalDamage);
+	bool ShouldRenew(const CombatIntentComponent& intent);
+	float RollCritChance(int sourceID);
+	bool IsMagicDamage(const std::string& damageType);
 };

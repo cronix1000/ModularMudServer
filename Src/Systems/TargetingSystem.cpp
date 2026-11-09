@@ -47,20 +47,6 @@ void TargetingSystem::Run(float deltaTime) {
             continue;
         }
 
-        if (targeting->isPositionTarget) {
-            CombatIntentComponent combatIntent;
-            combatIntent.sourceID = sourceID;
-            combatIntent.targetID = -1;
-            combatIntent.actionType = "attack";
-            combatIntent.magnitude = 1.0f;
-            combatIntent.damageType = "physical";
-            combatIntent.attackOnce = true;
-
-            ctx.registry->AddComponent<CombatIntentComponent>(sourceID, combatIntent);
-            ctx.registry->RemoveComponent<TargetingIntentComponent>(sourceID);
-            continue;
-        }
-
         auto* sourcePos = ctx.registry->GetComponent<PositionComponent>(sourceID);
         if (!sourcePos) {
             ctx.registry->RemoveComponent<TargetingIntentComponent>(sourceID);
@@ -121,11 +107,32 @@ void TargetingSystem::Run(float deltaTime) {
                 targetID = matchingTargets[targeting->targetIndex - 1];
             }
 
-            SkillIntentComponent skillIntent;
-            skillIntent.skillId = targeting->skillID;
-            skillIntent.targetId = targetID;
+            if (targeting->skillID < 0) {
+                auto* existing = ctx.registry->GetComponent<CombatIntentComponent>(sourceID);
+                if (existing && !existing->attackOnce) {
+                    existing->targetID = targetID;
+                    existing->nextFireTime = 0.0;
+                } else {
+                    CombatIntentComponent combatIntent;
+                    combatIntent.sourceID = sourceID;
+                    combatIntent.targetID = targetID;
+                    combatIntent.skillID = -1;
+                    combatIntent.actionType = "attack";
+                    combatIntent.magnitude = 1.0f;
+                    combatIntent.damageType = "physical";
+                    combatIntent.dataString = "strike at";
+                    combatIntent.attackOnce = false;
+                    combatIntent.nextFireTime = 0.0;
 
-            ctx.registry->AddComponent<SkillIntentComponent>(sourceID, skillIntent);
+                    ctx.registry->AddComponent<CombatIntentComponent>(sourceID, combatIntent);
+                }
+            } else {
+                SkillIntentComponent skillIntent;
+                skillIntent.skillId = targeting->skillID;
+                skillIntent.targetId = targetID;
+
+                ctx.registry->AddComponent<SkillIntentComponent>(sourceID, skillIntent);
+            }
             ctx.registry->RemoveComponent<TargetingIntentComponent>(sourceID);
         } else {
             // Multiple targets — prompt. On first frame, populate candidates so subsequent

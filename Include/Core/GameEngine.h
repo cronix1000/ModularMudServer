@@ -35,7 +35,6 @@ class InventorySystem;
 class BehaviorSystem;
 class InteractionSystem;
 class TargetingSystem;
-class CombatStateSystem;
 class CommandInterpreter;
 class MessageSystem;
 class SaveSystem;
@@ -100,7 +99,6 @@ public:
 	std::unique_ptr<AmbientAISystem> ambientAISystem;
 	std::unique_ptr<SkillSystem> skillSystem;
 	std::unique_ptr<TargetingSystem> targetingSystem;
-	std::unique_ptr<CombatStateSystem> combatStateSystem;
 	std::unique_ptr<CraftSystem> craftSystem;
 
 private:

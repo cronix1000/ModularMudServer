@@ -8,6 +8,8 @@
 #include "picosha2.h"
 #include "GameContext.h"
 #include "Registry.h"
+#include "CombatComponents.h"
+#include "FactoryManager.h"
 #include "InventoryComponents.h"
 #include "MovementComponents.h"
 #include "PlayerComponents.h"
@@ -222,6 +224,21 @@ bool PostgresDatabase::SavePlayer(EntityID playerEnt, GameContext& ctx) {
             {"intVars", vars->intVars},
             {"stringVars", vars->stringVars}
         };
+    }
+
+    auto* skillHolder = ctx.registry->GetComponent<SkillHolderComponent>(playerEnt);
+    if (skillHolder) {
+        json skillsObj = json::object();
+        for (auto const& [skillEntity, progress] : skillHolder->skills) {
+            std::string key = ctx.factories->skills.GetSkillKey(skillEntity);
+            if (key.empty()) continue;
+            skillsObj[key] = {
+                {"level", progress.level},
+                {"xp", progress.xp},
+                {"uses", progress.uses}
+            };
+        }
+        playerData["skills"] = skillsObj;
     }
 
     int gold = 0;

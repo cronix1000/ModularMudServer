@@ -707,6 +707,11 @@ SkillResult ScriptManager::ExecuteSkillScript(const std::string& scriptPath, con
 	return SkillResult{ false };
 }
 
+void ScriptManager::CallLua(const std::string function, int playerID, const std::string name)
+{
+
+}
+
 void ScriptManager::load_script(const std::string& path) {
 	auto loaded = lua.load_file(path);
 	if (!loaded.valid()) {

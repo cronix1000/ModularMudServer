@@ -4,6 +4,7 @@
 #include "Component.h"
 #include "TextHelperFunctions.h"
 #include "MobAttackComponent.h"
+#include "PowerCalculator.h"
 #include "ScriptManager.h"
 #include "MetaRegistry.h"
 #include <fstream>
@@ -173,6 +174,8 @@ int MobFactory::CreateMob(std::string templateID, json overrides, int x, int y, 
     }
 
     ctx.registry->AddComponent<MobAttackComponent>(id, mobAttack);
+
+    PowerCalculator::RecalculateDerivedStats(ctx.registry.get(), id);
 
     ctx.registry->AddComponent<MobComponent>(id, { tpl.aiType });
 

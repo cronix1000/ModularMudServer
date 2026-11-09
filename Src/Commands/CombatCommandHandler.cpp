@@ -27,22 +27,12 @@ CommandResult CombatCommandHandler::HandleAttack(ClientConnection* client,
         return CommandResult::Failure("Attack who?");
     }
 
-    auto* skillHolder = ctx.registry->GetComponent<SkillHolderComponent>(playerID);
-    if (!skillHolder) {
-        return CommandResult::Failure("You don't know how to fight!");
-    }
-
-    int skillID = skillHolder->Lookup("attack");
-    if (skillID == -1) {
-        return CommandResult::Failure("You have no attack skill ready.");
-    }
-
     TargetingIntentComponent targetingIntent;
     targetingIntent.sourceID = playerID;
     targetingIntent.targetName = TargetingUtils::TokensToString(targetTokens);
     targetingIntent.targetIndex = targetIndex;
     targetingIntent.queryTokens = targetTokens;
-    targetingIntent.skillID = skillID;
+    targetingIntent.skillID = -1;
     targetingIntent.promptExpireTime = 30.0f;
     targetingIntent.elapsedTime = 0.0f;
 
